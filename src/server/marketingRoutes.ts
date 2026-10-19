@@ -1,0 +1,29 @@
+import type {Express} from 'express';
+import type {Firestore} from 'firebase-admin/firestore';
+import {authenticateFirebaseUser,isAuthorizedAdmin} from './payments';
+import {marketingConfig,marketingMetrics,queueCampaign,starterCampaign,newCampaignId,validCampaign,bilingualCampaign,validateMarketingConfig} from './marketing';
+import {malaysiaDay} from '../achievements';
+import {PACKAGES} from '../packages';
+import {marketingVoice} from './marketingVoice';
+export function registerMarketingRoutes(app:Express,db:Firestore,verify=authenticateFirebaseUser){
+ app.use('/api/admin/marketing',async(req,res,next)=>{try{if(!isAuthorizedAdmin(await verify(req)))return res.sendStatus(403);res.set('Cache-Control','no-store');next();}catch{return res.sendStatus(403);}});
+ app.post('/api/admin/marketing/voice',async(req,res)=>{
+  const id=req.body?.requestId,text=typeof req.body?.text==='string'?req.body.text.trim():'';
+  if(typeof id!=='string'||!/^[a-f0-9-]{36}$/.test(id)||!text||text.length>800)return res.status(400).json({error:'Use a narration of 1–800 characters.'});
+  if(!process.env.OPENAI_API_KEY||process.env.MIGRATION_MODE!=='production')return res.status(503).json({error:'Marketing voice is available on production only.'});
+  try{return res.type('audio/mpeg').send(await marketingVoice(db,id,text));}catch(e:any){return res.status(e.code==='duplicate'?409:['limit','budget'].includes(e.code)?429:503).json({error:e.message||'Marketing voice unavailable.'});}
+ });
+ app.get('/api/admin/marketing',async(_req,res)=>{try{const [config,metrics,drafts,integration]=await Promise.all([marketingConfig(db),marketingMetrics(db),db.collection('marketing_drafts').orderBy('createdAt','desc').limit(12).get(),db.doc('marketing/integrations').get()]);return res.json({config,metrics,integration:integration.data()||null,packages:PACKAGES,drafts:drafts.docs.map(d=>({id:d.id,...d.data()}))});}catch{return res.status(503).json({error:'Marketing dashboard unavailable. Please retry.'});}});
+ app.post('/api/admin/marketing/config',async(req,res)=>{if(!validateMarketingConfig(req.body))return res.status(400).json({error:'Check campaign details and non-negative monthly costs. AI budget must be RM0–50.'});try{const keys=['campaignName','audience','offerId','objective','monthlyBudgetRM','advertisingSpendRM','paymentFeesRM','otherCostsRM','actualAICostRM'];await db.doc('marketing/config').set({...Object.fromEntries(keys.map(k=>[k,req.body[k]])),expenseMonth:malaysiaDay(Date.now()).slice(0,7)},{merge:true});return res.json({message:'Campaign settings saved. Prices unchanged.'});}catch{return res.sendStatus(503);}});
+ app.post('/api/admin/marketing/starter',async(_req,res)=>{try{const config=await marketingConfig(db),id=newCampaignId();await db.doc(`marketing_drafts/${id}`).set({source:'template',status:'draft',revision:1,createdAt:Date.now(),config,output:starterCampaign(config)});return res.json({id,message:'Starter draft saved. No AI cost.'});}catch{return res.status(503).json({error:'Could not save draft'});}});
+ app.post('/api/admin/marketing/generate',async(req,res)=>{
+  const id=req.body?.requestId;if(typeof id!=='string'||!/^[a-f0-9-]{36}$/.test(id))return res.sendStatus(400);
+  if(!process.env.OPENAI_API_KEY||!process.env.OPS_RUN_SECRET||process.env.MIGRATION_MODE!=='production')return res.status(503).json({error:'Production AI worker is not configured. Use a starter draft.'});
+  try{const job=await queueCampaign(db,id);if(!job.existing){try{const r=await fetch('https://ez-academy-2-preview.netlify.app/.netlify/functions/marketing-background',{method:'POST',headers:{authorization:`Bearer ${process.env.OPS_RUN_SECRET}`,'Content-Type':'application/json'},body:JSON.stringify({id}),signal:AbortSignal.timeout(10000)});if(!r.ok)throw new Error();}catch{await db.doc(`marketing_drafts/${id}`).set({status:'failed',error:'Worker could not be queued. Refresh and try later. Cost reserve retained.',failedAt:Date.now()},{merge:true});await db.runTransaction(async t=>{const ref=db.doc('marketing/lease'),s=await t.get(ref);if(s.data()?.jobId===id)t.set(ref,{until:0,jobId:id});});throw new Error('queue');}}return res.json({id,message:'Campaign queued. Refresh shortly to view the draft.'});}catch(e:any){return res.status(['limit','budget','busy'].includes(e.code)?429:503).json({error:e.code?e.message:'Could not queue campaign. Use a starter draft.'});}
+ });
+ app.post('/api/admin/marketing/drafts/:id',async(req,res)=>{
+  const {id}=req.params,{action,revision,output}=req.body||{};if(!/^[a-f0-9-]{36}$/.test(id)||!['edit','approve','archive'].includes(action)||!Number.isInteger(revision))return res.sendStatus(400);
+  if(action==='edit'&&!validCampaign(output))return res.status(400).json({error:'Draft fields are invalid or too long.'});
+  try{await db.runTransaction(async t=>{const ref=db.doc(`marketing_drafts/${id}`),s=await t.get(ref),draft=s.data();if(!draft||draft.revision!==revision||!['draft','approved'].includes(draft.status))throw new Error('conflict');if(action==='approve'&&!bilingualCampaign(draft.output))throw new Error('bilingual');t.set(ref,{...(action==='edit'?{output,status:'draft',approvedAt:null}:action==='approve'?{status:'approved',approvedAt:Date.now()}:{status:'archived',archivedAt:Date.now()}),revision:revision+1,updatedAt:Date.now()},{merge:true});});return res.json({message:action==='approve'?'Approved for manual publishing. Nothing has been sent or posted.':action==='archive'?'Draft archived; retained for audit.':'Edits saved. Please review again before approving.'});}catch(e:any){return res.status(e.message==='bilingual'?400:409).json({error:e.message==='bilingual'?'Every headline, script, caption and CTA needs BM: first, then EN: on a new line before approval.':'Draft changed or is still generating. Refresh before trying again.'});}
+ });
+}

@@ -1,0 +1,52 @@
+.admin-workspace, .admin-dashboard { min-width: 0; overflow-wrap: anywhere; }
+.admin-workspace :is(input,select,textarea) { max-width: 100%; min-width: 0; }
+.admin-workspace .grid > *, .admin-dashboard .grid > * { min-width: 0; }
+.admin-workspace .fixed.inset-0 { z-index: 80; }
+.admin-workspace .fixed.inset-0 > div { max-height: calc(100dvh - 2rem); overflow-y: auto; }
+@media (max-width: 639px) {
+  .admin-header { padding: 1rem; position: relative; }
+  .admin-header > div > div:first-child { flex-wrap: wrap; gap: 1rem; }
+  .admin-header h2 { font-size: 1.75rem; }
+  .admin-workspace button { min-height: 44px; }
+  .admin-workspace input:not([type=checkbox]), .admin-workspace select, .admin-workspace textarea { font-size: 16px; }
+  .admin-workspace .flex.items-center.justify-between,
+  .admin-workspace .flex.justify-between.items-start,
+  .admin-dashboard header > div:first-child > .flex,
+  .admin-dashboard .flex.items-center.justify-between { flex-wrap: wrap; gap: .75rem; }
+  .admin-workspace .flex.gap-4, .admin-workspace .flex.items-center.gap-3 { flex-wrap: wrap; }
+  .admin-workspace .relative:has(> input[aria-label="Search users"]) { width: 100%; }
+  .admin-workspace input[aria-label="Search users"] { width: 100%; }
+  .admin-workspace .admin-records { display: block; min-width: 0; width: 100%; }
+  .admin-records thead { display: none; }
+  .admin-records tbody { display: grid; gap: 1rem; width: 100%; }
+  .admin-records tbody > tr { display: grid; padding: .75rem; border: 1px solid rgb(255 255 255 / .12); border-radius: 1rem; background: rgb(255 255 255 / .025); min-width: 0; }
+  .admin-records td[data-label] { display: block; padding: .5rem 0; text-align: left; min-width: 0; }
+  .admin-records td[data-label]::before { content: attr(data-label); display: block; font-size: .7rem; font-weight: 700; color: rgb(255 255 255 / .5); margin-bottom: .35rem; }
+  .admin-records td[data-label="Actions"] > .flex { justify-content: flex-start; flex-wrap: wrap; }
+  .admin-records td button[title]::after { content: attr(title); font-size: .75rem; margin-left: .4rem; }
+  .admin-records td button[title] { display: inline-flex; align-items: center; padding: .65rem; }
+  .admin-workspace .fixed.bottom-10 { bottom: calc(6rem + env(safe-area-inset-bottom)); width: calc(100% - 2rem); border-radius: 1rem; }
+  .admin-workspace .fixed.bottom-10 > div { width: 100%; justify-content: center; flex-wrap: wrap; }
+  .admin-workspace .fixed.bottom-10 button { padding: .75rem 1rem; }
+  .admin-dashboard .glass-card { padding: 1rem; }
+}
+
+@media (max-width: 639px) {
+  .admin-records button > span.absolute { display: none; }
+  .admin-dashboard :is(h2, h3) { overflow-wrap: normal; }
+}
+.daily-report { max-width: 1120px; margin-inline: auto; }
+.daily-report-card { min-width:0; border:1px solid #30352a; border-radius:14px; padding:18px; background:linear-gradient(135deg,#181b14,#131510); }
+.daily-report-button { display:inline-flex; min-height:44px; align-items:center; justify-content:center; gap:8px; padding:8px 12px; border:1px solid #353b2b; border-radius:9px; font-size:12px; background:#1b2015; color:#d8dfca; }
+.daily-report-button:hover { border-color:#8c9f60; }
+.daily-report button:disabled { opacity:.4; cursor:not-allowed; }
+.daily-report input[type=checkbox] { accent-color:#d4ff00; }
+.daily-report :is(button,input,a):focus-visible { outline:2px solid #d4ff00; outline-offset:3px; }
+@media(max-width:400px) { .daily-report-card { padding:12px; } .daily-report-button { padding:8px 10px; } }
+#main-content .daily-report h1 { font-size:20px; font-weight:600; line-height:1.4; font-style:normal; }
+#main-content .daily-report h2 { font-size:14px; font-weight:600; line-height:1.4; font-style:normal; }
+#main-content .daily-report .daily-report-stat h2 { font-size:12px; font-weight:500; }
+#main-content .daily-report .daily-report-stat > p:first-of-type { font-size:24px; line-height:1.25; }
+.daily-report .text-xs { font-size:12px; }
+.daily-report .text-sm { font-size:14px; }
+@media(max-width:639px) { .daily-report input[type=date], .daily-report input[type=search] { font-size:16px; } }

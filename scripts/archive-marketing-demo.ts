@@ -1,0 +1,20 @@
+import {readFileSync,writeFileSync} from 'node:fs';
+import {initializeExistingFirebase} from '../src/server/firebaseAdmin';
+import {Timestamp} from 'firebase-admin/firestore';
+process.env.FIREBASE_SERVICE_ACCOUNT_JSON=readFileSync('/Users/shahril/.codex/ez-academy-secrets/firebase-server.json','utf8');
+const {auth,database:db}=initializeExistingFirebase();
+const owner=await auth.getUserByEmail('ezacademy.my@gmail.com');
+const snap=await db.collection(`users/${owner.uid}/sessions`).where('timestamp','>=',Timestamp.fromMillis(1791794010000)).where('timestamp','<=',Timestamp.fromMillis(1791794030000)).get();
+const candidates=snap.docs.filter(d=>{const s=d.data();return d.id==='read_trial_6b6239cd-5348-4cd8-a7e9-f746bd6f0469'&&s.type==='ReadEZ'&&s.testSetId==='kuala-lumpur-2026'&&s.readingResult?.correct===8&&s.readingResult?.total===8;});
+console.log('Exact owner-created marketing demo matches:',candidates.length);
+if(candidates.length!==1)process.exit(0);
+const source=candidates[0],data=source.data();
+writeFileSync('../MARKETING_REEL_V2/owner-reading-demo-backup.json',JSON.stringify({path:source.ref.path,data},null,2));
+await db.runTransaction(async t=>{
+ const current=await t.get(source.ref);if(!current.exists||!current.data()?.timestamp?.isEqual(data.timestamp))throw new Error('Demo changed; archive cancelled.');
+ const archived=db.doc(`users/${owner.uid}/marketing_demo_sessions/${source.id}`);
+ const existing=await t.get(archived);if(existing.exists)throw new Error('Archive already exists; original retained.');
+ t.set(archived,{...current.data(),archivedAt:Date.now(),archiveReason:'Owner-only marketing screen capture; exclude demo from learner History and achievements.',originalPath:source.ref.path});
+ t.delete(source.ref);
+});
+console.log('Only the newly created demo score archived with full backup; original practice results retained.');

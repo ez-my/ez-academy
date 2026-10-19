@@ -1,0 +1,13 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtempSync,writeFileSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {execFileSync} from 'node:child_process';
+import {starterCampaign} from '../src/server/marketing';
+import {splitBilingual,campaignSlides,marketingSlideSVG,zipFiles} from '../src/lib/marketingAssets';
+test('Creative rejects missing translation rather than silently dropping it',()=>{assert.throws(()=>splitBilingual('English only'),/both BM/);const copy=splitBilingual('BM: Mula hari ini.\nEN: Start today.\n#EZAcademy');assert.equal(copy.bm,'Mula hari ini.');assert.equal(copy.en,'Start today.');});
+test('Carousel keeps complete words and both languages across slides',()=>{const post=starterCampaign().posts[0],slides=campaignSlides(post);assert.equal(slides[0].kind,'cover');assert.equal(slides.at(-1)?.kind,'cta');const scripts=slides.filter(s=>s.kind==='practice');const original=splitBilingual(post.script);assert.equal(scripts.map(s=>s.bm).join(' '),original.bm);assert.equal(scripts.map(s=>s.en).join(' '),original.en);});
+test('Rendered SVG safely escapes untrusted copy and uses correct export dimensions',()=>{const svg=marketingSlideSVG({kind:'cover',label:'<img>',bm:'<script>alert(1)</script>',en:'Clear & simple'},0,3,'story');assert.match(svg,/width="1080" height="1920"/);assert.doesNotMatch(svg,/<script>/);assert.match(svg,/&lt;script&gt;/);assert.match(svg,/BAHASA MELAYU/);assert.match(svg,/EASY ENGLISH/);});
+test('ZIP opens in an independent reader with exact Unicode content',()=>{const dir=mkdtempSync(join(tmpdir(),'ez-marketing-zip-'));try{const path=join(dir,'pack.zip');writeFileSync(path,zipFiles([{name:'caption.txt',bytes:new TextEncoder().encode('BM: Cuba hari ini!\nEN: Try today! 🌱')},{name:'slide-01.svg',bytes:new TextEncoder().encode('<svg/>')}]));const out=execFileSync('python3',['-c','import zipfile,sys;z=zipfile.ZipFile(sys.argv[1]);assert z.testzip() is None;assert z.namelist()==["caption.txt","slide-01.svg"];print(z.read("caption.txt").decode())',path],{encoding:'utf8'});assert.match(out,/Try today! 🌱/);}finally{rmSync(dir,{recursive:true,force:true});}});
+test('Very long text yields an actionable error instead of clipping a visual',()=>{assert.throws(()=>marketingSlideSVG({kind:'cover',label:'TEST',bm:'word '.repeat(1500),en:'Easy'},0,1),/too long/);assert.throws(()=>zipFiles([{name:'../bad.txt',bytes:new Uint8Array()}]),/Invalid export/);});

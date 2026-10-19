@@ -1,0 +1,5 @@
+Generated with built-in imagegen on 18 October 2026. Four transparent high resolution illustrations: speaking, writing, reading, listening. PNG originals and 600px WebP delivery files saved beside this document.
+
+Shared prompt: Premium crisp high resolution 3D animated educational mascot cutout for EZ Academy skill card. Friendly Malaysian teenage boy, swept dark brown hair, warm brown eyes, black hoodie with small lime green EZ letters. Waist-up portrait, complete head and shoulders, hands and props fully in frame. Transparent background, clean sharp silhouette, detailed hair fabric, polished studio lighting, subtle green rim light. No background no UI no text except EZ on hoodie. Highest resolution.
+
+Poses: Speaking—smiling while speaking and waving one hand, lively open mouth. Writing—holding a yellow pencil and small notebook, focused happy expression. Reading—reading an open dark blue book, happy focused expression. Listening—wearing large headphones, eyes closed enjoying listening, relaxed smile.

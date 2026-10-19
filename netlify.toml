@@ -1,0 +1,31 @@
+[build]
+  command = "npm run build:netlify"
+  publish = "dist-web"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/api/listening/audio/*"
+  to = "/.netlify/functions/listening-audio/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+
+[functions."ops-scheduler"]
+  schedule = "0 */8 * * *"

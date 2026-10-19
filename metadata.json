@@ -1,0 +1,6 @@
+{
+  "name": "EZ Academy",
+  "description": "Premium AI-powered English learning platform by EZ Academy, specializing in SPM, MUET, and professional fluency.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": []
+}

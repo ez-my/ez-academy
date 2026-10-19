@@ -1,0 +1,86 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation Blueprints
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'displayName', 'goal', 'level', 'onboardingCompleted'])
+        && data.keys().size() <= 10
+        && data.uid == request.auth.uid
+        && data.email is string && data.email.size() <= 256
+        && data.displayName is string && data.displayName.size() <= 100
+        && data.goal in ['SPM', 'MUET', 'PROFESSIONAL']
+        && data.level in ['BEGINNER', 'INTERMEDIATE', 'ADVANCED']
+        && data.onboardingCompleted is bool
+        && (data.get('streak', 0) is int)
+        && (data.get('points', 0) is int)
+        && (data.get('weeklyGoalProgress', 0) is int);
+    }
+
+    function isValidSession(data) {
+      return data.keys().hasAll(['id', 'userId', 'type', 'timestamp', 'score', 'feedback', 'metrics'])
+        && data.keys().size() <= 10
+        && data.userId == request.auth.uid
+        && data.id is string && data.id.size() <= 128
+        && data.type in ['SpeakEZ', 'WriteEZ', 'ReadEZ', 'ListenEZ']
+        && data.timestamp is number
+        && data.score is int && data.score >= 0 && data.score <= 100
+        && data.feedback is string && data.feedback.size() <= 50000
+        && data.metrics is map
+        && data.metrics.fluency is int && data.metrics.fluency >= 0 && data.metrics.fluency <= 100
+        && data.metrics.grammar is int && data.metrics.grammar >= 0 && data.metrics.grammar <= 100
+        && data.metrics.vocabulary is int && data.metrics.vocabulary >= 0 && data.metrics.vocabulary <= 100
+        && data.metrics.comprehension is int && data.metrics.comprehension >= 0 && data.metrics.comprehension <= 100
+        && data.metrics.pronunciation is int && data.metrics.pronunciation >= 0 && data.metrics.pronunciation <= 100
+        && data.metrics.structure is int && data.metrics.structure >= 0 && data.metrics.structure <= 100;
+    }
+
+    // Path Rules
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) 
+        && isValidUser(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt;
+      
+      match /sessions/{sessionId} {
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(sessionId) && isValidSession(incoming());
+        allow update: if isOwner(userId)
+          && isValidSession(incoming())
+          && incoming().id == existing().id
+          && incoming().userId == existing().userId
+          && incoming().timestamp == existing().timestamp;
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}

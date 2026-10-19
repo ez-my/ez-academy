@@ -1,0 +1,97 @@
+--- src/pages/ListenEZ.tsx
++++ src/pages/ListenEZ.tsx
+@@ -19,7 +19,8 @@
+   MessageSquare,
+   Languages,
+   Search,
+-  X
++  X,
++  Download
+ } from 'lucide-react';
+ import { GoogleDriveService } from '../services/googleDriveService';
+ import { GeminiService } from '../services/geminiService';
+@@ -37,6 +38,7 @@
+ import { db, saveSession, updateProfile } from '../lib/firebase';
+ import { cn } from '../lib/utils';
+ import { SuccessFeedback } from '../components/layout/SuccessFeedback';
++import { saveListenTestOffline, getOfflineListenTests } from '../lib/offlineStorage';
+ import { PaywallModal } from '../components/paywall/PaywallModal';
+ import { increment } from 'firebase/firestore';
+ import { useNavigate } from 'react-router-dom';
+@@ -67,6 +69,7 @@
+   const [aiLoading, setAiLoading] = useState(false);
+   const [transcript, setTranscript] = useState<string | null>(null);
+   const [isOfflineMode, setIsOfflineMode] = useState(!navigator.onLine);
++  const [isSavingOffline, setIsSavingOffline] = useState(false);
+ 
+   // Translator State
+   const [translatorOpen, setTranslatorOpen] = useState(false);
+@@ -185,6 +188,24 @@
+     setState('LOADING');
+     setErrorHeader(null);
+     try {
++      let test;
++      if (isOfflineMode) {
++        const offlineTests = await getOfflineListenTests();
++        if (offlineTests.length > 0) {
++          test = offlineTests[Math.floor(Math.random() * offlineTests.length)];
++        }
++      }
++
++      if (test) {
++        setTestSet(test);
++        setState('PLAYING');
++        setStartTime(Date.now());
++        timerRef.current = setInterval(() => {
++          setDuration(prev => prev + 1);
++        }, 1000);
++        return;
++      }
++
+       // 1. Try to get a question from the shared bank first (Rotation)
+       const sharedTest = await getRandomListenQuestion(profile.uid, isOfflineMode);
+       if (sharedTest) {
+@@ -219,6 +240,29 @@
+     }
+   };
+ 
++  const handleSaveForOffline = async () => {
++    if (isSavingOffline) return;
++    setIsSavingOffline(true);
++    const toastId = toast.loading('Downloading listen module for offline use...');
++    try {
++      let test = await getRandomListenQuestion(profile.uid, false);
++      if (!test) {
++         const sets = await GoogleDriveService.listTestSets();
++         if (sets.length > 0) {
++           const randomSetInfo = sets[Math.floor(Math.random() * sets.length)];
++           test = await GoogleDriveService.loadTestSet(randomSetInfo.id);
++         }
++      }
++      if (!test) throw new Error('No listening tests available to save.');
++      await saveListenTestOffline(test);
++      toast.success('Module saved for offline practice!', { id: toastId });
++    } catch (err: any) {
++      console.error(err);
++      toast.error('Failed to save listen module offline.', { id: toastId });
++    } finally {
++      setIsSavingOffline(false);
++    }
++  };
+ 
+   const handleGenerateAI = async () => {
+     if (profile.plan === 'free') {
+@@ -614,6 +658,13 @@
+           >
+             Offline
+           </button>
++          <button 
++            onClick={handleSaveForOffline}
++            disabled={isSavingOffline}
++            className={cn("flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all text-white/40 hover:text-white/60", isSavingOffline && "opacity-50 cursor-not-allowed")}
++          >
++            {isSavingOffline ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />} Save
++          </button>
+         </div>
+         
+         <div className="space-y-4">

@@ -1,0 +1,202 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Stores user preferences, goals, and progress tracking.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "goal": { "type": "string", "enum": ["SPM", "MUET", "PROFESSIONAL"] },
+        "level": { "type": "string", "enum": ["BEGINNER", "INTERMEDIATE", "ADVANCED"] },
+        "onboardingCompleted": { "type": "boolean" },
+        "streak": { "type": "integer" },
+        "streakGoal": { "type": "integer" },
+        "points": { "type": "integer" },
+        "weeklyGoalProgress": { "type": "integer" },
+        "credits": { "type": "integer" },
+        "plan": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["uid", "email", "displayName", "goal", "level", "onboardingCompleted"]
+    },
+    "TaskReminder": {
+      "title": "Task Reminder",
+      "description": "User-defined reminders for practice tasks.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "date": { "type": "number" },
+        "type": { "type": "string" },
+        "completed": { "type": "boolean" }
+      },
+      "required": ["title", "date", "type", "completed"]
+    },
+    "Session": {
+      "title": "Practice Session",
+      "description": "Metadata and AI feedback for a specific learning module session.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["SpeakEZ", "WriteEZ", "ReadEZ", "ListenEZ"] },
+        "timestamp": { "type": "number" },
+        "duration": { "type": "integer" },
+        "score": { "type": "integer" },
+        "feedback": { "type": "string" },
+        "transcript": { "type": "string" },
+        "metrics": {
+          "type": "object",
+          "properties": {
+            "fluency": { "type": "integer" },
+            "grammar": { "type": "integer" },
+            "vocabulary": { "type": "integer" },
+            "comprehension": { "type": "integer" },
+            "pronunciation": { "type": "integer" },
+            "structure": { "type": "integer" }
+          }
+        }
+      },
+      "required": ["id", "userId", "type", "timestamp", "score", "feedback", "metrics"]
+    },
+    "AppModule": {
+      "title": "Application Module",
+      "description": "Configurable learning modules display and access settings.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "iconName": { "type": "string" },
+        "slug": { "type": "string" },
+        "order": { "type": "integer" },
+        "isActive": { "type": "boolean" },
+        "category": { "type": "string", "enum": ["core", "bonus", "exam"] },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["id", "name", "description", "slug", "isActive"]
+    },
+    "Feedback": {
+      "title": "User Feedback",
+      "description": "Complaints, suggestions, or feedback from users.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "type": { "type": "string", "enum": ["FEEDBACK", "COMPLAINT", "SUGGESTION", "OTHER"] },
+        "subject": { "type": "string" },
+        "message": { "type": "string" },
+        "status": { "type": "string", "enum": ["PENDING", "REVIEWED", "RESOLVED"] },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["userId", "userEmail", "type", "subject", "message", "status", "createdAt"]
+    },
+    "ActivityLog": {
+      "title": "Activity Log",
+      "description": "Record of user activities, achievements, and level ups.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["PRACTICE", "LEVEL_UP", "ACHIEVEMENT", "INFO"] },
+        "message": { "type": "string" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["id", "userId", "type", "message", "timestamp"]
+    },
+    "UserCompletedTask": {
+      "title": "User Completed Task",
+      "description": "Tracks which questions a user has already completed to avoid repeats.",
+      "type": "object",
+      "properties": {
+        "taskId": { "type": "string" },
+        "timestamp": { "type": "number" },
+        "score": { "type": "number" }
+      },
+      "required": ["taskId", "timestamp"]
+    },
+    "QuestionBankItem": {
+      "title": "Question Bank Item",
+      "description": "A shared practice question generated by AI or added by admin.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["Writing", "Speaking", "Reading", "Listening"] },
+        "part": { "type": "string" },
+        "data": { "type": "object" },
+        "isPublic": { "type": "boolean" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["type", "part", "data", "createdAt"]
+    },
+    "Transaction": {
+      "title": "Payment Transaction",
+      "description": "Financial records for subscriptions and credit purchases.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "userName": { "type": "string" },
+        "planId": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string", "enum": ["PENDING", "SUCCESS", "FAILED"] },
+        "billCode": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["userId", "planId", "amount", "status"]
+    }
+  },
+  "firestore": {
+    "/transactions/{txId}": {
+      "schema": "Transaction",
+      "description": "Financial records for subscriptions and credit purchases."
+    },
+    "/questions/{questionId}": {
+      "schema": "QuestionBankItem",
+      "description": "Global repository of practice questions."
+    },
+    "/users/{userId}/completed_questions/{questionId}": {
+      "schema": "UserCompletedTask",
+      "description": "List of questions the user has already seen/completed."
+    },
+    "/modules/{moduleId}": {
+      "schema": "AppModule",
+      "description": "App modules configuration."
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles and progress."
+    },
+    "/users/{userId}/sessions/{sessionId}": {
+      "schema": "Session",
+      "description": "User's practice history and AI analysis results."
+    },
+    "/users/{userId}/reminders/{reminderId}": {
+      "schema": "TaskReminder",
+      "description": "User's practice task reminders."
+    },
+    "/feedback/{feedbackId}": {
+      "schema": "Feedback",
+      "description": "User submitted feedback and complaints."
+    },
+    "/activity_logs/{logId}": {
+      "schema": "ActivityLog",
+      "description": "Global user activity logs."
+    },
+    "/settings/{docId}": {
+      "schema": "object",
+      "description": "Site-wide configuration and settings."
+    },
+    "/system/{docId}": {
+      "schema": "object",
+      "description": "System health checks and connectivity tests."
+    }
+  }
+}

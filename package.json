@@ -1,0 +1,68 @@
+{
+  "name": "ez-academy-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --clear-screen=false server.ts",
+    "build": "npm run build:netlify && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
+    "start": "NODE_ENV=production node dist/server.cjs",
+    "lint": "tsc --noEmit",
+    "test:payments": "node --import tsx --test tests/payments.test.ts",
+    "build:netlify": "vite build --outDir dist-web && node scripts/build-netlify-server.mjs && node scripts/check-netlify-runtime.mjs",
+    "test:migration": "node --import tsx --test tests/migration.test.ts",
+    "generate:ai-clients": "node scripts/generate-ai-clients.mjs",
+    "test": "node --import tsx --test tests/*.test.ts"
+  },
+  "dependencies": {
+    "@google/genai": "^1.29.0",
+    "@netlify/functions": "^6.0.2",
+    "@tailwindcss/vite": "^4.1.14",
+    "@types/canvas-confetti": "^1.9.0",
+    "@vitejs/plugin-react": "^5.0.4",
+    "autoprefixer": "^10.4.21",
+    "axios": "^1.15.2",
+    "canvas-confetti": "^1.9.4",
+    "clsx": "^2.1.1",
+    "dotenv": "^17.2.3",
+    "express": "^4.21.2",
+    "firebase": "^12.12.1",
+    "firebase-admin": "^14.5.0",
+    "idb-keyval": "^6.2.2",
+    "lucide-react": "^0.546.0",
+    "mediabunny": "^1.61.3",
+    "motion": "^12.23.24",
+    "openai": "^6.45.0",
+    "qrcode": "^1.5.4",
+    "qs": "^6.16.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-hot-toast": "^2.6.0",
+    "react-markdown": "^10.1.0",
+    "react-quill-new": "^3.8.3",
+    "react-router-dom": "^7.14.2",
+    "recharts": "^3.8.1",
+    "serverless-http": "^4.0.0",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^4.1.14",
+    "tsx": "^4.21.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
+  },
+  "devDependencies": {
+    "@firebase/eslint-plugin-security-rules": "^0.0.2",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.14.0",
+    "@types/qrcode": "^1.5.6",
+    "@types/quill": "^2.0.14",
+    "esbuild": "^0.28.0"
+  },
+  "description": "EZ Academy English learning app",
+  "overrides": {
+    "@grpc/grpc-js": "^1.14.6",
+    "qs": "^6.16.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

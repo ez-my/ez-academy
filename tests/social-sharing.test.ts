@@ -1,0 +1,6 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {SOCIAL_PLATFORMS,socialShareURL,achievementCaption} from '../src/lib/socialSharing';
+test('Social compose links preserve achievement text and encode special characters safely',()=>{for(const id of ['whatsapp','x','threads','telegram'] as const){const u=new URL(socialShareURL(id,'First & Best?','Practice #1'));assert.match(u.searchParams.get('text')||'',/First & Best\?/);assert.match(u.searchParams.get('text')||'',/Practice #1/);}assert.equal(new URL(socialShareURL('telegram','First','Practice')).searchParams.get('url'),'https://ez-academy.my/');});
+test('Instagram and TikTok explicitly use manual upload instead of fake publishing endpoints',()=>{for(const id of ['instagram','tiktok'] as const){assert.equal(SOCIAL_PLATFORMS.find(p=>p.id===id)?.manual,true);assert.equal(new URL(socialShareURL(id,'Badge','Done')).search,'');}});
+test('All ten platforms use fixed safe destinations; captions contain no user identifiers',()=>{assert.equal(SOCIAL_PLATFORMS.length,10);for(const p of SOCIAL_PLATFORMS){const u=new URL(socialShareURL(p.id,'First Step','Completed practice'));assert.ok(['https:','mailto:'].includes(u.protocol));}const text=achievementCaption('First Step','Completed practice');assert.match(text,/https:\/\/ez-academy.my\//);assert.match(text,/#AchievementUnlocked/);});

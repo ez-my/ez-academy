@@ -1,0 +1,11 @@
+import {readFileSync,writeFileSync} from 'node:fs';
+import {initializeExistingFirebase} from '../src/server/firebaseAdmin';
+process.env.FIREBASE_SERVICE_ACCOUNT_JSON=readFileSync('/Users/shahril/.codex/ez-academy-secrets/firebase-server.json','utf8');
+const {database:db}=initializeExistingFirebase();
+const file='../MARKETING_REEL_V2/web-campaign.json';
+const record=JSON.parse(readFileSync(file,'utf8'));
+const media={videoUrl:'https://ez-academy.my/marketing/english-four-skills-v5/overview.mp4',coverUrl:'https://ez-academy.my/marketing/english-four-skills-v5/cover.png',plannerUrl:'https://app.metricool.com/planner/calendar?blogId=7375090&openWithPostUuid=4956824001071759551',metricoolId:394108566,metricoolUuid:'4956824001071759551',version:5,note:'Real four-skill app demo with AI narration. Independent visual and technical review passed for private owner review. Owner listening review remains pending. Metricool draft only; autoPublish false.'};
+await db.doc('marketing_drafts/'+record.id).update({media,'review.mediaVerdict':'ready_for_private_owner_review','review.voiceNaturalness':'owner_review_pending','review.publicPosting':false});
+record.media=media;record.review={...record.review,mediaVerdict:'ready_for_private_owner_review',voiceNaturalness:'owner_review_pending',publicPosting:false};
+writeFileSync(file,JSON.stringify(record,null,2));
+console.log('Private four-skill draft linked to verified V5 video and Metricool draft.');

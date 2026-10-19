@@ -1,0 +1,502 @@
+[
+  {
+    "id": "profound",
+    "word": "profound",
+    "partOfSpeech": "adjective",
+    "meaning": "very deep or important",
+    "malay": "mendalam",
+    "example": "The flood had a profound effect on the whole community.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/profound"
+  },
+  {
+    "id": "strenuous",
+    "word": "strenuous",
+    "partOfSpeech": "adjective",
+    "meaning": "needing a lot of physical effort",
+    "malay": "memerlukan tenaga yang banyak",
+    "example": "A strenuous climb can be unsafe without enough water.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/strenuous"
+  },
+  {
+    "id": "rigid",
+    "word": "rigid",
+    "partOfSpeech": "adjective",
+    "meaning": "stiff and difficult to bend",
+    "malay": "tegar",
+    "example": "A rigid frame helps the shelter stay firm in strong wind.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/rigid"
+  },
+  {
+    "id": "ambiguous",
+    "word": "ambiguous",
+    "partOfSpeech": "adjective",
+    "meaning": "having more than one possible meaning",
+    "malay": "mempunyai lebih daripada satu maksud",
+    "example": "The ambiguous message left students unsure about the deadline.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/ambiguous"
+  },
+  {
+    "id": "coherent",
+    "word": "coherent",
+    "partOfSpeech": "adjective",
+    "meaning": "clear and connected in a sensible way",
+    "malay": "jelas dan tersusun",
+    "example": "A coherent argument connects each reason to the main idea.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/coherent"
+  },
+  {
+    "id": "meticulous",
+    "word": "meticulous",
+    "partOfSpeech": "adjective",
+    "meaning": "very careful about every small detail",
+    "malay": "sangat teliti",
+    "example": "The team made a meticulous check of the safety equipment.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/meticulous"
+  },
+  {
+    "id": "pragmatic",
+    "word": "pragmatic",
+    "partOfSpeech": "adjective",
+    "meaning": "focused on what works in real life",
+    "malay": "mengutamakan cara yang praktikal",
+    "example": "A pragmatic solution uses the resources we already have.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/pragmatic"
+  },
+  {
+    "id": "plausible",
+    "word": "plausible",
+    "partOfSpeech": "adjective",
+    "meaning": "seeming reasonable enough to be true",
+    "malay": "munasabah",
+    "example": "She gave a plausible explanation for the missing data.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/plausible"
+  },
+  {
+    "id": "unprecedented",
+    "word": "unprecedented",
+    "partOfSpeech": "adjective",
+    "meaning": "never having happened before",
+    "malay": "belum pernah berlaku sebelum ini",
+    "example": "The town faced an unprecedented rise in water levels.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/unprecedented"
+  },
+  {
+    "id": "indispensable",
+    "word": "indispensable",
+    "partOfSpeech": "adjective",
+    "meaning": "so useful or important that it is needed",
+    "malay": "sangat diperlukan",
+    "example": "Clean water is indispensable to every community.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/indispensable"
+  },
+  {
+    "id": "mediocre",
+    "word": "mediocre",
+    "partOfSpeech": "adjective",
+    "meaning": "only average and not very good",
+    "malay": "sederhana dan kurang memuaskan",
+    "example": "Rushing the final check can turn good work into a mediocre result.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/mediocre"
+  },
+  {
+    "id": "subtle",
+    "word": "subtle",
+    "partOfSpeech": "adjective",
+    "meaning": "small and not easy to notice",
+    "malay": "halus dan tidak ketara",
+    "example": "A subtle change in tone can make a message sound kinder.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/subtle"
+  },
+  {
+    "id": "resilient",
+    "word": "resilient",
+    "partOfSpeech": "adjective",
+    "meaning": "able to recover after something difficult",
+    "malay": "berdaya tahan",
+    "example": "A resilient community supports families after a disaster.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/resilient"
+  },
+  {
+    "id": "elusive",
+    "word": "elusive",
+    "partOfSpeech": "adjective",
+    "meaning": "difficult to find, achieve or explain",
+    "malay": "sukar ditemukan atau dicapai",
+    "example": "A lasting solution remains elusive when people refuse to listen.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/elusive"
+  },
+  {
+    "id": "formidable",
+    "word": "formidable",
+    "partOfSpeech": "adjective",
+    "meaning": "very difficult to deal with",
+    "malay": "sukar ditangani",
+    "example": "Limited funding is a formidable challenge for the small charity.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/formidable"
+  },
+  {
+    "id": "undermine",
+    "word": "undermine",
+    "partOfSpeech": "verb",
+    "meaning": "to make something gradually weaker",
+    "malay": "melemahkan",
+    "example": "False claims can undermine public trust in useful health advice.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/undermine"
+  },
+  {
+    "id": "unanimous",
+    "word": "unanimous",
+    "partOfSpeech": "adjective",
+    "meaning": "agreed by every person involved",
+    "malay": "sebulat suara",
+    "example": "The council made a unanimous decision to protect the park.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/unanimous"
+  },
+  {
+    "id": "detrimental",
+    "word": "detrimental",
+    "partOfSpeech": "adjective",
+    "meaning": "causing harm or damage",
+    "malay": "memudaratkan",
+    "example": "Too little sleep can be detrimental to concentration.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/detrimental"
+  },
+  {
+    "id": "assertive",
+    "word": "assertive",
+    "partOfSpeech": "adjective",
+    "meaning": "confident in stating your needs or views",
+    "malay": "tegas dan yakin",
+    "example": "An assertive speaker can disagree without being rude.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/assertive"
+  },
+  {
+    "id": "tangible",
+    "word": "tangible",
+    "partOfSpeech": "adjective",
+    "meaning": "real and clear enough to notice",
+    "malay": "nyata",
+    "example": "The new bus route brought tangible benefits to local students.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/tangible"
+  },
+  {
+    "id": "disillusioned",
+    "word": "disillusioned",
+    "partOfSpeech": "adjective",
+    "meaning": "disappointed after losing trust in something",
+    "malay": "kecewa kerana hilang kepercayaan",
+    "example": "Young voters may feel disillusioned when promises are repeatedly broken.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/disillusioned"
+  },
+  {
+    "id": "intrinsic",
+    "word": "intrinsic",
+    "partOfSpeech": "adjective",
+    "meaning": "being a natural part of something",
+    "malay": "bersifat semula jadi dalam sesuatu",
+    "example": "Curiosity has intrinsic value beyond getting high marks.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/intrinsic"
+  },
+  {
+    "id": "indisputable",
+    "word": "indisputable",
+    "partOfSpeech": "adjective",
+    "meaning": "so clearly true that it cannot be doubted",
+    "malay": "tidak dapat disangkal",
+    "example": "The results offer indisputable evidence that the filter removes dirt.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/indisputable"
+  },
+  {
+    "id": "imminent",
+    "word": "imminent",
+    "partOfSpeech": "adjective",
+    "meaning": "expected to happen very soon",
+    "malay": "bakal berlaku tidak lama lagi",
+    "example": "The weather alert warned of an imminent storm.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/imminent"
+  },
+  {
+    "id": "tiresome",
+    "word": "tiresome",
+    "partOfSpeech": "adjective",
+    "meaning": "annoying because it is boring or repeated",
+    "malay": "membosankan dan menjengkelkan",
+    "example": "Repeated online adverts can become tiresome for learners.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/tiresome"
+  },
+  {
+    "id": "tasteless",
+    "word": "tasteless",
+    "partOfSpeech": "adjective",
+    "meaning": "showing poor judgement and likely to offend",
+    "malay": "tidak beradab atau menyinggung perasaan",
+    "example": "A tasteless joke about a disaster can hurt affected families.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/tasteless"
+  },
+  {
+    "id": "troublesome",
+    "word": "troublesome",
+    "partOfSpeech": "adjective",
+    "meaning": "causing problems or difficulty",
+    "malay": "menyusahkan",
+    "example": "A troublesome leak made the classroom floor unsafe.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/troublesome"
+  },
+  {
+    "id": "abrupt",
+    "word": "abrupt",
+    "partOfSpeech": "adjective",
+    "meaning": "sudden and unexpected",
+    "malay": "mendadak",
+    "example": "An abrupt change in the timetable confused the students.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/abrupt"
+  },
+  {
+    "id": "arbitrary",
+    "word": "arbitrary",
+    "partOfSpeech": "adjective",
+    "meaning": "chosen without a clear reason or rule",
+    "malay": "sewenang-wenangnya",
+    "example": "An arbitrary rule can make an otherwise fair system unequal.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/arbitrary"
+  },
+  {
+    "id": "conclusive",
+    "word": "conclusive",
+    "partOfSpeech": "adjective",
+    "meaning": "showing something to be true beyond doubt",
+    "malay": "muktamad",
+    "example": "One small study does not provide conclusive proof.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/conclusive"
+  },
+  {
+    "id": "cynical",
+    "word": "cynical",
+    "partOfSpeech": "adjective",
+    "meaning": "believing people act mainly for selfish reasons",
+    "malay": "sinis",
+    "example": "A cynical response can discourage someone who is trying to help.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/cynical"
+  },
+  {
+    "id": "discreet",
+    "word": "discreet",
+    "partOfSpeech": "adjective",
+    "meaning": "careful to avoid causing worry or embarrassment",
+    "malay": "berhati-hati dan menjaga rahsia",
+    "example": "A discreet conversation can help a student ask for support.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/discreet"
+  },
+  {
+    "id": "dubious",
+    "word": "dubious",
+    "partOfSpeech": "adjective",
+    "meaning": "not seeming honest, true or reliable",
+    "malay": "meragukan",
+    "example": "Check the source before sharing a dubious online claim.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/dubious"
+  },
+  {
+    "id": "explicit",
+    "word": "explicit",
+    "partOfSpeech": "adjective",
+    "meaning": "stated clearly and directly",
+    "malay": "jelas dan terus terang",
+    "example": "The teacher gave explicit instructions for the listening task.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/explicit"
+  },
+  {
+    "id": "exquisite",
+    "word": "exquisite",
+    "partOfSpeech": "adjective",
+    "meaning": "extremely beautiful or carefully made",
+    "malay": "sangat indah",
+    "example": "The museum displayed an exquisite piece of local craft.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/exquisite"
+  },
+  {
+    "id": "inherent",
+    "word": "inherent",
+    "partOfSpeech": "adjective",
+    "meaning": "existing as a natural part of something",
+    "malay": "sedia ada dalam sesuatu",
+    "example": "Online sharing has inherent risks that users should understand.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/inherent"
+  },
+  {
+    "id": "legitimate",
+    "word": "legitimate",
+    "partOfSpeech": "adjective",
+    "meaning": "reasonable, acceptable or allowed by law",
+    "malay": "sah atau berasas",
+    "example": "Students have a legitimate concern about the cost of transport.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/legitimate"
+  },
+  {
+    "id": "negligible",
+    "word": "negligible",
+    "partOfSpeech": "adjective",
+    "meaning": "too small to make an important difference",
+    "malay": "terlalu kecil untuk memberi kesan",
+    "example": "The repair caused only a negligible delay to the service.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/negligible"
+  },
+  {
+    "id": "redundant",
+    "word": "redundant",
+    "partOfSpeech": "adjective",
+    "meaning": "no longer needed or useful",
+    "malay": "tidak lagi diperlukan",
+    "example": "A redundant step makes the registration process longer than necessary.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/redundant"
+  },
+  {
+    "id": "sceptical",
+    "word": "sceptical",
+    "partOfSpeech": "adjective",
+    "meaning": "not easily convinced that something is true",
+    "malay": "ragu-ragu",
+    "example": "Be sceptical of messages that promise instant wealth.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/sceptical"
+  },
+  {
+    "id": "superficial",
+    "word": "superficial",
+    "partOfSpeech": "adjective",
+    "meaning": "considering only the surface rather than the detail",
+    "malay": "cetek",
+    "example": "A superficial review can miss the main cause of a problem.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/superficial"
+  },
+  {
+    "id": "viable",
+    "word": "viable",
+    "partOfSpeech": "adjective",
+    "meaning": "able to work successfully in practice",
+    "malay": "berdaya maju",
+    "example": "Affordable fares make public transport a viable choice for students.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/viable"
+  },
+  {
+    "id": "vulnerable",
+    "word": "vulnerable",
+    "partOfSpeech": "adjective",
+    "meaning": "easily harmed or affected",
+    "malay": "mudah terdedah kepada bahaya",
+    "example": "The charity provides extra support for vulnerable families.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/vulnerable"
+  },
+  {
+    "id": "wary",
+    "word": "wary",
+    "partOfSpeech": "adjective",
+    "meaning": "careful because something may cause problems",
+    "malay": "berwaspada",
+    "example": "Be wary of apps that ask for more personal information than they need.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/wary"
+  },
+  {
+    "id": "persistent",
+    "word": "persistent",
+    "partOfSpeech": "adjective",
+    "meaning": "continuing firmly despite difficulty",
+    "malay": "gigih",
+    "example": "A persistent learner keeps practising even after making mistakes.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/persistent"
+  },
+  {
+    "id": "adverse",
+    "word": "adverse",
+    "partOfSpeech": "adjective",
+    "meaning": "having a harmful or negative effect",
+    "malay": "buruk atau tidak menguntungkan",
+    "example": "Heavy rain can have an adverse effect on travel plans.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/adverse"
+  },
+  {
+    "id": "devastating",
+    "word": "devastating",
+    "partOfSpeech": "adjective",
+    "meaning": "causing very great damage or sadness",
+    "malay": "amat memusnahkan",
+    "example": "The fire had a devastating effect on the small community.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/devastating"
+  },
+  {
+    "id": "dignified",
+    "word": "dignified",
+    "partOfSpeech": "adjective",
+    "meaning": "calm and showing self-respect",
+    "malay": "bermaruah",
+    "example": "A dignified response can keep a heated debate respectful.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/dignified"
+  },
+  {
+    "id": "versatile",
+    "word": "versatile",
+    "partOfSpeech": "adjective",
+    "meaning": "useful in many different ways",
+    "malay": "serba guna",
+    "example": "A smartphone is a versatile tool when used carefully.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/versatile"
+  },
+  {
+    "id": "ambiguity",
+    "word": "ambiguity",
+    "partOfSpeech": "noun",
+    "meaning": "a lack of clear meaning",
+    "malay": "kekaburan maksud",
+    "example": "Clear instructions reduce ambiguity for new learners.",
+    "level": "C2",
+    "sourceUrl": "https://dictionary.cambridge.org/dictionary/english/ambiguity"
+  }
+]

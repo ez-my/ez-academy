@@ -1,0 +1,101 @@
+--- src/pages/ReadEZ.tsx
++++ src/pages/ReadEZ.tsx
+@@ -10,6 +10,7 @@
+   Trophy,
+   Clock,
+   Loader2,
+-  AlertCircle
++  AlertCircle,
++  Download
+ } from 'lucide-react';
+ import { GeminiService } from '../services/geminiService';
+ import { toast } from 'react-hot-toast';
+@@ -21,6 +22,7 @@
+ import { cn } from '../lib/utils';
+ import ReactMarkdown from 'react-markdown';
+ import { SuccessFeedback } from '../components/layout/SuccessFeedback';
++import { saveReadTestOffline, getOfflineReadTests } from '../lib/offlineStorage';
+ 
+ interface ReadEZProps {
+   profile: UserProfile;
+@@ -43,6 +45,7 @@
+   const [startTime, setStartTime] = useState<number | null>(null);
+   const [errorHeader, setErrorHeader] = useState<string | null>(null);
+   const [isOfflineMode, setIsOfflineMode] = useState(!navigator.onLine);
++  const [isSavingOffline, setIsSavingOffline] = useState(false);
+   const timerRef = useRef<NodeJS.Timeout | null>(null);
+ 
+   useEffect(() => {
+@@ -75,10 +78,19 @@
+       ];
+       const randomTheme = themes[Math.floor(Math.random() * themes.length)];
+       
+-      let test = await getRandomReadQuestion(selectedMode, profile.uid, randomTheme, isOfflineMode);
++      let test;
++      if (isOfflineMode) {
++        const offlineTests = await getOfflineReadTests();
++        const available = offlineTests.filter(t => selectedMode === 'FULL' || t.parts?.some(p => p.partNumber === selectedMode));
++        if (available.length > 0) {
++          test = available[Math.floor(Math.random() * available.length)];
++        }
++      }
++      
++      if (!test) {
++        test = await getRandomReadQuestion(selectedMode, profile.uid, randomTheme, isOfflineMode);
++      }
+       
+       if (!test && !isOfflineMode) {
+         test = await GeminiService.generateReadTest(randomTheme, selectedMode);
+         // Save to bank for future users
+         await saveReadQuestionToBank(selectedMode, test, randomTheme, profile.uid);
+       }
+@@ -102,6 +114,35 @@
+     }
+   };
+ 
++  const handleSaveForOffline = async () => {
++    if (isSavingOffline) return;
++    setIsSavingOffline(true);
++    const toastId = toast.loading('Downloading module for offline use...');
++    try {
++      const themes = [
++        "People and Culture",
++        "Science and Technology",
++        "Health and Environment",
++        "Financial and Consumer Awareness"
++      ];
++      const randomTheme = themes[Math.floor(Math.random() * themes.length)];
++      
++      let test = await getRandomReadQuestion(selectedMode, profile.uid, randomTheme, false);
++      if (!test) {
++         test = await GeminiService.generateReadTest(randomTheme, selectedMode);
++         await saveReadQuestionToBank(selectedMode, test, randomTheme, profile.uid);
++      }
++      
++      await saveReadTestOffline(test);
++      toast.success('Module saved for offline practice!', { id: toastId });
++    } catch (err: any) {
++      console.error(err);
++      toast.error('Failed to save module offline.', { id: toastId });
++    } finally {
++      setIsSavingOffline(false);
++    }
++  };
++
+   const handleAnswerSelect = (questionId: string, value: string) => {
+     setAnswers(prev => ({
+       ...prev,
+@@ -346,6 +387,13 @@
+               >
+                 Offline Bank
+               </button>
++              <button 
++                onClick={handleSaveForOffline}
++                disabled={isSavingOffline}
++                className={cn("flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all text-white/40 hover:text-white/60", isSavingOffline && "opacity-50 cursor-not-allowed")}
++              >
++                {isSavingOffline ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />} Save
++              </button>
+             </div>
+ 
+             <div className="space-y-4">
