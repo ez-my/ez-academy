@@ -1,3 +1,5 @@
+import { emitPaywall } from './paywall';
+
 export class AITaskError extends Error {
   constructor(message: string, public status: number, public code: string) { super(message); }
 }
@@ -19,7 +21,17 @@ export async function invokeTask<T = any>(task: string, args: unknown[]): Promis
   });
   const data = await response.json().catch(() => null);
   if (data?.code === 'free_template') window.dispatchEvent(new CustomEvent('ez-general-feedback',{detail:{skill:data.skill || currentSkill()}}));
-  if (!response.ok) throw new AITaskError(data?.error || 'This feature is temporarily unavailable. Please try again.', response.status, data?.code || 'ai_unavailable');
+  if (!response.ok) {
+    // Plan-limit responses (free template / full-test lockout / quota) are the
+    // paywall moment: surface the inline upgrade card instead of a bare error.
+    if (response.status === 403 || response.status === 429) {
+      const PAYWALL_CODES = ['free_template', 'full_test', 'package_quota'];
+      if (!data?.code || PAYWALL_CODES.includes(data.code)) {
+        emitPaywall({ code: data?.code, skill: data?.skill || currentSkill(), source: 'ai_feedback' });
+      }
+    }
+    throw new AITaskError(data?.error || 'This feature is temporarily unavailable. Please try again.', response.status, data?.code || 'ai_unavailable');
+  }
   if (!data || !Object.hasOwn(data, 'result')) throw new AITaskError('The AI response was incomplete. Please try again.', 502, 'invalid_response');
   return data.result;
 }

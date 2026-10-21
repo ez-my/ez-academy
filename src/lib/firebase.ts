@@ -40,6 +40,7 @@ export async function updateDailyGoal(userId: string, minutes: number): Promise<
 }
 
 const app = initializeApp(firebaseConfig);
+export { app };
 export const db = initializeFirestore(app, {}, firebaseConfig.firestoreDatabaseId);
 setLogLevel('silent'); // Suppress long polling idle warnings
 export const auth = getAuth(app);
@@ -235,6 +236,8 @@ export async function updateSiteConfig(config: Partial<SiteConfig>): Promise<voi
 }
 
 export const saveSession = async (userId: string, session: PracticeSession): Promise<void> => {
+  // Funnel: practice_completed (dynamic import avoids a firebase<->analytics cycle).
+  try { const { trackEvent } = await import('./analytics'); trackEvent('practice_completed', { skill: (session as any).type || (session as any).skill, score: session.score ?? undefined }); } catch {}
   try {
     const { timestamp, ...rest } = withoutRecordingData(session);
     const sessionRef = doc(db, 'users', userId, 'sessions', session.id);

@@ -1,11 +1,16 @@
-import {StrictMode} from 'react';
+import { StrictMode } from 'react';
 import {createRoot} from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { SiteConfigProvider } from './context/SiteConfigContext.tsx';
 import { AccessibilityProvider } from './lib/AccessibilityContext.tsx';
 import { ThemeProvider } from './context/ThemeContext.tsx';
+import { initAnalytics, captureAttribution } from './lib/analytics.ts';
 import App from './App.tsx';
 import './index.css';
+
+// GA4 funnel instrumentation + first-touch UTM attribution capture.
+void initAnalytics();
+captureAttribution();
 
 // Filter out noise from Firebase
 const originalConsoleError = console.error;

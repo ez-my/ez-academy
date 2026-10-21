@@ -4,6 +4,7 @@ import { Sparkles, ArrowLeft, Loader2, Mail, Lock, CheckCircle2, AlertCircle, Re
 import { Link } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { loginWithEmail, registerWithEmail, resetPassword, auth, sendVerification, logout, getFriendlyFirebaseError } from '../lib/firebase';
+import { trackEvent, signupAttribution } from '../lib/analytics';
 import { toast } from 'react-hot-toast';
 
 interface AuthProps {
@@ -88,6 +89,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     try {
       if (isRegistering) {
         await registerWithEmail(email.trim(), password);
+        trackEvent('signup_completed', { method: 'email', ...signupAttribution() });
         setSuccess("Check your inbox or spam folder for the verification email.");
         setResendWait(60);
         setNeedsVerification(true);

@@ -1,3 +1,4 @@
+import {savedReferral,saveReferral} from '../lib/affiliate';
 import { PACKAGES } from '../packages';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -18,6 +19,7 @@ import {
   Info
 } from 'lucide-react';
 import { auth } from '../lib/firebase';
+import { trackEvent } from '../lib/analytics';
 import { cn } from '../lib/utils';
 
 interface PlanOption {
@@ -99,6 +101,7 @@ export function Checkout() {
   }, [orderKey,manualOrder,receiptSubmitted]);
 
   const requestedPlan=searchParams.get('plan')||'plus';
+  const [referralCode,setReferralCode]=useState(savedReferral);
   const planId=({basic:'lite',pro:'plus',pro_plus:'max',credits:'boost_plus'} as Record<string,string>)[requestedPlan]||requestedPlan;
   const selectedPlan = PLANS.find(p => p.id === planId) || PLANS.find(p => p.id === 'plus')!;
 
@@ -138,6 +141,8 @@ export function Checkout() {
 
     const paymentWindow = window.open('about:blank', '_blank');
 
+    trackEvent('checkout_started', { plan: selectedPlan.id, method: selectedMethod === 'duitnow_qr' ? 'duitnow_qr' : 'fpx', source: 'checkout_page' });
+
     try {
       const idToken = await user.getIdToken();
       
@@ -149,6 +154,7 @@ export function Checkout() {
         },
         body: JSON.stringify({
           planId: selectedPlan.id,
+          referralCode,
           channel: selectedMethod === 'duitnow_qr' ? 'duitnow_qr' : 'fpx',
           userPhone: paymentPhone,
           userEmail: user.email,
@@ -192,6 +198,8 @@ export function Checkout() {
     setIsLoading(true);
     setError(null);
 
+    trackEvent('checkout_started', { plan: selectedPlan.id, method: 'bank_transfer', source: 'checkout_page' });
+
     try {
       const idToken = await user.getIdToken();
       const res = await fetch('/api/payment/manual/initiate', {
@@ -201,7 +209,8 @@ export function Checkout() {
           'Authorization': `Bearer ${idToken}`
         },
         body: JSON.stringify({
-          planId: selectedPlan.id
+          planId: selectedPlan.id,
+          referralCode
         })
       });
 
@@ -318,6 +327,10 @@ export function Checkout() {
             {selectedPlan.description}{selectedPlan.id!=='boost'&&selectedPlan.id!=='boost_plus'&&<span className="block mt-2 text-xs text-white/60">If this subscription is already active, your new plan period starts after the current period ends. No automatic charges.</span>}
           </p>
 
+          <label className="block text-sm text-white/80">Referral code (optional)
+            <input aria-label="Referral code" className="mt-2 w-full rounded-xl border border-blue-300/30 bg-[#102b52] p-3 text-white" value={referralCode} maxLength={14} disabled={!!manualOrder} placeholder="Enter a friend’s code" onChange={e=>{const value=e.target.value.toUpperCase().trim();setReferralCode(value);saveReferral(value);}} />
+            <span className="block text-xs text-white/50 mt-2">Your friend earns commission once this payment is confirmed.</span>
+          </label>
           {/* Payment Method Selector */}
           <div className="space-y-3">
             <label className="text-xs font-bold text-white/80 block">

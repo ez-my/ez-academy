@@ -1,5 +1,8 @@
+import {captureReferral,affiliateRequest} from './lib/affiliate';
+captureReferral();
 import {PersistentNavigation} from './components/PersistentNavigation';
 import { GeneralFeedbackPanel, GeneralFeedbackDialog } from './components/GeneralFeedback';
+import { PaywallGate } from './components/paywall/PaywallGate';
 import { useSkillPackages } from './lib/useSkillPackages';
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation, Link } from 'react-router-dom';
@@ -152,6 +155,7 @@ const ProtectedApp = ({
       credits={profile.credits}
     >
       <GeneralFeedbackDialog/>
+      <PaywallGate/>
       <Routes>
         <Route path="/" element={<Dashboard profile={profile} onSelectModule={(id) => navigate(`/app/${id}`)} />} />
         <Route path="/study-tools" element={<StudyTools profile={profile} onSelectModule={(id)=>navigate(`/app/${id}`)}/>} />
@@ -212,6 +216,7 @@ export default function App() {
           setProfileLoading(true);
           // Initial fetch to decide if we need onboarding
           const initialProfile = await getUserProfile(firebaseUser.uid);
+          if (initialProfile) affiliateRequest("affiliate/account",{}).catch(() => {});
           
           if (initialProfile === undefined) {
              setProfileError("Could not retrieve your profile due to a network or server issue. Please try again later.");
@@ -289,6 +294,7 @@ export default function App() {
     };
     try {
       await saveUserProfile(newProfile);
+      affiliateRequest("affiliate/account",{}).catch(() => {});
       setProfile(newProfile);
     } catch (error: any) {
       console.error('Failed to save profile:', error);
@@ -336,7 +342,8 @@ export default function App() {
       <Route element={<MarketingLayout isLoggedIn={!!user} />}>
         <Route path="/" element={<MarketingHome isLoggedIn={!!user} />} />
         <Route path="/plans" element={<div className="px-4 py-6"><PricingPage profile={profile||undefined}/></div>} />
-        <Route path="/about" element={<MarketingAbout />} />
+        <Route path="/about" element={<Navigate to="/affiliate" replace />} />
+        <Route path="/affiliate" element={<MarketingAbout />} />
         <Route path="/ez-english" element={<MarketingEZEnglish />} />
         <Route path="/ecosystem" element={<MarketingEcosystem />} />
         <Route path="/programs" element={<MarketingPrograms />} />
