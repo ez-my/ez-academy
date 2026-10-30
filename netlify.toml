@@ -28,6 +28,20 @@
     Cache-Control = "no-store"
     X-Content-Type-Options = "nosniff"
 
+# Vite writes a content hash into every filename under /assets, so these files are
+# immutable: a change produces a new name. Without this they were served
+# "max-age=0, must-revalidate", making every repeat visit revalidate each one.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Images are not content-hashed, so they get a shorter window than /assets.
+[[headers]]
+  for = "/images/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
 [[redirects]]
   from = "/api/listening/audio/*"
   to = "/.netlify/functions/listening-audio/:splat"
