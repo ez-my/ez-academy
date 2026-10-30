@@ -3,11 +3,16 @@ import {RewardCodesPanel} from './RewardCodesPanel';
 import {MarketingPanel} from './MarketingPanel';
 import {OperationsPanel} from './OperationsPanel';
 import './admin.css';
+import { useConfirmDialog } from './admin/ConfirmDialog';
+import { LucideIcon } from './admin/LucideIcon';
+import { ModulesPanel, ModuleFlagsGrid } from './admin/ModulesPanel';
+import { UsersPanel, useUsers } from './admin/UsersPanel';
+import { PaymentsPanel } from './admin/PaymentsPanel';
 import React, { useState, useEffect, useRef } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { motion, Reorder } from 'motion/react';
 import ReactQuill from 'react-quill-new';
-import { Users, Activity, CreditCard, AlertCircle, Database, Settings, Layout, Key, LogOut, Edit2, ShieldAlert, BookOpen, Plus, Search, Trash2, Save, X, ChevronRight, ChevronDown, MessageSquare, Mic, Tag, Loader2, Info, CheckCircle2, Target, Zap, Headphones, PenTool, GripVertical, FileText, RefreshCcw, UserX, TrendingUp, TrendingDown, DollarSign, Upload } from 'lucide-react';
+import { Users, Activity, CreditCard, AlertCircle, Database, Settings, Layout, LogOut, Edit2, ShieldAlert, BookOpen, Plus, Search, Trash2, Save, X, ChevronRight, ChevronDown, MessageSquare, Mic, Tag, Loader2, Info, CheckCircle2, Target, Zap, Headphones, PenTool, GripVertical, FileText, RefreshCcw, UserX, TrendingUp, TrendingDown, DollarSign, Upload } from 'lucide-react';
 import { collection, getDocs, doc, updateDoc, increment, setDoc, deleteDoc, serverTimestamp, query, orderBy, writeBatch, collectionGroup, where, Timestamp } from 'firebase/firestore';
 import { db, auth, getSiteConfig, updateSiteConfig } from '../lib/firebase';
 import { cn } from '../lib/utils';
@@ -26,11 +31,10 @@ const PRICING = {
   CONVERSION_RATE: 4.5, // USD to MYR
 };
 
-// Helper to render lucide icon from string
-const LucideIcon = ({ name, size = 20, className = "" }: { name: string, size?: number, className?: string }) => {
-  const Icon = (Icons as any)[name] || Icons.Layout;
-  return <Icon size={size} className={className} />;
-};
+
+
+const ADMIN_TABS = ['rewards','affiliates','marketing','operations','users','payments','content','questions','maintenance','ui'] as const;
+type AdminTab = typeof ADMIN_TABS[number];
 
 export const AdminPage: React.FC = () => {
   const navigate = useNavigate();
@@ -40,63 +44,40 @@ export const AdminPage: React.FC = () => {
     return <Navigate to="/app" replace />;
   }
 
-  const [activeTab, setActiveTab] = useState<'rewards' | 'affiliates' | 'marketing' | 'operations' | 'overview' | 'users' | 'payments' | 'content' | 'questions' | 'system' | 'maintenance' | 'ui'>(() => { const tab = new URLSearchParams(window.location.search).get('tab'); return ['rewards','affiliates','marketing','operations','overview','users','payments','content','questions','system','maintenance','ui'].includes(tab || '') ? tab as any : 'overview'; });
-  const [systemUsers, setSystemUsers] = useState<UserProfile[]>([]);
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [showArchivedPayments, setShowArchivedPayments] = useState(false);
+  // Overview rendered the same OperationsPanel as Operations, and the System tab's
+  // fields and buttons had no handlers at all. Both are gone; their old ?tab= links
+  // still resolve, so existing bookmarks keep working.
+  const [activeTab, setActiveTab] = useState<AdminTab>(() => {
+    const requested = new URLSearchParams(window.location.search).get('tab') || '';
+    const aliased = requested === 'overview' ? 'operations'
+      : requested === 'system' ? 'maintenance'
+      : requested;
+    return ADMIN_TABS.includes(aliased as AdminTab) ? aliased as AdminTab : 'operations';
+  });
   const [questions, setQuestions] = useState<QuestionBankItem[]>([]);
-  const [appModules, setAppModules] = useState<AppModule[]>([]);
   const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSiteConfigLoading, setIsSiteConfigLoading] = useState(false);
   const [isQuestionsLoading, setIsQuestionsLoading] = useState(false);
-  const [isModulesLoading, setIsModulesLoading] = useState(false);
-  const [editingCreditsUser, setEditingCreditsUser] = useState<string | null>(null);
-  const [editingUserSettings, setEditingUserSettings] = useState<{uid: string, level: string, plan: string} | null>(null);
-  const [creditAmountToAdd, setCreditAmountToAdd] = useState('');
   
   // Bank details and payment approval state
-  const [bankConfig, setBankConfig] = useState({
-    bankName: 'Maybank',
-    accountHolder: 'Mohamad Shahrilniza',
-    accountNumber: '',
-    bankQrImageUrl: '',
-    instructions: 'Transfer the exact amount using your bank app. After paying, send your receipt. Your plan starts after we check your payment.',
-    isConfigured: false
-  });
-  const [isSavingBankConfig, setIsSavingBankConfig] = useState(false);
-  const [receiptModal, setReceiptModal] = useState<{ isOpen: boolean; imageUrl: string; orderRef: string; studentName: string } | null>(null);
   
   const [editingQuestion, setEditingQuestion] = useState<Partial<QuestionBankItem> | null>(null);
-  const [editingModule, setEditingModule] = useState<Partial<AppModule> | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [isSyncingModules, setIsSyncingModules] = useState(false);
   const [isGeneratingBank, setIsGeneratingBank] = useState(false);
   const [isUploadingBank, setIsUploadingBank] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [generationProgress, setGenerationProgress] = useState<string | null>(null);
-  const [confirmDialog, setConfirmDialog] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    type: 'warning' | 'danger';
-    confirmText: string;
-    onConfirm: () => void;
-  } | null>(null);
+  const { confirmDialog, setConfirmDialog, confirmDialogElement } = useConfirmDialog();
+  // Revenue and cost-per-head need the user counts. Loaded on demand rather than on
+  // mount so the other tabs do not pay for a users fetch they never read.
+  const { totalUsers, activeSubscribers, fetchUsers } = useUsers({ auto: false });
 
   const [showIconPicker, setShowIconPicker] = useState<{ index: number } | null>(null);
   const [iconSearch, setIconSearch] = useState('');
   const [editingSectionIndex, setEditingSectionIndex] = useState<number | null>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [userSearch, setUserSearch] = useState('');
-  const visibleUsers = systemUsers.filter(user => `${user.displayName || ''} ${user.email || ''} ${user.plan || ''}`.toLowerCase().includes(userSearch.toLowerCase()));
-  const exportUsersCsv = () => {
-    const cell = (value: unknown) => '"' + String(value ?? '').replace(/^[=+@-]/, "'$&").replace(/"/g, '""') + '"';
-    const rows = [['Name','Email','Plan','Level','Credits'], ...visibleUsers.map(user => [user.displayName,user.email,user.plan,user.level,user.credits || 0])];
-    const url = URL.createObjectURL(new Blob(['\uFEFF' + rows.map(row => row.map(cell).join(',')).join('\r\n')], {type: 'text/csv;charset=utf-8'}));
-    const link = document.createElement('a'); link.href = url; link.download = 'ez-academy-users.csv'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-  };
   const [filterType, setFilterType] = useState('All');
   const [filterPart, setFilterPart] = useState('All');
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
@@ -144,36 +125,6 @@ export const AdminPage: React.FC = () => {
     }
   };
 
-  const fetchUsers = async () => {
-    try {
-      const querySnapshot = await getDocs(collection(db, 'users'));
-      const usersData: UserProfile[] = [];
-      let subs = 0;
-      
-      querySnapshot.forEach((doc) => {
-        const data = doc.data() as UserProfile;
-        usersData.push(data);
-        if (data.plan && data.plan !== 'free') subs++;
-      });
-      
-      setSystemUsers(usersData);
-      setStats(prev => ({
-        ...prev,
-        totalUsers: usersData.length,
-        activeSubscribers: subs,
-        monthlyRevenue: subs * 10, // Updated to RM10 based on current pricing
-      }));
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      try {
-        const { handleFirestoreError, OperationType } = await import('../lib/firebase');
-        handleFirestoreError(error, OperationType.LIST, 'users');
-      } catch (e) {}
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const fetchQuestions = async () => {
     setIsQuestionsLoading(true);
     try {
@@ -189,24 +140,6 @@ export const AdminPage: React.FC = () => {
       } catch (e) {}
     } finally {
       setIsQuestionsLoading(false);
-    }
-  };
-
-  const fetchModules = async () => {
-    setIsModulesLoading(true);
-    try {
-      const q = query(collection(db, 'modules'), orderBy('order', 'asc'));
-      const snapshot = await getDocs(q);
-      const modulesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AppModule));
-      setAppModules(modulesData);
-    } catch (error) {
-      console.error("Error fetching modules:", error);
-      try {
-        const { handleFirestoreError, OperationType } = await import('../lib/firebase');
-        handleFirestoreError(error, OperationType.LIST, 'modules');
-      } catch (e) {}
-    } finally {
-      setIsModulesLoading(false);
     }
   };
 
@@ -337,182 +270,19 @@ export const AdminPage: React.FC = () => {
     }
   };
 
-  const fetchTransactions = async () => {
-    setIsLoading(true);
-    try {
-      const q = query(collection(db, 'transactions'), orderBy('createdAt', 'desc'));
-      const snapshot = await getDocs(q);
-      const txData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setTransactions(txData);
-
-      // Fetch bank transfer config
-      const idToken = await auth.currentUser?.getIdToken();
-      if (idToken) {
-        try {
-          const configRes = await fetch('/api/admin/bank-transfer-config', {
-            headers: { 'Authorization': `Bearer ${idToken}` }
-          });
-          const configData = await configRes.json();
-          if (configData.success && configData.config) {
-            setBankConfig(configData.config);
-          }
-        } catch (e) {
-          console.warn("Could not fetch bank config:", e);
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching transactions:", error);
-      try {
-        const { handleFirestoreError, OperationType } = await import('../lib/firebase');
-        handleFirestoreError(error, OperationType.LIST, 'transactions');
-      } catch (e) {
-        // Fallback
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const openPaymentReceipt = async (tx: any) => {
-    try {
-      let url = tx.receiptUrl;
-      if (url.startsWith('/api/payment/receipt/')) {
-        const token = await auth.currentUser!.getIdToken();
-        const response = await fetch(url, {headers:{Authorization:`Bearer ${token}`}});
-        if (!response.ok) throw new Error('Could not open this receipt.');
-        url = URL.createObjectURL(await response.blob());
-      }
-      setReceiptModal({isOpen:true,imageUrl:url,orderRef:tx.orderReference || tx.id,studentName:tx.userName || 'Student'});
-    } catch { alert('Could not open the receipt. Please try again.'); }
-  };
   useEffect(() => {
-    if (activeTab !== 'payments') return;
-    const timer = window.setInterval(fetchTransactions, 30000);
-    return () => window.clearInterval(timer);
-  }, [activeTab]);
+    setStats(prev => ({ ...prev, totalUsers, activeSubscribers, monthlyRevenue: activeSubscribers * 10 }));
+  }, [totalUsers, activeSubscribers]);
 
-  const handleApprovePayment = async (txId: string) => {
-    const manual = transactions.find(tx => tx.id === txId)?.paymentMethod === 'manual_bank_transfer';
-    setConfirmDialog({
-      isOpen: true,
-      title: manual ? 'Approve Payment & Activate Plan?' : 'Check ToyyibPay payment?',
-      message: manual ? 'Did you check your bank account and verify the funds were received? This will activate the student\'s plan immediately.' : 'We will check the original bill with ToyyibPay. The package is activated only after a successful payment is confirmed.',
-      type: 'warning',
-      confirmText: manual ? 'Yes, Approve Plan' : 'Check payment',
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          const idToken = await auth.currentUser?.getIdToken();
-          const res = await fetch('/api/admin/payments/review', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${idToken}`
-            },
-            body: JSON.stringify({
-              txId,
-              action: 'APPROVE',
-              adminNote: 'Manually verified by admin in bank account'
-            })
-          });
-          const data = await res.json();
-          if (data.success) {
-            alert(data.message || "Payment approved and plan activated!");
-            fetchTransactions();
-            fetchUsers();
-          } else {
-            alert(data.message || 'Payment could not be confirmed.');
-          }
-        } catch (error: any) {
-          console.error("Manual approval error:", error);
-          alert("Error approving payment: " + error.message);
-        }
-      }
-    });
-  };
-
-  const handleRejectPayment = async (txId: string) => {
-    const reason = prompt("Enter a brief reason for rejecting this receipt (optional):", "Receipt could not be verified in bank statement");
-    if (reason === null) return;
-    try {
-      const idToken = await auth.currentUser?.getIdToken();
-      const res = await fetch('/api/admin/payments/review', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
-        },
-        body: JSON.stringify({
-          txId,
-          action: 'REJECT',
-          adminNote: reason
-        })
-      });
-      const data = await res.json();
-      if (data.success) {
-        alert("Payment marked as rejected.");
-        fetchTransactions();
-      } else {
-        alert("Error rejecting payment: " + data.message);
-      }
-    } catch (error: any) {
-      alert("Error rejecting payment: " + error.message);
-    }
-  };
-
-  const handleSaveBankConfig = async () => {
-    setIsSavingBankConfig(true);
-    try {
-      const idToken = await auth.currentUser?.getIdToken();
-      const res = await fetch('/api/admin/bank-transfer-config', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
-        },
-        body: JSON.stringify(bankConfig)
-      });
-      const data = await res.json();
-      if (data.success) {
-        alert("Bank transfer settings saved!");
-        if (data.config) setBankConfig(data.config);
-      } else {
-        alert("Error saving settings: " + data.message);
-      }
-    } catch (e: any) {
-      alert("Error: " + e.message);
-    } finally {
-      setIsSavingBankConfig(false);
-    }
-  };
-
-  const handleDeletePayment = async (txId: string, restore = false) => {
-    setConfirmDialog({isOpen:true, title:restore ? 'Restore payment?' : 'Archive payment?',
-      message:restore ? 'Show this payment in the active history again.' : 'Hide this payment from the active history. Its payment status and audit record are preserved; you can restore it later.',
-      type:'warning',confirmText:restore ? 'Restore' : 'Archive',onConfirm:async()=>{
-        setConfirmDialog(null);
-        try {
-          const token=await auth.currentUser?.getIdToken();
-          const response=await fetch('/api/admin/payments/review',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({txId,action:restore ? 'RESTORE' : 'ARCHIVE'})});
-          const data=await response.json();if(!data.success) throw new Error(data.message || 'Unable to update payment');
-          await fetchTransactions();
-        } catch(error:any){alert(error.message);}
-      }});
-  };
   useEffect(() => {
-    if (activeTab === 'overview' || activeTab === 'users') {
-      fetchUsers();
-    }
-    if (activeTab === 'payments') {
-      fetchTransactions();
-    }
     if (activeTab === 'questions') {
       fetchQuestions();
     }
-    if (activeTab === 'content') {
-      fetchModules();
-    }
-    if (activeTab === 'maintenance' || activeTab === 'overview') {
+    if (activeTab === 'maintenance') {
+      // Revenue and cost-per-head come from the user counts fetchUsers() puts on
+      // stats, so this tab has to load both. It previously only worked because the
+      // old default 'overview' tab happened to call fetchUsers() on the way in.
+      fetchUsers();
       fetchMaintenanceCosts();
     }
     if (activeTab === 'ui') {
@@ -561,47 +331,6 @@ export const AdminPage: React.FC = () => {
     });
   };
 
-  const handleUpdateUserSettings = async () => {
-    if (!editingUserSettings) return;
-    try {
-      const userRef = doc(db, 'users', editingUserSettings.uid);
-      await updateDoc(userRef, {
-        level: editingUserSettings.level,
-        plan: editingUserSettings.plan,
-        updatedAt: serverTimestamp()
-      });
-      setSystemUsers(prev => prev.map(u => 
-        u.uid === editingUserSettings.uid 
-          ? { ...u, level: editingUserSettings.level as "BEGINNER" | "INTERMEDIATE" | "ADVANCED", plan: editingUserSettings.plan as "basic" | "pro_plus" } 
-          : u
-      ));
-      setEditingUserSettings(null);
-      alert("User updated successfully");
-    } catch (error) {
-      console.error("Error updating user:", error);
-      alert('Error updating user: ' + (error instanceof Error ? error.message : String(error)));
-    }
-  };
-
-  const handleAddCredits = async (uid: string) => {
-    try {
-      const amount = parseInt(creditAmountToAdd);
-      if (isNaN(amount) || amount <= 0) return;
-      const userRef = doc(db, 'users', uid);
-      await updateDoc(userRef, { 
-        credits: increment(amount),
-        updatedAt: serverTimestamp()
-      });
-      
-      setSystemUsers(prev => prev.map(u => u.uid === uid ? { ...u, credits: (u.credits || 0) + amount } : u));
-      setEditingCreditsUser(null);
-      setCreditAmountToAdd('');
-    } catch (error) {
-      console.error("Error adding credits:", error);
-      alert('Error adding credits: ' + (error instanceof Error ? error.message : String(error)));
-    }
-  };
-
   const handleSaveQuestion = async () => {
     if (!editingQuestion || !editingQuestion.type || !editingQuestion.part || !editingQuestion.data) return;
     
@@ -641,197 +370,6 @@ export const AdminPage: React.FC = () => {
           fetchQuestions();
         } catch (error) {
           console.error("Error deleting question:", error);
-        }
-      }
-    });
-  };
-
-  const handleResetUsage = async (uid: string) => {
-    setConfirmDialog({
-      isOpen: true,
-      title: 'Reset User Account?',
-      message: 'Are you sure you want to reset all credits and usage data for this user? This will also clear their practice history and reminders. This cannot be undone.',
-      type: 'danger',
-      confirmText: 'Reset',
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          const userRef = doc(db, 'users', uid);
-          await updateDoc(userRef, { 
-            credits: 0,
-            usage: {
-              date: new Date().toISOString().split('T')[0],
-              speak: 0,
-              write: 0,
-              read: 0,
-              listen: 0,
-              deep: 0
-            },
-            points: 0,
-            streak: 0,
-            weeklyGoalProgress: 0,
-            updatedAt: serverTimestamp()
-          });
-          
-          // Delete sessions
-          const sessionsSnapshot = await getDocs(collection(db, 'users', uid, 'sessions'));
-          const batch = writeBatch(db);
-          sessionsSnapshot.forEach(doc => batch.delete(doc.ref));
-          
-          // Delete reminders
-          const remindersSnapshot = await getDocs(collection(db, 'users', uid, 'reminders'));
-          remindersSnapshot.forEach(doc => batch.delete(doc.ref));
-    
-          // Delete activity logs
-          const logsQuery = query(collection(db, 'activity_logs'), where('userId', '==', uid));
-          const logsSnapshot = await getDocs(logsQuery);
-          logsSnapshot.forEach(doc => batch.delete(doc.ref));
-    
-          await batch.commit();
-    
-          alert("User usage data and credits reset successfully.");
-          fetchUsers();
-        } catch (error) {
-          console.error("Error resetting usage:", error);
-          alert("Error resetting usage: " + (error instanceof Error ? error.message : String(error)));
-        }
-      }
-    });
-  };
-
-  const handleDeleteUser = async (uid: string) => {
-    setConfirmDialog({
-      isOpen: true,
-      title: 'PERMANENTLY DELETE USER?',
-      message: 'Are you sure you want to PERMANENTLY DELETE this user account? This will remove all their data (profile, sessions, reminders, logs) from Firestore and cannot be undone.',
-      type: 'danger',
-      confirmText: 'Permanently Delete',
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          const batch = writeBatch(db);
-    
-          // Sub-collections
-          const sessionsSnapshot = await getDocs(collection(db, 'users', uid, 'sessions'));
-          sessionsSnapshot.forEach(doc => batch.delete(doc.ref));
-          
-          const remindersSnapshot = await getDocs(collection(db, 'users', uid, 'reminders'));
-          remindersSnapshot.forEach(doc => batch.delete(doc.ref));
-    
-          // Global collections with userId
-          const logsQuery = query(collection(db, 'activity_logs'), where('userId', '==', uid));
-          const logsSnapshot = await getDocs(logsQuery);
-          logsSnapshot.forEach(doc => batch.delete(doc.ref));
-    
-          const feedbackQuery = query(collection(db, 'feedback'), where('userId', '==', uid));
-          const feedbackSnapshot = await getDocs(feedbackQuery);
-          feedbackSnapshot.forEach(doc => batch.delete(doc.ref));
-    
-          // Main user document
-          batch.delete(doc(db, 'users', uid));
-    
-          await batch.commit();
-    
-          alert("User account and all associated data deleted successfully.");
-          fetchUsers();
-        } catch (error) {
-          console.error("Error deleting user:", error);
-          alert("Error deleting user: " + (error instanceof Error ? error.message : String(error)));
-        }
-      }
-    });
-  };
-
-  const handleSaveModule = async () => {
-    if (!editingModule || !editingModule.name || !editingModule.slug) return;
-    
-    try {
-      const moduleId = editingModule.id || editingModule.slug.toLowerCase().replace(/\s+/g, '-');
-      const moduleRef = doc(db, 'modules', moduleId);
-      
-      const moduleData: any = {
-        ...editingModule,
-        id: moduleId,
-        updatedAt: Date.now()
-      };
-      
-      await setDoc(moduleRef, moduleData, { merge: true });
-      setEditingModule(null);
-      fetchModules();
-    } catch (error) {
-      console.error("Error saving module:", error);
-      alert("Error saving module");
-    }
-  };
-
-  const handleDeleteModule = async (id: string) => {
-    setConfirmDialog({
-      isOpen: true,
-      title: 'Delete Module?',
-      message: 'Are you sure you want to delete this module?',
-      type: 'danger',
-      confirmText: 'Delete',
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          await deleteDoc(doc(db, 'modules', id));
-          fetchModules();
-        } catch (error) {
-          console.error("Error deleting module:", error);
-        }
-      }
-    });
-  };
-
-  const toggleModuleStatus = async (moduleId: string, currentStatus: boolean | undefined) => {
-    try {
-      const moduleRef = doc(db, 'modules', moduleId);
-      await updateDoc(moduleRef, { 
-        isActive: !currentStatus,
-        updatedAt: Date.now()
-      });
-      setAppModules(prev => prev.map(m => m.id === moduleId ? { ...m, isActive: !currentStatus } : m));
-    } catch (error) {
-      console.error("Error toggling module status:", error);
-      alert("Error toggling status");
-    }
-  };
-
-  const syncModules = async () => {
-    setConfirmDialog({
-      isOpen: true,
-      title: 'Sync Core Modules?',
-      message: 'This will initialize/sync the default core modules (SpeakEZ, WriteEZ, etc.) to Firestore. Existing custom modules will be preserved. Continue?',
-      type: 'warning',
-      confirmText: 'Sync Now',
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        setIsSyncingModules(true);
-        try {
-          const defaultModules = [
-            { name: 'SpeakEZ', slug: 'speakez', description: 'Master speaking skills with AI simulations', iconName: 'Mic', category: 'core', order: 1, isActive: true, difficulty: 'Advanced' },
-            { name: 'WriteEZ', slug: 'writeez', description: 'Advanced essay grading and feedback', iconName: 'PenTool', category: 'core', order: 2, isActive: true, difficulty: 'Intermediate' },
-            { name: 'ReadEZ', slug: 'readez', description: 'Exam-style reading comprehension', iconName: 'BookOpen', category: 'core', order: 3, isActive: true, difficulty: 'Easy' },
-            { name: 'ListenEZ', slug: 'listenez', description: 'Immersive audio training drills', iconName: 'Headphones', category: 'core', order: 4, isActive: true, difficulty: 'Intermediate' },
-            { name: 'History', slug: 'history', description: 'Review your past performance', iconName: 'History', category: 'core', order: 5, isActive: true },
-          ];
-    
-          for (const mod of defaultModules) {
-            const moduleRef = doc(db, 'modules', mod.slug);
-            await setDoc(moduleRef, {
-              ...mod,
-              id: mod.slug,
-              updatedAt: Date.now()
-            }, { merge: true });
-          }
-          
-          alert("Modules synced successfully!");
-          fetchModules();
-        } catch (error) {
-          console.error("Error syncing modules:", error);
-          alert("Failed to sync modules.");
-        } finally {
-          setIsSyncingModules(false);
         }
       }
     });
@@ -1036,14 +574,12 @@ export const AdminPage: React.FC = () => {
     { id: 'marketing', label: 'Marketing', icon: Target },
     { id: 'affiliates', label: 'Affiliate claims', icon: DollarSign },
     { id: 'operations', label: 'Operations', icon: Activity },
-    { id: 'overview', label: 'Overview', icon: Activity },
     { id: 'users', label: 'Users', icon: Users },
     { id: 'payments', label: 'Payments', icon: CreditCard },
     { id: 'questions', label: 'Question Bank', icon: BookOpen },
     { id: 'content', label: 'Modules', icon: Layout },
     { id: 'ui', label: 'UI Editor', icon: Edit2 },
     { id: 'maintenance', label: 'Maintenance', icon: Settings },
-    { id: 'system', label: 'System', icon: Database },
   ];
 
   return (
@@ -1141,536 +677,13 @@ export const AdminPage: React.FC = () => {
       {activeTab === 'affiliates' && <AffiliateClaims/>}
       {activeTab === 'rewards' && <RewardCodesPanel/>}
       {activeTab === 'marketing' && <MarketingPanel/>}
-      {(activeTab === 'operations' || activeTab === 'overview') && <OperationsPanel/>}
+      {activeTab === 'operations' && <OperationsPanel/>}
 
-      {activeTab === 'users' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-4 sm:p-8">
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="text-2xl font-bold tracking-tight">Users <span className="text-sm text-white/50">({visibleUsers.length})</span></h3>
-            <div className="flex gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20" size={16} />
-                <input 
-                  type="text" 
-                  placeholder="Search name, email or plan"
-                  aria-label="Search users" value={userSearch} onChange={e => setUserSearch(e.target.value)} 
-                  className="pl-10 pr-4 py-2 bg-black/40 border border-white/10 rounded-lg text-sm focus:outline-none focus:border-primary"
-                />
-              </div>
-              <button onClick={exportUsersCsv} className="px-4 py-2 bg-primary text-obsidian rounded-lg text-xs font-bold uppercase tracking-widest">
-                Export CSV
-              </button>
-            </div>
-          </div>
-          
-          <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-            <table className="admin-records w-full text-left min-w-[700px]">
-              <thead>
-                <tr className="text-xs uppercase tracking-widest text-white/40 border-b border-white/10">
-                  <th className="pb-4 font-bold px-2">User</th>
-                  <th className="pb-4 font-bold px-2">Goal/Level</th>
-                  <th className="pb-4 font-bold px-2">Plan</th>
-                  <th className="pb-4 font-bold px-2">Credits</th>
-                  <th className="pb-4 font-bold text-right px-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {isLoading ? (
-                  <tr><td colSpan={5} className="py-8 text-center text-white/40">Loading database...</td></tr>
-                ) : visibleUsers.length === 0 ? (
-                  <tr><td colSpan={5} className="py-8 text-center text-white/50">No users match your search.</td></tr>
-                ) : visibleUsers.map(user => (
-                  <tr key={user.uid} className="hover:bg-white-[0.02] transition-colors">
-                    <td data-label="User" className="py-4 px-2">
-                      <div className="font-bold flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-black">
-                          {user.displayName?.[0] || 'U'}
-                        </div>
-                        {user.displayName || 'No Name'}
-                      </div>
-                      <div className="text-[10px] text-white/40">{user.email}</div>
-                    </td>
-                    <td data-label="Goal / Level" className="py-4 px-2">
-                      <div className="text-xs capitalize font-medium">{user.goal || 'General'}</div>
-                      <div className="text-[10px] text-white/40 capitalize">{user.level || 'Beginner'}</div>
-                    </td>
-                    <td data-label="Plan" className="py-4 px-2">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
-                        user.plan === 'pro_plus' ? 'bg-primary/20 text-primary border border-primary/20' :
-                        user.plan === 'basic' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/20' :
-                        'bg-white/5 text-white/60 border border-white/10'
-                      }`}>
-                        {user.plan || 'Free'}
-                      </span>
-                    </td>
-                    <td data-label="Credits" className="py-4 px-2">
-                      <div className="font-mono text-xs font-bold text-white/80">{user.credits || 0}</div>
-                    </td>
-                    <td data-label="Actions" className="py-4 px-2 text-right">
-                      {editingCreditsUser === user.uid ? (
-                        <div className="flex items-center justify-end gap-2">
-                          <input 
-                            type="number" 
-                            className="bg-black/40 border border-white/10 rounded px-2 py-1 w-16 text-center text-sm outline-none focus:border-primary" 
-                            placeholder="+0"
-                            value={creditAmountToAdd}
-                            onChange={(e) => setCreditAmountToAdd(e.target.value)}
-                          />
-                          <button onClick={() => handleAddCredits(user.uid)} className="px-3 py-1 bg-primary text-obsidian text-xs font-bold rounded">Add</button>
-                          <button onClick={() => setEditingCreditsUser(null)} className="px-3 py-1 bg-white/10 text-white text-xs font-bold rounded">Cancel</button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-end gap-2 text-right">
-                          <button 
-                            onClick={() => setEditingUserSettings({ uid: user.uid, level: user.level || 'beginner', plan: user.plan || 'free' })}
-                            className="p-2 bg-white/5 hover:bg-blue-500 hover:text-white border border-white/10 rounded-lg transition-colors group relative"
-                            title="Edit Plan & Level"
-                          >
-                            <Edit2 size={14} />
-                            <span className="absolute bottom-full right-0 mb-2 px-2 py-1 bg-obsidian text-[10px] whitespace-nowrap rounded border border-white/10 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">Edit Settings</span>
-                          </button>
+      {activeTab === 'users' && <UsersPanel/>}
 
-                          <button 
-                            onClick={() => { setEditingCreditsUser(user.uid); setCreditAmountToAdd('50'); }} 
-                            className="p-2 bg-white/5 hover:bg-primary hover:text-obsidian border border-white/10 rounded-lg transition-colors group relative"
-                            title="Add Credits"
-                          >
-                            <Plus size={14} />
-                            <span className="absolute bottom-full right-0 mb-2 px-2 py-1 bg-obsidian text-[10px] whitespace-nowrap rounded border border-white/10 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">Add Credits</span>
-                          </button>
-                          
-                          <button 
-                            onClick={() => handleResetUsage(user.uid)}
-                            className="p-2 bg-white/5 hover:bg-amber-500 hover:text-white border border-white/10 rounded-lg transition-colors group relative"
-                            title="Reset Usage"
-                          >
-                            <RefreshCcw size={14} />
-                            <span className="absolute bottom-full right-0 mb-2 px-2 py-1 bg-obsidian text-[10px] whitespace-nowrap rounded border border-white/10 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">Reset Usage</span>
-                          </button>
-                          
-                          <button 
-                            onClick={() => handleDeleteUser(user.uid)}
-                            className="p-2 bg-white/5 hover:bg-red-500 hover:text-white border border-white/10 rounded-lg transition-colors group relative"
-                            title="Delete User"
-                          >
-                            <UserX size={14} />
-                            <span className="absolute bottom-full right-0 mb-2 px-2 py-1 bg-obsidian text-[10px] whitespace-nowrap rounded border border-white/10 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">Delete User</span>
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </motion.div>
-      )}
+      {activeTab === 'content' && <ModulesPanel/>}
 
-      {editingUserSettings && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-obsidian w-full max-w-md rounded-2xl border border-white/10 p-6 overflow-hidden relative shadow-2xl">
-            <h3 className="text-xl font-bold tracking-tight mb-4">Edit User Settings</h3>
-            
-            <div className="space-y-4 mb-6">
-              <div>
-                <label className="block text-xs font-bold text-white/50 mb-2 uppercase tracking-widest">Plan</label>
-                <select 
-                  value={editingUserSettings.plan} 
-                  onChange={e => setEditingUserSettings(prev => prev ? {...prev, plan: e.target.value} : null)}
-                  className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-sm focus:outline-none focus:border-primary text-white"
-                >
-                  <option value="free">Free</option>
-                  <option value="basic">Basic (Pro)</option>
-                  <option value="pro_plus">Pro Plus</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-xs font-bold text-white/50 mb-2 uppercase tracking-widest">Level</label>
-                <select 
-                  value={editingUserSettings.level} 
-                  onChange={e => setEditingUserSettings(prev => prev ? {...prev, level: e.target.value} : null)}
-                  className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-sm focus:outline-none focus:border-primary text-white"
-                >
-                  <option value="beginner">Beginner</option>
-                  <option value="intermediate">Intermediate</option>
-                  <option value="advanced">Advanced</option>
-                </select>
-              </div>
-            </div>
-            
-            <div className="flex gap-4">
-              <button 
-                onClick={handleUpdateUserSettings}
-                className="flex-1 btn-primary py-3 px-4 font-bold rounded-xl text-obsidian bg-primary hover:bg-primary/90"
-              >
-                Save Changes
-              </button>
-              <button 
-                onClick={() => setEditingUserSettings(null)}
-                className="flex-1 bg-white/5 hover:bg-white/10 border border-white/10 text-white py-3 px-4 rounded-xl font-bold transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
-      {activeTab === 'payments' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
-          {/* 1. Pending Approvals Banner & Inbox */}
-          {transactions.filter(t => t.status === 'PENDING_REVIEW' && !t.archived).length > 0 && (
-            <div className="p-6 rounded-3xl bg-yellow-500/10 border-2 border-yellow-500/30 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-yellow-500 text-obsidian flex items-center justify-center font-black">
-                    ⚡
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-black text-white">
-                      {transactions.filter(t => t.status === 'PENDING_REVIEW' && !t.archived).length} Payment Receipt(s) Waiting for Your Review
-                    </h3>
-                    <p className="text-xs text-yellow-200/80">
-                      Check your Maybank account statement first to confirm the funds before approving.
-                    </p>
-                  </div>
-                </div>
-                <button 
-                  onClick={fetchTransactions}
-                  className="px-4 py-2 bg-yellow-500/20 text-yellow-300 rounded-xl text-xs font-bold hover:bg-yellow-500/30 transition"
-                >
-                  Refresh
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                {transactions.filter(t => t.status === 'PENDING_REVIEW' && !t.archived).map(tx => (
-                  <div key={tx.id} className="p-5 rounded-2xl bg-black/40 border border-yellow-500/20 space-y-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <span className="text-[10px] font-mono text-yellow-400 font-bold uppercase tracking-wider block">
-                          Ref: {tx.orderReference || tx.id}
-                        </span>
-                        <h4 className="font-bold text-white text-base">{tx.userName}</h4>
-                        <p className="text-xs text-white/50">{tx.userEmail}</p>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-xl font-black text-primary">RM{tx.amount?.toFixed(2)}</span>
-                        <span className="text-[10px] text-white/40 block font-bold uppercase">{tx.planId}</span>
-                      </div>
-                    </div>
-
-                    <div className="text-xs bg-white/5 p-3 rounded-xl space-y-1 text-white/70">
-                      {tx.userBankReference && (
-                        <div>Bank Ref: <strong className="text-white font-mono">{tx.userBankReference}</strong></div>
-                      )}
-                      {tx.userNotes && (
-                        <div>Notes: <em>{tx.userNotes}</em></div>
-                      )}
-                      <div className="text-[10px] text-white/40">
-                        Submitted: {tx.receiptSubmittedAt ? new Date(tx.receiptSubmittedAt.seconds ? tx.receiptSubmittedAt.seconds * 1000 : tx.receiptSubmittedAt).toLocaleString() : 'Just now'}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 pt-1">
-                      {tx.receiptUrl ? (
-                        <button
-                          type="button"
-                          onClick={() => openPaymentReceipt(tx)}
-                          className="flex-1 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5"
-                        >
-                          View Receipt
-                        </button>
-                      ) : (
-                        <span className="text-[11px] text-white/40 italic flex-1 py-2 text-center">{tx.receiptDelivery === 'whatsapp' ? 'Check receipt on WhatsApp and verify bank funds before approving' : 'No image attached'}</span>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={() => handleApprovePayment(tx.id)}
-                        className="flex-1 py-2.5 bg-green-500 hover:bg-green-600 text-obsidian rounded-xl text-xs font-black uppercase tracking-wider transition shadow-md"
-                      >
-                        Approve Plan
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleRejectPayment(tx.id)}
-                        className="px-3 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl text-xs font-bold transition"
-                      >
-                        Reject
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 2. Bank Details & QR Settings Card */}
-          <div className="glass-card p-6 sm:p-8 space-y-6 border border-white/10 rounded-3xl">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xl font-bold text-white">Bank Transfer / Bank QR Setup</h3>
-                <p className="text-xs text-white/50">
-                  Set up the bank account and bank QR image shown to students at checkout.
-                </p>
-              </div>
-              <span className={cn(
-                "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                bankConfig.isConfigured 
-                  ? "bg-green-500/10 text-green-400 border border-green-500/20" 
-                  : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
-              )}>
-                {bankConfig.isConfigured ? 'Checkout Active' : 'Bank QR Unavailable at Checkout'}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-              <div>
-                <label className="text-[11px] font-bold text-white/60 block mb-1">Bank Name</label>
-                <input
-                  type="text"
-                  value={bankConfig.bankName}
-                  onChange={e => setBankConfig({...bankConfig, bankName: e.target.value})}
-                  className="w-full px-3 py-2.5 bg-obsidian border border-white/10 rounded-xl text-white text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold text-white/60 block mb-1">Account Holder</label>
-                <input
-                  type="text"
-                  value={bankConfig.accountHolder}
-                  onChange={e => setBankConfig({...bankConfig, accountHolder: e.target.value})}
-                  className="w-full px-3 py-2.5 bg-obsidian border border-white/10 rounded-xl text-white text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold text-white/60 block mb-1">
-                  Bank Account Number (Leave blank if QR-only)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Optional: Enter Maybank account number"
-                  value={bankConfig.accountNumber}
-                  onChange={e => setBankConfig({...bankConfig, accountNumber: e.target.value})}
-                  className="w-full px-3 py-2.5 bg-obsidian border border-white/10 rounded-xl text-white text-xs font-mono"
-                />
-                <span className="text-[10px] text-white/40 mt-1 block">
-                  Plain account transfer stays unavailable at checkout unless this is filled.
-                </span>
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold text-white/60 block mb-1">
-                  Bank QR image
-                </label>
-                <input
-                  type="text"
-                  placeholder="Paste bank-issued QR image URL (e.g. /maybank-qr.png or image URL)"
-                  value={bankConfig.bankQrImageUrl}
-                  onChange={e => setBankConfig({...bankConfig, bankQrImageUrl: e.target.value})}
-                  className="w-full px-3 py-2.5 bg-obsidian border border-white/10 rounded-xl text-white text-xs"
-                />
-                <input type="file" aria-label="Upload bank QR image" accept="image/png,image/jpeg,image/webp" onChange={e => {
-                  const file=e.target.files?.[0]; if (!file) return;
-                  if (file.size > 512000 || !['image/png','image/jpeg','image/webp'].includes(file.type)) { alert('Use a bank QR image smaller than 500 KB.'); return; }
-                  const reader=new FileReader(); reader.onload=() => setBankConfig({...bankConfig,bankQrImageUrl:String(reader.result)}); reader.readAsDataURL(file);
-                }} className="mt-2 w-full" />
-                <span className="text-[10px] text-white/40 mt-1 block">
-                  Bank QR stays unavailable at checkout until this actual bank-issued QR is configured.
-                </span>
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="text-[11px] font-bold text-white/60 block mb-1">Instructions for Students</label>
-                <input
-                  type="text"
-                  value={bankConfig.instructions}
-                  onChange={e => setBankConfig({...bankConfig, instructions: e.target.value})}
-                  className="w-full px-3 py-2.5 bg-obsidian border border-white/10 rounded-xl text-white text-xs"
-                />
-              </div>
-
-              <div className="flex items-center gap-3 md:col-span-2 pt-2">
-                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-white">
-                  <input
-                    type="checkbox"
-                    checked={bankConfig.isConfigured}
-                    onChange={e => setBankConfig({...bankConfig, isConfigured: e.target.checked})}
-                    className="w-4 h-4 accent-primary rounded"
-                  />
-                  <span>Enable Bank transfer / QR at checkout (requires account number or QR image)</span>
-                </label>
-              </div>
-            </div>
-
-            <button
-              onClick={handleSaveBankConfig}
-              disabled={isSavingBankConfig}
-              className="px-6 py-3 bg-primary text-obsidian font-bold text-xs uppercase tracking-wider rounded-xl hover:bg-primary/90 transition shadow-md disabled:opacity-50"
-            >
-              {isSavingBankConfig ? 'Saving...' : 'Save Bank Settings'}
-            </button>
-          </div>
-
-          {/* 3. All Transactions Ledger */}
-          <div className="glass-card p-6 sm:p-8 space-y-6 border border-white/10 rounded-3xl">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xl font-bold tracking-tight text-white">Payment History</h3>
-                <label className="flex items-center gap-2 mt-3 text-sm text-white/70"><input type="checkbox" checked={showArchivedPayments} onChange={e=>setShowArchivedPayments(e.target.checked)} /> Show archived payments</label>
-                <p className="text-xs text-white/40">Complete log of all online and manual payment transactions.</p>
-              </div>
-              <button 
-                onClick={fetchTransactions}
-                className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-white/40 hover:text-primary transition-all"
-                title="Refresh"
-              >
-                <RefreshCcw size={16} />
-              </button>
-            </div>
-
-            <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-              <table className="admin-records w-full text-left min-w-[900px]">
-                <thead>
-                  <tr className="text-xs font-black uppercase tracking-[0.2em] text-white/20 border-b border-white/5 italic">
-                    <th className="pb-4 px-2">Timestamp</th>
-                    <th className="pb-4 px-2">Merchant Ref</th>
-                    <th className="pb-4 px-2">User / Email</th>
-                    <th className="pb-4 px-2">Plan</th>
-                    <th className="pb-4 px-2">Amount</th>
-                    <th className="pb-4 px-2">Status</th>
-                    <th className="pb-4 text-right px-2">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5 text-xs">
-                  {isLoading ? (
-                    <tr><td colSpan={7} className="py-12 text-center text-white/40 font-bold uppercase tracking-widest italic animate-pulse">Scanning Ledger...</td></tr>
-                  ) : transactions.filter(tx => showArchivedPayments ? tx.archived : !tx.archived).length === 0 ? (
-                    <tr><td colSpan={7} className="py-12 text-center text-white/20 font-bold uppercase tracking-widest italic">No transactions found</td></tr>
-                  ) : transactions.filter(tx => showArchivedPayments ? tx.archived : !tx.archived).map(tx => (
-                    <tr key={tx.id} className="hover:bg-white-[0.02] transition-colors group">
-                      <td data-label="Date" className="py-4 px-2">
-                        <div className="text-[10px] text-white font-mono">{tx.createdAt ? new Date(tx.createdAt.seconds ? tx.createdAt.seconds * 1000 : tx.createdAt).toLocaleString() : 'Pending...'}</div>
-                      </td>
-                      <td data-label="Reference" className="py-4 px-2">
-                        <div className="text-[10px] text-white/40 font-mono tracking-tighter uppercase">{tx.orderReference || tx.id}</div>
-                        {tx.billCode && (
-                          <div className="text-[8px] text-primary font-mono mt-0.5">BC: {tx.billCode}</div>
-                        )}
-                        {tx.paymentMethod && (
-                          <div className="text-[8px] text-white/30 uppercase mt-0.5">{tx.paymentMethod}</div>
-                        )}
-                      </td>
-                      <td data-label="User / Email" className="py-4 px-2">
-                        <div className="font-bold text-white">{tx.userName}</div>
-                        <div className="text-[10px] text-white/40">{tx.userEmail}</div>
-                      </td>
-                      <td data-label="Plan" className="py-4 px-2">
-                         <span className="text-[10px] font-black uppercase tracking-wider text-primary">{tx.planName || tx.planId}</span>
-                      </td>
-                      <td data-label="Amount" className="py-4 px-2">
-                        <div className="font-bold text-white">RM {tx.amount?.toFixed(2)}</div>
-                      </td>
-                      <td data-label="Status" className="py-4 px-2">
-                        <span className={cn(
-                          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider",
-                          tx.status === 'SUCCESS' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
-                          tx.status === 'FAILED' || tx.status === 'REJECTED' ? 'bg-red-500/10 text-red-500 border border-red-500/20' :
-                          tx.status === 'PENDING_REVIEW' ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 animate-pulse' :
-                          'bg-white/5 text-amber-500 border border-amber-500/20'
-                        )}>
-                          <span className={cn(
-                            "w-1 h-1 rounded-full",
-                            tx.status === 'SUCCESS' ? 'bg-green-500' :
-                            tx.status === 'FAILED' || tx.status === 'REJECTED' ? 'bg-red-500' :
-                            'bg-yellow-400'
-                          )} />
-                          {tx.status}
-                        </span>
-                      </td>
-                      <td data-label="Actions" className="py-4 px-2 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {tx.receiptUrl && (
-                            <button
-                              onClick={() => openPaymentReceipt(tx)}
-                              className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-white rounded-lg text-[9px] font-bold"
-                            >
-                              Receipt
-                            </button>
-                          )}
-                          {!tx.archived && ((tx.paymentMethod === 'manual_bank_transfer' && tx.status === 'PENDING_REVIEW') || (tx.paymentMethod !== 'manual_bank_transfer' && !['SUCCESS','REJECTED'].includes(tx.status))) && (
-                            <button 
-                              onClick={() => handleApprovePayment(tx.id)}
-                              className="px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-primary hover:text-obsidian transition-all"
-                            >
-                              {tx.paymentMethod === 'manual_bank_transfer' ? 'Approve' : 'Check payment'}
-                            </button>
-                          )}
-                          <button 
-                            onClick={() => handleDeletePayment(tx.id, Boolean(tx.archived))} 
-                            className="px-2.5 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg text-[9px] font-bold hover:bg-red-500 hover:text-white transition-all"
-                          >
-                            {tx.archived ? 'Restore' : 'Archive'}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Receipt Modal */}
-          {receiptModal?.isOpen && (
-            <div 
-              className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm"
-              onClick={() => setReceiptModal(null)}
-            >
-              <div 
-                className="bg-card border border-white/10 p-6 rounded-3xl max-w-lg w-full space-y-4"
-                onClick={e => e.stopPropagation()}
-              >
-                <div className="flex items-center justify-between pb-3 border-b border-white/10">
-                  <div>
-                    <h4 className="font-bold text-white text-sm">Receipt Proof</h4>
-                    <p className="text-xs text-white/40">{receiptModal.studentName} ({receiptModal.orderRef})</p>
-                  </div>
-                  <button 
-                    onClick={() => setReceiptModal(null)}
-                    className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/50"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                <div className="max-h-[60vh] overflow-y-auto rounded-xl border border-white/10 bg-black/40 p-2">
-                  <img 
-                    src={receiptModal.imageUrl} 
-                    alt="Receipt" 
-                    className="max-w-full h-auto mx-auto rounded-lg object-contain"
-                  />
-                </div>
-
-                <div className="flex justify-end pt-2">
-                  <button
-                    onClick={() => setReceiptModal(null)}
-                    className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </motion.div>
-      )}
+      {activeTab === 'payments' && <PaymentsPanel/>}
 
       {activeTab === 'questions' && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
@@ -2191,258 +1204,6 @@ export const AdminPage: React.FC = () => {
                     className="px-6 py-3 bg-white/10 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-white/20"
                   >
                     Discard Changes
-                  </button>
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </motion.div>
-      )}
-
-      {activeTab === 'content' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-2xl font-bold tracking-tight">App Modules</h3>
-            <button 
-              onClick={() => setEditingModule({ 
-                name: '', 
-                description: '', 
-                slug: '', 
-                iconName: 'Layout', 
-                order: appModules.length + 1, 
-                isActive: true,
-                category: 'core'
-              })}
-              className="btn-primary py-2 px-4 flex items-center gap-2"
-            >
-              <Plus size={16} /> New Module
-            </button>
-          </div>
-
-          <div className="glass-card p-0 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="admin-records w-full text-left">
-                <thead>
-                  <tr className="text-xs uppercase tracking-widest text-white/40 border-b border-white/10">
-                    <th className="px-8 py-4 font-bold">Order</th>
-                    <th className="py-4 font-bold">Module info</th>
-                    <th className="py-4 font-bold text-center">Status</th>
-                    <th className="py-4 font-bold text-right pr-8">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {isModulesLoading ? (
-                    <tr><td colSpan={4} className="py-8 text-center text-white/40">Loading modules...</td></tr>
-                  ) : appModules.length === 0 ? (
-                    <tr><td colSpan={4} className="py-12 text-center text-white/40">No modules found in database. Create one to get started.</td></tr>
-                  ) : appModules.map(mod => (
-                    <tr key={mod.id} className="hover:bg-white/5 transition-colors">
-                      <td data-label="Order" className="px-8 py-6">
-                        <div className="font-mono text-sm text-primary font-bold">#{mod.order}</div>
-                      </td>
-                      <td data-label="Module" className="py-6">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/60 ring-1 ring-white/10">
-                             <LucideIcon name={mod.iconName || 'Layout'} size={20} />
-                          </div>
-                          <div>
-                            <div className="font-bold text-lg">{mod.name}</div>
-                            <div className="text-sm text-white/40">{mod.description}</div>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 bg-black/40 rounded border border-white/10 text-white/40">/{mod.slug}</span>
-                              <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 bg-white/5 rounded border border-white/10 text-white/30">{mod.category}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td data-label="Status" className="py-6 text-center">
-                        <button 
-                          onClick={() => toggleModuleStatus(mod.id, mod.isActive)}
-                          className="group relative flex items-center justify-center"
-                        >
-                          <div className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${
-                            mod.isActive ? 'bg-primary shadow-[0_0_10px_rgba(var(--primary-rgb),0.3)]' : 'bg-white/10'
-                          }`}>
-                            <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-300 ${
-                              mod.isActive ? 'translate-x-6' : 'translate-x-0'
-                            }`} />
-                          </div>
-                          <span className={`absolute -bottom-5 w-auto whitespace-nowrap text-[8px] font-black uppercase tracking-widest transition-opacity ${
-                            mod.isActive ? 'text-primary' : 'text-white/20'
-                          }`}>
-                            {mod.isActive ? 'Live' : 'Hidden'}
-                          </span>
-                        </button>
-                      </td>
-                      <td data-label="Actions" className="py-6 text-right pr-8">
-                        <div className="flex items-center justify-end gap-2">
-                          <button 
-                            onClick={() => setEditingModule(mod)}
-                            className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-white/60 hover:text-white transition-colors"
-                            title="Edit Module"
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteModule(mod.id)}
-                            className="p-2 bg-white/5 hover:bg-red-500/20 rounded-lg text-white/60 hover:text-red-400 transition-colors"
-                            title="Delete Module"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Modal / Overlay for Edit Module */}
-          {editingModule && (
-            <div className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-obsidian/95 backdrop-blur-md shadow-2xl">
-              <motion.div 
-                initial={{ scale: 0.95, opacity: 0, y: 20 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                className="glass-card w-full max-w-lg h-full sm:h-auto sm:max-h-[85vh] overflow-hidden flex flex-col border-primary/30 shadow-[0_0_50px_rgba(0,0,0,0.5)]"
-              >
-                <div className="p-6 border-b border-white/10 flex items-center justify-between bg-primary/5">
-                  <h4 className="text-xl font-bold flex items-center gap-2">
-                    <Layout className="text-primary" size={20} />
-                    {editingModule.id ? 'Edit Module' : 'Create New Module'}
-                  </h4>
-                  <button onClick={() => setEditingModule(null)} className="p-2 hover:bg-white/10 rounded-full text-white/40 hover:text-white transition-colors">
-                    <X size={20} />
-                  </button>
-                </div>
-                
-                <div className="p-4 sm:p-8 space-y-6 overflow-y-auto max-h-[70vh]">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="col-span-2">
-                      <label className="text-xs font-bold uppercase tracking-widest text-white/40 block mb-2">Module Name</label>
-                      <input 
-                        type="text" 
-                        value={editingModule.name || ''}
-                        onChange={(e) => setEditingModule({...editingModule, name: e.target.value})}
-                        placeholder="e.g., SpeakEZ"
-                        className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-sm focus:outline-none focus:border-primary transition-all"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold uppercase tracking-widest text-white/40 block mb-2">Slug</label>
-                      <input 
-                        type="text" 
-                        value={editingModule.slug || ''}
-                        onChange={(e) => setEditingModule({...editingModule, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})}
-                        placeholder="e.g., speak-ez"
-                        className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-sm focus:outline-none focus:border-primary transition-all"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold uppercase tracking-widest text-white/40 block mb-2">Order</label>
-                      <input 
-                        type="number" 
-                        value={editingModule.order || 0}
-                        onChange={(e) => setEditingModule({...editingModule, order: parseInt(e.target.value)})}
-                        className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-sm focus:outline-none focus:border-primary"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="flex-1">
-                      <label className="text-xs font-bold uppercase tracking-widest text-white/40 block mb-2">Icon Name (Lucide)</label>
-                      <div className="flex gap-2">
-                        <div className="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center text-primary border border-white/10 shrink-0">
-                          <LucideIcon name={editingModule.iconName || 'Layout'} size={24} />
-                        </div>
-                        <input 
-                          type="text" 
-                          value={editingModule.iconName || 'Layout'}
-                          onChange={(e) => setEditingModule({...editingModule, iconName: e.target.value})}
-                          placeholder="Search icons..."
-                          className="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 text-sm focus:outline-none focus:border-primary transition-all"
-                        />
-                      </div>
-                      <div className="mt-2 flex gap-1 flex-wrap">
-                        {['MessageSquare', 'Mic', 'BookOpen', 'PenTool', 'Headphones', 'Zap', 'Cpu', 'Layers'].map(ic => (
-                          <button 
-                            key={ic}
-                            onClick={() => setEditingModule({...editingModule, iconName: ic})}
-                            className="p-1.5 bg-white/5 rounded-lg hover:bg-white/10 border border-white/5 text-white/40 hover:text-white"
-                          >
-                            <LucideIcon name={ic} size={14} />
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold uppercase tracking-widest text-white/40 block mb-2">Category</label>
-                      <select 
-                        value={editingModule.category || 'core'}
-                        onChange={(e) => setEditingModule({...editingModule, category: e.target.value as any})}
-                        className="w-full bg-black/40 border border-white/10 rounded-xl p-3 h-11 text-sm focus:outline-none focus:border-primary"
-                      >
-                        <option value="core">Core Skills</option>
-                        <option value="exam">Exam Prep</option>
-                        <option value="bonus">Bonus Content</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold uppercase tracking-widest text-white/40 block mb-2">Description</label>
-                    <textarea 
-                      rows={3}
-                      value={editingModule.description || ''}
-                      onChange={(e) => setEditingModule({...editingModule, description: e.target.value})}
-                      placeholder="Short catchphrase or description..."
-                      className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-sm focus:outline-none focus:border-primary resize-none transition-all"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs font-bold uppercase tracking-widest text-white/40 block mb-2">Difficulty</label>
-                      <select 
-                        value={editingModule.difficulty || ''}
-                        onChange={(e) => setEditingModule({...editingModule, difficulty: e.target.value})}
-                        className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-sm focus:outline-none focus:border-primary"
-                      >
-                        <option value="">Unspecified</option>
-                        <option value="Easy">Easy</option>
-                        <option value="Intermediate">Intermediate</option>
-                        <option value="Advanced">Advanced</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold uppercase tracking-widest text-white/40 block mb-2">Status</label>
-                      <div 
-                        onClick={() => setEditingModule({...editingModule, isActive: !editingModule.isActive})}
-                        className="flex items-center gap-3 cursor-pointer p-3 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-colors"
-                      >
-                        <div className={`w-10 h-5 rounded-full p-1 transition-colors ${editingModule.isActive ? 'bg-primary' : 'bg-white/20'}`}>
-                          <div className={`w-3 h-3 rounded-full bg-white transition-transform ${editingModule.isActive ? 'translate-x-5' : ''}`} />
-                        </div>
-                        <span className="text-sm font-bold uppercase tracking-widest">{editingModule.isActive ? 'Active' : 'Draft'}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-6 border-t border-white/10 bg-white/5 flex gap-4">
-                  <button 
-                    onClick={handleSaveModule}
-                    className="flex-1 btn-primary py-4 flex items-center justify-center gap-2 font-black uppercase tracking-widest text-xs"
-                  >
-                    <Save size={18} /> Save Module
-                  </button>
-                  <button 
-                    onClick={() => setEditingModule(null)}
-                    className="px-8 py-4 bg-white/10 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-white/20 transition-all font-black"
-                  >
-                    Cancel
                   </button>
                 </div>
               </motion.div>
@@ -3460,133 +2221,11 @@ export const AdminPage: React.FC = () => {
             {/* ... recommendations */}
           </div>
 
-          <div className="glass-card p-4 sm:p-10 space-y-8 border-primary/20 bg-primary/[0.02]">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xl font-bold tracking-tight">Feature Flags & Maintenance</h3>
-                <p className="text-xs text-white/40 mt-1 uppercase tracking-widest font-bold">Control individual skill availability during upgrades</p>
-              </div>
-              <div className="flex gap-2">
-                 <button 
-                  onClick={syncModules}
-                  disabled={isSyncingModules}
-                  className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 disabled:opacity-50 transition-all"
-                >
-                  {isSyncingModules ? <Activity size={12} className="animate-spin" /> : <RefreshCcw size={12} />}
-                  Sync Core Modules
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {appModules.map(mod => (
-                <div key={mod.id} className={`p-6 rounded-[2rem] border transition-all ${mod.isActive ? 'bg-primary/5 border-primary/20' : 'bg-white/5 border-white/10 opacity-60'}`}>
-                  <div className="flex justify-between items-start mb-6">
-                    <div className={`p-3 rounded-2xl ${mod.isActive ? 'bg-primary text-obsidian shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)]' : 'bg-white/5 text-white/20'}`}>
-                      <LucideIcon name={mod.iconName || 'Layout'} size={20} />
-                    </div>
-                    <button 
-                      onClick={() => toggleModuleStatus(mod.id, mod.isActive)}
-                      className={`w-12 h-6 rounded-full p-1 transition-all ${mod.isActive ? 'bg-primary shadow-[0_0_10px_rgba(var(--primary-rgb),0.3)]' : 'bg-white/10'}`}
-                    >
-                      <div className={`w-4 h-4 rounded-full bg-white transition-transform ${mod.isActive ? 'translate-x-6' : 'translate-x-0'}`} />
-                    </button>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-sm tracking-tight mb-1">{mod.name}</h4>
-                    <p className={`text-[10px] font-black uppercase tracking-widest ${mod.isActive ? 'text-primary' : 'text-white/20'}`}>
-                      {mod.isActive ? 'Operational' : 'On Maintenance'}
-                    </p>
-                  </div>
-                </div>
-              ))}
-              {appModules.length === 0 && (
-                <div className="col-span-full py-12 text-center border-2 border-dashed border-white/5 rounded-[2rem]">
-                  <p className="text-sm text-white/20 font-bold uppercase tracking-widest">Click 'Sync Core Modules' to initialize feature toggles</p>
-                </div>
-              )}
-            </div>
-          </div>
+          <ModuleFlagsGrid/>
         </motion.div>
       )}
 
-      {activeTab === 'system' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="glass-card p-4 sm:p-8">
-            <div className="flex justify-between items-start mb-6">
-              <h3 className="text-xl font-bold tracking-tight">API Configuration</h3>
-              <Key className="text-white/40" />
-            </div>
-            <div className="space-y-6">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-white/40 mb-2">Gemini API Key</label>
-                <div className="flex bg-black/40 border border-white/10 rounded-lg p-3">
-                  <input type="password" value="************************" readOnly className="bg-transparent w-full outline-none text-sm font-mono text-white/60" />
-                  <button className="text-xs font-bold text-primary px-2">EDIT</button>
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-white/40 mb-2">Stripe Secret Key</label>
-                <div className="flex bg-black/40 border border-white/10 rounded-lg p-3">
-                  <input type="password" value="************************" readOnly className="bg-transparent w-full outline-none text-sm font-mono text-white/60" />
-                  <button className="text-xs font-bold text-primary px-2">EDIT</button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="glass-card p-4 sm:p-8 border-red-500/20 bg-red-500/5">
-            <h3 className="text-xl font-bold tracking-tight text-red-400 mb-2">Danger Zone</h3>
-            <p className="text-sm text-white/60 mb-6">Irreversible system actions.</p>
-            
-            <div className="space-y-4">
-              <button className="w-full py-3 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg text-sm font-bold uppercase tracking-widest hover:bg-red-500 hover:text-white transition-colors">
-                Purge All History Logs
-              </button>
-              <button className="w-full py-3 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg text-sm font-bold uppercase tracking-widest hover:bg-red-500 hover:text-white transition-colors">
-                Reset Daily Credits
-              </button>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Confirm Dialog Overlay */}
-      {confirmDialog && confirmDialog.isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-obsidian/80 backdrop-blur-sm">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="glass-card max-w-md w-full p-4 sm:p-8 border-white/10 space-y-6"
-          >
-            <div className={`w-16 h-16 rounded-3xl flex items-center justify-center ${
-              confirmDialog.type === 'danger' ? 'bg-red-500/10 text-red-500' : 'bg-amber-500/10 text-amber-500'
-            }`}>
-              <AlertCircle size={32} />
-            </div>
-            <div>
-              <h3 className="text-2xl font-black italic uppercase tracking-tighter text-white">{confirmDialog.title}</h3>
-              <p className="text-white/60 text-sm mt-2 leading-relaxed">{confirmDialog.message}</p>
-            </div>
-            <div className="flex gap-4 pt-4">
-              <button 
-                onClick={() => setConfirmDialog(null)}
-                className="flex-1 px-6 py-4 bg-white/5 hover:bg-white/10 text-white text-xs font-black uppercase tracking-widest rounded-2xl border border-white/5 transition-all italic"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={confirmDialog.onConfirm}
-                className={`flex-1 px-6 py-4 text-obsidian text-xs font-black uppercase tracking-widest rounded-2xl transition-all italic shadow-2xl ${
-                  confirmDialog.type === 'danger' ? 'bg-red-500 shadow-red-500/20' : 'bg-primary shadow-primary/20'
-                }`}
-              >
-                {confirmDialog.confirmText}
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+      {confirmDialogElement}
 
       {/* Global Floating Save Action */}
       {activeTab === 'ui' && siteConfig && (
