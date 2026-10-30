@@ -1,5 +1,6 @@
 import { TRIAL_LISTENING_TESTS } from '../../src/data/trialListeningTests';
 import { validAudioRange } from '../../src/server/listeningAudio';
+import {mayDisplayTrialPaper,TRIAL_RIGHTS_MESSAGE,type TrialRightsCheck} from '../../src/lib/trialPaperRights';
 
 export const AUDIO_RESPONSE_BYTES = 2 * 1024 * 1024;
 export function boundedAudioRange(range: string | null) {
@@ -9,12 +10,13 @@ export function boundedAudioRange(range: string | null) {
   const start = Number(from);
   return `bytes=${start}-${Math.min(to ? Number(to) : Number.MAX_SAFE_INTEGER, start + AUDIO_RESPONSE_BYTES - 1)}`;
 }
-export function createNetlifyListeningAudio(fetcher: typeof fetch = fetch) {
+export function createNetlifyListeningAudio(fetcher: typeof fetch = fetch, rights: TrialRightsCheck = mayDisplayTrialPaper) {
   return async (req: Request) => {
     if (!['GET', 'HEAD'].includes(req.method)) return new Response(null, { status: 405 });
     const testId = new URL(req.url).pathname.split('/').pop();
     const source = TRIAL_LISTENING_TESTS.find(test => test.id === testId);
     if (!source) return Response.json({ error: 'This recording was not found.' }, { status: 404 });
+    if (!rights(source.id,'listening')) return new Response(req.method==='HEAD'?null:JSON.stringify({error:TRIAL_RIGHTS_MESSAGE}),{status:451,headers:{'Cache-Control':'private, no-store','Content-Type':'application/json'}});
     const range = boundedAudioRange(req.headers.get('range'));
     if (!range) return new Response(null, { status: 416 });
     // Keep playback same-origin, preserving the original player and avoiding

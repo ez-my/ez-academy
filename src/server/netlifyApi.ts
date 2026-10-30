@@ -22,9 +22,13 @@ export default async function api(request: Request, context: Context) {
     const headers = new Headers();
     for (const [key, value] of Object.entries(result.headers || {})) if (value !== undefined) headers.set(key, String(value));
     for (const [key, values] of Object.entries(result.multiValueHeaders || {})) for (const value of values || []) headers.append(key, String(value));
+    headers.set('X-Content-Type-Options', 'nosniff');
+    headers.set('X-Frame-Options', 'SAMEORIGIN');
+    headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    if (!headers.has('Cache-Control')) headers.set('Cache-Control', 'no-store');
     const responseBody = request.method === 'HEAD' || [204, 304].includes(result.statusCode) ? null : result.isBase64Encoded ? Buffer.from(result.body || '', 'base64') : result.body || '';
     return new Response(responseBody, { status: result.statusCode, headers });
   } catch {
-    return Response.json({ error: 'The server is not configured yet. Please try again later.' }, { status: 503, headers: { 'Cache-Control': 'no-store' } });
+    return Response.json({ error: 'The server is not configured yet. Please try again later.' }, { status: 503, headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Referrer-Policy': 'strict-origin-when-cross-origin' } });
   }
 }

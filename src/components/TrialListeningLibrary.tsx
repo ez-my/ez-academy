@@ -1,3 +1,6 @@
+import {preserveOriginalTrialText} from '../lib/trialPaperText';
+import {isAuthorizedTrialAsset} from '../lib/trialPaperRights';
+import {TrialPaperRightsNotice} from './TrialPaperRightsNotice';
 import {useTrialProgress,trialStatusClass} from '../lib/practice';
 import React, {useEffect, useMemo, useState} from 'react';
 import {ArrowLeft, ExternalLink, Headphones, Search, Trash2} from 'lucide-react';
@@ -29,6 +32,7 @@ function TrialWorkspace({test, uid, onBack, completed,blocked}: {test: TrialList
   const [mobileTab, setMobileTab] = useState<'questions'|'answers'>('questions');
   const [original, setOriginal] = useState(false);
   const readable = READABLE_TRIAL_PARTS[test.questionFileId]?.[part]?.replace(/^\d+(?=PART|Part)/, '');
+  const originalReadableText = readable ? preserveOriginalTrialText(readable) : null;
   const [paper, setPaper] = useState<'questions'|'answers'>('questions');
   const [checkReset, setCheckReset] = useState(0);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -95,7 +99,7 @@ function TrialWorkspace({test, uid, onBack, completed,blocked}: {test: TrialList
           </div>
           {(original || !readable || paper==='answers') && paperLoading && <p role="status" className="px-3 pb-3 text-xs text-white/60">Loading the paper…</p>}
           {paper==='questions' && readable && !original ? <div className="space-y-5 px-4 pb-6 text-base leading-7 text-white sm:px-5 sm:text-lg">
-            {organised ? <>
+            {originalReadableText ? <div className="whitespace-pre-wrap break-words">{originalReadableText}</div> : organised ? <>
               <div className="rounded-xl border border-primary/20 bg-primary/5 p-4"><h4 className="mb-2 text-sm font-bold text-primary">Part {part} · Questions {range.first}–{range.last}</h4><p>{organised.instructions.replace(/^Part [12](?: \(SET 1\))?/i,'').replace(/^Questions \d+ to \d+ /,'')}</p></div>
               {organised.questions.map(q=><article key={q.number} className="space-y-3 rounded-2xl border border-white/15 bg-white/5 p-4">
                 <h4 className="font-semibold"><span className="mr-2 text-primary">{q.number}.</span>{q.stem}</h4>
@@ -153,10 +157,11 @@ export function TrialListeningLibrary({uid}: {uid:string}) {
   const [search,setSearch]=useState('');
   const [year,setYear]=useState<'all'|'2026'|'2025'|'2024'>('all');
   const [selected,setSelected]=useState<TrialListeningTest|null>(null);
-  const tests=useMemo(()=>TRIAL_LISTENING_TESTS.filter(test=>(year==='all'||String(test.year)===year) && listeningTestLabel(test).toLowerCase().includes(search.trim().toLowerCase())),[search,year]);
+  const tests=useMemo(()=>TRIAL_LISTENING_TESTS.filter(test=>isAuthorizedTrialAsset(test,'listening')&&(year==='all'||String(test.year)===year) && listeningTestLabel(test).toLowerCase().includes(search.trim().toLowerCase())),[search,year]);
   const progress=useTrialProgress(uid,'listen');
   if(progress.loading)return <p role="status">Loading progress…</p>;
   if(progress.error)return <p role="alert">{progress.error} Reload to try again.</p>;
+  if(selected&&!isAuthorizedTrialAsset(selected,'listening'))return <TrialPaperRightsNotice skill="Listening"/>;
   if(selected) return <TrialWorkspace key={`${uid}:${selected.id}`} uid={uid} test={selected} completed={progress.parts(selected.id)} blocked={progress.blocked} onBack={()=>setSelected(null)}/>;
   return <div className="min-w-0 space-y-6">
     <header>

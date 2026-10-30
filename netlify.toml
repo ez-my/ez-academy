@@ -9,6 +9,25 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+# Security headers applied to every response
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Prevent MIME-type sniffing
+    X-Content-Type-Options = "nosniff"
+    # Block clickjacking — only allow framing from same origin
+    X-Frame-Options = "SAMEORIGIN"
+    Strict-Transport-Security = "max-age=31536000"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(self), geolocation=()"
+
+# API responses should not be cached or framed
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "no-store"
+    X-Content-Type-Options = "nosniff"
+
 [[redirects]]
   from = "/api/listening/audio/*"
   to = "/.netlify/functions/listening-audio/:splat"
@@ -29,3 +48,9 @@
 
 [functions."ops-scheduler"]
   schedule = "0 */8 * * *"
+
+# Daily practice reminders — 08:00 MYT (UTC 00:00)
+# Prerequisite: FCM must be set up (see TEKNO skill: EZ Academy Push Notification Setup)
+# Uncomment once VITE_FIREBASE_VAPID_KEY and Firebase Admin FCM credentials are configured
+# [functions."daily-reminders"]
+#   schedule = "0 0 * * *"

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   Mic, 
@@ -20,7 +20,8 @@ import { MUETPart2Practice } from '../components/muet/MUETPart2Practice';
 import { MUETMockTest } from '../components/muet/MUETMockTest';
 import { MUETLanguageToolbox } from '../components/muet/MUETLanguageToolbox';
 import { MUETProgress } from '../components/muet/MUETProgress';
-import { saveSession } from '../lib/firebase';
+import { withoutRecordingData } from '../lib/recordingPrivacy';
+import { auth, saveSession } from '../lib/firebase';
 import { cn } from '../lib/utils';
 import { toast } from 'react-hot-toast';
 
@@ -58,16 +59,29 @@ export const MUETPage: React.FC<MUETPageProps> = ({ profile, onTrackChange }) =>
     setSearchParams({ tab: activeTab, sub: practiceSubTab });
   }, [activeTab, practiceSubTab, setSearchParams]);
 
+  const [syncStatus, setSyncStatus] = useState('');
+  const [localDurable, setLocalDurable] = useState(true);
+  const pendingMemory = useRef(new Map<string, MUETExaminerReport[]>());
+  const pendingKey = `ez_muet_pending_${profile?.uid || 'guest'}`;
+  const pendingReports = (): MUETExaminerReport[] => {
+    if (!pendingMemory.current.has(pendingKey)) {
+      try { pendingMemory.current.set(pendingKey, JSON.parse(localStorage.getItem(pendingKey) || '[]')); }
+      catch { pendingMemory.current.set(pendingKey, []); }
+    }
+    return pendingMemory.current.get(pendingKey)!;
+  };
+  const retainPending = (reports: MUETExaminerReport[]) => {
+    pendingMemory.current.set(pendingKey, reports);
+    try { localStorage.setItem(pendingKey, JSON.stringify(reports)); setLocalDurable(true); }
+    catch { setLocalDurable(false); }
+  };
   const handleSaveReport = async (report: MUETExaminerReport) => {
-    const updated = [report, ...savedSessions];
-    setSavedSessions(updated);
+    if (!profile?.uid) throw new Error('Sign in to sync your report.');
+    report = withoutRecordingData(report);
+    // Retain unsynced reports separately: they must not appear as cloud-saved progress.
+    retainPending([report, ...pendingReports().filter(r => r.id !== report.id)]);
+    setSyncStatus('Saving report…');
     try {
-      localStorage.setItem(`ez_muet_sessions_${profile?.uid || 'guest'}`, JSON.stringify(updated));
-    } catch (e) {}
-
-    // Save to Firebase practice sessions if logged in
-    if (profile?.uid) {
-      try {
         await saveSession(profile.uid, {
           id: report.id,
           muetReport: report,
@@ -87,11 +101,27 @@ export const MUETPage: React.FC<MUETPageProps> = ({ profile, onTrackChange }) =>
             structure: report.taskFulfilment.score * 20
           }
         });
-      } catch (err) {
-        console.warn('Firebase session save notice:', err);
-      }
+      if (auth.currentUser?.uid !== profile.uid) return;
+      setSavedSessions(previous => {
+        const updated = [report, ...previous.filter(r => r.id !== report.id)];
+        try { localStorage.setItem(`ez_muet_sessions_${profile.uid}`, JSON.stringify(updated)); } catch {}
+        return updated;
+      });
+      retainPending(pendingReports().filter(r => r.id !== report.id));
+      setSyncStatus('Report saved to your account.');
+    } catch (err) {
+      setSyncStatus('Report not synced. Retry without requesting AI feedback again.');
+      throw err;
     }
   };
+  const retryReports = async () => {
+    for (const report of pendingReports()) { try { await handleSaveReport(report); } catch { break; } }
+  };
+  useEffect(() => {
+    try { setSavedSessions(JSON.parse(localStorage.getItem(`ez_muet_sessions_${profile?.uid || 'guest'}`) || '[]')); } catch { setSavedSessions([]); }
+    setSyncStatus('');
+    void retryReports();
+  }, [profile?.uid]);
 
   const handleTrackSelect = (track: CurriculumTrack) => {
     if (track === 'SPM') {
@@ -112,6 +142,8 @@ export const MUETPage: React.FC<MUETPageProps> = ({ profile, onTrackChange }) =>
         <button type="button" onClick={()=>navigate('/app/listenez')} className="min-h-11 rounded-xl border border-primary/30 bg-primary/10 px-3 text-sm font-semibold text-primary">ListenEZ →</button>
       </header>
 
+      {!localDurable && <p role="status" className="text-sm text-amber-200">Device storage unavailable. Unsynced reports are only in memory; keep this page open until synced.</p>}
+      {syncStatus && <div role="status" className="text-sm text-white/65">{syncStatus}{syncStatus.includes('not synced') && <button type="button" className="min-h-11 underline ml-3" onClick={() => void retryReports()}>Retry report sync</button>}</div>}
       {/* Main MUET Navigation Tabs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
         <button
@@ -213,16 +245,16 @@ export const MUETPage: React.FC<MUETPageProps> = ({ profile, onTrackChange }) =>
           </div>
 
           {practiceSubTab === 'part1' ? (
-            <MUETPart1Practice onSaveReport={handleSaveReport} />
+            <MUETPart1Practice key={profile?.uid} onSaveReport={handleSaveReport} />
           ) : (
-            <MUETPart2Practice onSaveReport={handleSaveReport} />
+            <MUETPart2Practice key={profile?.uid} onSaveReport={handleSaveReport} />
           )}
         </div>
       )}
 
       {/* 2. MOCK TEST TAB */}
       {activeTab === 'mock' && (
-        (profile?.plan === 'free'||profile?.fullTestAccess===false) ? <div className="rounded-xl border border-white/15 p-5 text-sm"><p>Full tests are for paid plans.</p><button className="mt-3 text-primary" onClick={()=>navigate('/app/pricing')}>View plans</button></div> : <MUETMockTest onSaveReport={handleSaveReport} />
+        (profile?.plan === 'free'||profile?.fullTestAccess===false) ? <div className="rounded-xl border border-white/15 p-5 text-sm"><p>Full tests are for paid plans.</p><button className="mt-3 text-primary" onClick={()=>navigate('/app/pricing')}>View plans</button></div> : <MUETMockTest key={profile?.uid} onSaveReport={handleSaveReport} />
       )}
 
       {/* 3. LANGUAGE TOOLBOX TAB */}

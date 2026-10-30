@@ -1,11 +1,11 @@
 import 'google-auth-library';
 import 'fast-deep-equal';
+import '@google-cloud/firestore';
 import '@fastify/busboy';
 import 'debug';
 import 'lru-memoizer';
 import 'limiter';
 import 'jsonwebtoken';
-import '@google-cloud/firestore';
 import { createRequire as moduleRequire } from 'node:module'; const require = moduleRequire(import.meta.url);
 var __create = Object.create;
 var __defProp = Object.defineProperty;
@@ -1605,8 +1605,269 @@ var require_app = __commonJS({
   }
 });
 
-// node_modules/firebase-admin/lib/auth/error.js
+// node_modules/firebase-admin/lib/firestore/error.js
 var require_error3 = __commonJS({
+  "node_modules/firebase-admin/lib/firestore/error.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.FirebaseFirestoreError = exports.FirestoreErrorCode = void 0;
+    var error_1 = require_error();
+    exports.FirestoreErrorCode = {
+      FAILED_PRECONDITION: "failed-precondition",
+      INVALID_ARGUMENT: "invalid-argument",
+      INVALID_CREDENTIAL: "invalid-credential",
+      MISSING_DEPENDENCIES: "missing-dependencies"
+    };
+    var FirebaseFirestoreError = class extends error_1.FirebaseError {
+      /**
+       * @param info - The error code info.
+       * @param message - The error message. This will override the default
+       *     message if provided.
+       */
+      constructor(info, message2) {
+        super({
+          code: `firestore/${info.code}`,
+          message: message2 || info.message,
+          httpResponse: info.httpResponse,
+          cause: info.cause
+        });
+        this.codePrefix = "firestore";
+      }
+    };
+    exports.FirebaseFirestoreError = FirebaseFirestoreError;
+  }
+});
+
+// node_modules/firebase-admin/lib/firestore/firestore-internal.js
+var require_firestore_internal = __commonJS({
+  "node_modules/firebase-admin/lib/firestore/firestore-internal.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.FirestoreService = exports.DEFAULT_DATABASE_ID = void 0;
+    exports.getFirestoreOptions = getFirestoreOptions;
+    var error_1 = require_error3();
+    var credential_internal_1 = require_credential_internal();
+    var validator = require_validator();
+    var utils = require_utils();
+    exports.DEFAULT_DATABASE_ID = "(default)";
+    var FirestoreService = class {
+      constructor(app) {
+        this.databases = /* @__PURE__ */ new Map();
+        this.firestoreSettings = /* @__PURE__ */ new Map();
+        this.appInternal = app;
+      }
+      initializeDatabase(databaseId, settings) {
+        const existingInstance = this.databases.get(databaseId);
+        if (existingInstance) {
+          const initialSettings = this.firestoreSettings.get(databaseId) ?? {};
+          if (this.checkIfSameSettings(settings, initialSettings)) {
+            return existingInstance;
+          }
+          throw new error_1.FirebaseFirestoreError({
+            code: "failed-precondition",
+            message: "initializeFirestore() has already been called with different options. To avoid this error, call initializeFirestore() with the same options as when it was originally called, or call getFirestore() to return the already initialized instance."
+          });
+        }
+        const newInstance = initFirestore(this.app, databaseId, settings);
+        this.databases.set(databaseId, newInstance);
+        this.firestoreSettings.set(databaseId, settings);
+        return newInstance;
+      }
+      getDatabase(databaseId) {
+        let database = this.databases.get(databaseId);
+        if (database === void 0) {
+          database = initFirestore(this.app, databaseId, {});
+          this.databases.set(databaseId, database);
+          this.firestoreSettings.set(databaseId, {});
+        }
+        return database;
+      }
+      checkIfSameSettings(settingsA, settingsB) {
+        const a = settingsA ?? {};
+        const b = settingsB ?? {};
+        return a.preferRest === b.preferRest;
+      }
+      /**
+       * Returns the app associated with this Storage instance.
+       *
+       * @returns The app associated with this Storage instance.
+       */
+      get app() {
+        return this.appInternal;
+      }
+    };
+    exports.FirestoreService = FirestoreService;
+    function getFirestoreOptions(app, firestoreSettings) {
+      if (!validator.isNonNullObject(app) || !("options" in app)) {
+        throw new error_1.FirebaseFirestoreError({
+          code: "invalid-argument",
+          message: "First argument passed to admin.firestore() must be a valid Firebase app instance."
+        });
+      }
+      const projectId = utils.getExplicitProjectId(app);
+      const credential = app.options.credential;
+      const sdkVersion = utils.getSdkVersion();
+      const preferRest = firestoreSettings?.preferRest;
+      if (credential instanceof credential_internal_1.ServiceAccountCredential) {
+        return {
+          credentials: {
+            private_key: credential.privateKey,
+            client_email: credential.clientEmail
+          },
+          // When the SDK is initialized with ServiceAccountCredentials an explicit projectId is
+          // guaranteed to be available.
+          projectId,
+          firebaseVersion: sdkVersion,
+          firebaseAdminVersion: sdkVersion,
+          preferRest
+        };
+      } else if ((0, credential_internal_1.isApplicationDefault)(app.options.credential)) {
+        return validator.isNonEmptyString(projectId) ? {
+          projectId,
+          firebaseVersion: sdkVersion,
+          firebaseAdminVersion: sdkVersion,
+          preferRest
+        } : {
+          firebaseVersion: sdkVersion,
+          firebaseAdminVersion: sdkVersion,
+          preferRest
+        };
+      }
+      throw new error_1.FirebaseFirestoreError({
+        code: "invalid-credential",
+        message: "Failed to initialize Google Cloud Firestore client with the available credentials. Must initialize the SDK with a certificate credential or application default credentials to use Cloud Firestore API."
+      });
+    }
+    function initFirestore(app, databaseId, firestoreSettings) {
+      const options = getFirestoreOptions(app, firestoreSettings);
+      options.databaseId = databaseId;
+      let firestoreDatabase;
+      try {
+        firestoreDatabase = __require("@google-cloud/firestore").Firestore;
+      } catch (err) {
+        throw new error_1.FirebaseFirestoreError({
+          code: "missing-dependencies",
+          message: 'Failed to import the Cloud Firestore client library for Node.js. Make sure to install the "@google-cloud/firestore" npm package.',
+          cause: err
+        });
+      }
+      return new firestoreDatabase(options);
+    }
+  }
+});
+
+// node_modules/firebase-admin/lib/firestore/index.js
+var require_firestore = __commonJS({
+  "node_modules/firebase-admin/lib/firestore/index.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.FirebaseFirestoreError = exports.FirestoreErrorCode = exports.setLogFunction = exports.v1 = exports.WriteResult = exports.WriteBatch = exports.Transaction = exports.Timestamp = exports.QuerySnapshot = exports.QueryPartition = exports.QueryDocumentSnapshot = exports.Query = exports.GrpcStatus = exports.GeoPoint = exports.Firestore = exports.Filter = exports.FieldValue = exports.FieldPath = exports.DocumentSnapshot = exports.DocumentReference = exports.CollectionReference = exports.CollectionGroup = exports.BundleBuilder = exports.BulkWriter = exports.AggregateQuerySnapshot = exports.AggregateQuery = exports.AggregateField = void 0;
+    exports.getFirestore = getFirestore2;
+    exports.initializeFirestore = initializeFirestore;
+    var app_1 = require_app();
+    var firestore_internal_1 = require_firestore_internal();
+    var firestore_1 = __require("@google-cloud/firestore");
+    Object.defineProperty(exports, "AggregateField", { enumerable: true, get: function() {
+      return firestore_1.AggregateField;
+    } });
+    Object.defineProperty(exports, "AggregateQuery", { enumerable: true, get: function() {
+      return firestore_1.AggregateQuery;
+    } });
+    Object.defineProperty(exports, "AggregateQuerySnapshot", { enumerable: true, get: function() {
+      return firestore_1.AggregateQuerySnapshot;
+    } });
+    Object.defineProperty(exports, "BulkWriter", { enumerable: true, get: function() {
+      return firestore_1.BulkWriter;
+    } });
+    Object.defineProperty(exports, "BundleBuilder", { enumerable: true, get: function() {
+      return firestore_1.BundleBuilder;
+    } });
+    Object.defineProperty(exports, "CollectionGroup", { enumerable: true, get: function() {
+      return firestore_1.CollectionGroup;
+    } });
+    Object.defineProperty(exports, "CollectionReference", { enumerable: true, get: function() {
+      return firestore_1.CollectionReference;
+    } });
+    Object.defineProperty(exports, "DocumentReference", { enumerable: true, get: function() {
+      return firestore_1.DocumentReference;
+    } });
+    Object.defineProperty(exports, "DocumentSnapshot", { enumerable: true, get: function() {
+      return firestore_1.DocumentSnapshot;
+    } });
+    Object.defineProperty(exports, "FieldPath", { enumerable: true, get: function() {
+      return firestore_1.FieldPath;
+    } });
+    Object.defineProperty(exports, "FieldValue", { enumerable: true, get: function() {
+      return firestore_1.FieldValue;
+    } });
+    Object.defineProperty(exports, "Filter", { enumerable: true, get: function() {
+      return firestore_1.Filter;
+    } });
+    Object.defineProperty(exports, "Firestore", { enumerable: true, get: function() {
+      return firestore_1.Firestore;
+    } });
+    Object.defineProperty(exports, "GeoPoint", { enumerable: true, get: function() {
+      return firestore_1.GeoPoint;
+    } });
+    Object.defineProperty(exports, "GrpcStatus", { enumerable: true, get: function() {
+      return firestore_1.GrpcStatus;
+    } });
+    Object.defineProperty(exports, "Query", { enumerable: true, get: function() {
+      return firestore_1.Query;
+    } });
+    Object.defineProperty(exports, "QueryDocumentSnapshot", { enumerable: true, get: function() {
+      return firestore_1.QueryDocumentSnapshot;
+    } });
+    Object.defineProperty(exports, "QueryPartition", { enumerable: true, get: function() {
+      return firestore_1.QueryPartition;
+    } });
+    Object.defineProperty(exports, "QuerySnapshot", { enumerable: true, get: function() {
+      return firestore_1.QuerySnapshot;
+    } });
+    Object.defineProperty(exports, "Timestamp", { enumerable: true, get: function() {
+      return firestore_1.Timestamp;
+    } });
+    Object.defineProperty(exports, "Transaction", { enumerable: true, get: function() {
+      return firestore_1.Transaction;
+    } });
+    Object.defineProperty(exports, "WriteBatch", { enumerable: true, get: function() {
+      return firestore_1.WriteBatch;
+    } });
+    Object.defineProperty(exports, "WriteResult", { enumerable: true, get: function() {
+      return firestore_1.WriteResult;
+    } });
+    Object.defineProperty(exports, "v1", { enumerable: true, get: function() {
+      return firestore_1.v1;
+    } });
+    Object.defineProperty(exports, "setLogFunction", { enumerable: true, get: function() {
+      return firestore_1.setLogFunction;
+    } });
+    function getFirestore2(appOrDatabaseId, optionalDatabaseId) {
+      const app = typeof appOrDatabaseId === "object" ? appOrDatabaseId : (0, app_1.getApp)();
+      const databaseId = (typeof appOrDatabaseId === "string" ? appOrDatabaseId : optionalDatabaseId) || firestore_internal_1.DEFAULT_DATABASE_ID;
+      const firebaseApp = app;
+      const firestoreService = firebaseApp.getOrInitService("firestore", (app2) => new firestore_internal_1.FirestoreService(app2));
+      return firestoreService.getDatabase(databaseId);
+    }
+    function initializeFirestore(app, settings, databaseId) {
+      settings ??= {};
+      databaseId ??= firestore_internal_1.DEFAULT_DATABASE_ID;
+      const firebaseApp = app;
+      const firestoreService = firebaseApp.getOrInitService("firestore", (app2) => new firestore_internal_1.FirestoreService(app2));
+      return firestoreService.initializeDatabase(databaseId, settings);
+    }
+    var error_1 = require_error3();
+    Object.defineProperty(exports, "FirestoreErrorCode", { enumerable: true, get: function() {
+      return error_1.FirestoreErrorCode;
+    } });
+    Object.defineProperty(exports, "FirebaseFirestoreError", { enumerable: true, get: function() {
+      return error_1.FirebaseFirestoreError;
+    } });
+  }
+});
+
+// node_modules/firebase-admin/lib/auth/error.js
+var require_error4 = __commonJS({
   "node_modules/firebase-admin/lib/auth/error.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -3254,7 +3515,7 @@ var require_user_import_builder = __commonJS({
     var deep_copy_1 = require_deep_copy();
     var utils = require_utils();
     var validator = require_validator();
-    var error_1 = require_error3();
+    var error_1 = require_error4();
     function convertMultiFactorInfoToServerFormat(multiFactorInfo) {
       let enrolledAt;
       if (typeof multiFactorInfo.enrollmentTime !== "undefined") {
@@ -3572,7 +3833,7 @@ var require_action_code_settings_builder = __commonJS({
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.ActionCodeSettingsBuilder = void 0;
     var validator = require_validator();
-    var error_1 = require_error3();
+    var error_1 = require_error4();
     var ActionCodeSettingsBuilder = class {
       /**
        * ActionCodeSettingsBuilder constructor.
@@ -3670,7 +3931,7 @@ var require_auth_config = __commonJS({
     exports.validateTestPhoneNumbers = validateTestPhoneNumbers;
     var validator = require_validator();
     var deep_copy_1 = require_deep_copy();
-    var error_1 = require_error3();
+    var error_1 = require_error4();
     exports.MAXIMUM_TEST_PHONE_NUMBERS = 10;
     var AUTH_FACTOR_CLIENT_TO_SERVER_TYPE = {
       phone: "PHONE_SMS"
@@ -4668,7 +4929,7 @@ var require_tenant = __commonJS({
     exports.Tenant = void 0;
     var validator = require_validator();
     var deep_copy_1 = require_deep_copy();
-    var error_1 = require_error3();
+    var error_1 = require_error4();
     var auth_config_1 = require_auth_config();
     var Tenant = class _Tenant {
       /**
@@ -4915,7 +5176,7 @@ var require_project_config = __commonJS({
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.ProjectConfig = void 0;
     var validator = require_validator();
-    var error_1 = require_error3();
+    var error_1 = require_error4();
     var auth_config_1 = require_auth_config();
     var deep_copy_1 = require_deep_copy();
     var ProjectConfig = class _ProjectConfig {
@@ -5077,7 +5338,7 @@ var require_auth_api_request = __commonJS({
     exports.useEmulator = useEmulator;
     var validator = require_validator();
     var deep_copy_1 = require_deep_copy();
-    var error_1 = require_error3();
+    var error_1 = require_error4();
     var error_2 = require_error();
     var api_request_1 = require_api_request();
     var utils = require_utils();
@@ -6686,8 +6947,8 @@ var require_crypto_signer = __commonJS({
        * @inheritDoc
        */
       sign(buffer) {
-        const crypto3 = __require("node:crypto");
-        const sign = crypto3.createSign("RSA-SHA256");
+        const crypto4 = __require("node:crypto");
+        const sign = crypto4.createSign("RSA-SHA256");
         sign.update(buffer);
         return Promise.resolve(sign.sign(this.credential.privateKey));
       }
@@ -6824,7 +7085,7 @@ var require_token_generator = __commonJS({
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.FirebaseTokenGenerator = exports.EmulatedSigner = exports.BLACKLISTED_CLAIMS = void 0;
     exports.handleCryptoSignerError = handleCryptoSignerError;
-    var error_1 = require_error3();
+    var error_1 = require_error4();
     var crypto_signer_1 = require_crypto_signer();
     var validator = require_validator();
     var utils_1 = require_utils();
@@ -11373,7 +11634,7 @@ var require_token_verifier = __commonJS({
     exports.createIdTokenVerifier = createIdTokenVerifier;
     exports.createAuthBlockingTokenVerifier = createAuthBlockingTokenVerifier;
     exports.createSessionCookieVerifier = createSessionCookieVerifier;
-    var error_1 = require_error3();
+    var error_1 = require_error4();
     var util = require_utils();
     var validator = require_validator();
     var jwt_1 = require_jwt();
@@ -11583,7 +11844,7 @@ var require_user_record = __commonJS({
     var deep_copy_1 = require_deep_copy();
     var validator_1 = require_validator();
     var utils = require_utils();
-    var error_1 = require_error3();
+    var error_1 = require_error4();
     var B64_REDACTED = Buffer.from("REDACTED").toString("base64");
     function parseDate(time) {
       try {
@@ -11919,7 +12180,7 @@ var require_base_auth = __commonJS({
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.BaseAuth = void 0;
     exports.createFirebaseTokenGenerator = createFirebaseTokenGenerator;
-    var error_1 = require_error3();
+    var error_1 = require_error4();
     var deep_copy_1 = require_deep_copy();
     var validator = require_validator();
     var auth_api_request_1 = require_auth_api_request();
@@ -12798,7 +13059,7 @@ var require_tenant_manager = __commonJS({
     exports.TenantManager = exports.TenantAwareAuth = void 0;
     var validator = require_validator();
     var utils = require_utils();
-    var error_1 = require_error3();
+    var error_1 = require_error4();
     var base_auth_1 = require_base_auth();
     var tenant_1 = require_tenant();
     var auth_api_request_1 = require_auth_api_request();
@@ -13130,7 +13391,7 @@ var require_auth2 = __commonJS({
     Object.defineProperty(exports, "UserRecord", { enumerable: true, get: function() {
       return user_record_1.UserRecord;
     } });
-    var error_1 = require_error3();
+    var error_1 = require_error4();
     Object.defineProperty(exports, "FirebaseAuthError", { enumerable: true, get: function() {
       return error_1.FirebaseAuthError;
     } });
@@ -13140,269 +13401,12 @@ var require_auth2 = __commonJS({
   }
 });
 
-// node_modules/firebase-admin/lib/firestore/error.js
-var require_error4 = __commonJS({
-  "node_modules/firebase-admin/lib/firestore/error.js"(exports) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.FirebaseFirestoreError = exports.FirestoreErrorCode = void 0;
-    var error_1 = require_error();
-    exports.FirestoreErrorCode = {
-      FAILED_PRECONDITION: "failed-precondition",
-      INVALID_ARGUMENT: "invalid-argument",
-      INVALID_CREDENTIAL: "invalid-credential",
-      MISSING_DEPENDENCIES: "missing-dependencies"
-    };
-    var FirebaseFirestoreError = class extends error_1.FirebaseError {
-      /**
-       * @param info - The error code info.
-       * @param message - The error message. This will override the default
-       *     message if provided.
-       */
-      constructor(info, message2) {
-        super({
-          code: `firestore/${info.code}`,
-          message: message2 || info.message,
-          httpResponse: info.httpResponse,
-          cause: info.cause
-        });
-        this.codePrefix = "firestore";
-      }
-    };
-    exports.FirebaseFirestoreError = FirebaseFirestoreError;
-  }
-});
-
-// node_modules/firebase-admin/lib/firestore/firestore-internal.js
-var require_firestore_internal = __commonJS({
-  "node_modules/firebase-admin/lib/firestore/firestore-internal.js"(exports) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.FirestoreService = exports.DEFAULT_DATABASE_ID = void 0;
-    exports.getFirestoreOptions = getFirestoreOptions;
-    var error_1 = require_error4();
-    var credential_internal_1 = require_credential_internal();
-    var validator = require_validator();
-    var utils = require_utils();
-    exports.DEFAULT_DATABASE_ID = "(default)";
-    var FirestoreService = class {
-      constructor(app) {
-        this.databases = /* @__PURE__ */ new Map();
-        this.firestoreSettings = /* @__PURE__ */ new Map();
-        this.appInternal = app;
-      }
-      initializeDatabase(databaseId, settings) {
-        const existingInstance = this.databases.get(databaseId);
-        if (existingInstance) {
-          const initialSettings = this.firestoreSettings.get(databaseId) ?? {};
-          if (this.checkIfSameSettings(settings, initialSettings)) {
-            return existingInstance;
-          }
-          throw new error_1.FirebaseFirestoreError({
-            code: "failed-precondition",
-            message: "initializeFirestore() has already been called with different options. To avoid this error, call initializeFirestore() with the same options as when it was originally called, or call getFirestore() to return the already initialized instance."
-          });
-        }
-        const newInstance = initFirestore(this.app, databaseId, settings);
-        this.databases.set(databaseId, newInstance);
-        this.firestoreSettings.set(databaseId, settings);
-        return newInstance;
-      }
-      getDatabase(databaseId) {
-        let database = this.databases.get(databaseId);
-        if (database === void 0) {
-          database = initFirestore(this.app, databaseId, {});
-          this.databases.set(databaseId, database);
-          this.firestoreSettings.set(databaseId, {});
-        }
-        return database;
-      }
-      checkIfSameSettings(settingsA, settingsB) {
-        const a = settingsA ?? {};
-        const b = settingsB ?? {};
-        return a.preferRest === b.preferRest;
-      }
-      /**
-       * Returns the app associated with this Storage instance.
-       *
-       * @returns The app associated with this Storage instance.
-       */
-      get app() {
-        return this.appInternal;
-      }
-    };
-    exports.FirestoreService = FirestoreService;
-    function getFirestoreOptions(app, firestoreSettings) {
-      if (!validator.isNonNullObject(app) || !("options" in app)) {
-        throw new error_1.FirebaseFirestoreError({
-          code: "invalid-argument",
-          message: "First argument passed to admin.firestore() must be a valid Firebase app instance."
-        });
-      }
-      const projectId = utils.getExplicitProjectId(app);
-      const credential = app.options.credential;
-      const sdkVersion = utils.getSdkVersion();
-      const preferRest = firestoreSettings?.preferRest;
-      if (credential instanceof credential_internal_1.ServiceAccountCredential) {
-        return {
-          credentials: {
-            private_key: credential.privateKey,
-            client_email: credential.clientEmail
-          },
-          // When the SDK is initialized with ServiceAccountCredentials an explicit projectId is
-          // guaranteed to be available.
-          projectId,
-          firebaseVersion: sdkVersion,
-          firebaseAdminVersion: sdkVersion,
-          preferRest
-        };
-      } else if ((0, credential_internal_1.isApplicationDefault)(app.options.credential)) {
-        return validator.isNonEmptyString(projectId) ? {
-          projectId,
-          firebaseVersion: sdkVersion,
-          firebaseAdminVersion: sdkVersion,
-          preferRest
-        } : {
-          firebaseVersion: sdkVersion,
-          firebaseAdminVersion: sdkVersion,
-          preferRest
-        };
-      }
-      throw new error_1.FirebaseFirestoreError({
-        code: "invalid-credential",
-        message: "Failed to initialize Google Cloud Firestore client with the available credentials. Must initialize the SDK with a certificate credential or application default credentials to use Cloud Firestore API."
-      });
-    }
-    function initFirestore(app, databaseId, firestoreSettings) {
-      const options = getFirestoreOptions(app, firestoreSettings);
-      options.databaseId = databaseId;
-      let firestoreDatabase;
-      try {
-        firestoreDatabase = __require("@google-cloud/firestore").Firestore;
-      } catch (err) {
-        throw new error_1.FirebaseFirestoreError({
-          code: "missing-dependencies",
-          message: 'Failed to import the Cloud Firestore client library for Node.js. Make sure to install the "@google-cloud/firestore" npm package.',
-          cause: err
-        });
-      }
-      return new firestoreDatabase(options);
-    }
-  }
-});
-
-// node_modules/firebase-admin/lib/firestore/index.js
-var require_firestore = __commonJS({
-  "node_modules/firebase-admin/lib/firestore/index.js"(exports) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.FirebaseFirestoreError = exports.FirestoreErrorCode = exports.setLogFunction = exports.v1 = exports.WriteResult = exports.WriteBatch = exports.Transaction = exports.Timestamp = exports.QuerySnapshot = exports.QueryPartition = exports.QueryDocumentSnapshot = exports.Query = exports.GrpcStatus = exports.GeoPoint = exports.Firestore = exports.Filter = exports.FieldValue = exports.FieldPath = exports.DocumentSnapshot = exports.DocumentReference = exports.CollectionReference = exports.CollectionGroup = exports.BundleBuilder = exports.BulkWriter = exports.AggregateQuerySnapshot = exports.AggregateQuery = exports.AggregateField = void 0;
-    exports.getFirestore = getFirestore2;
-    exports.initializeFirestore = initializeFirestore;
-    var app_1 = require_app();
-    var firestore_internal_1 = require_firestore_internal();
-    var firestore_1 = __require("@google-cloud/firestore");
-    Object.defineProperty(exports, "AggregateField", { enumerable: true, get: function() {
-      return firestore_1.AggregateField;
-    } });
-    Object.defineProperty(exports, "AggregateQuery", { enumerable: true, get: function() {
-      return firestore_1.AggregateQuery;
-    } });
-    Object.defineProperty(exports, "AggregateQuerySnapshot", { enumerable: true, get: function() {
-      return firestore_1.AggregateQuerySnapshot;
-    } });
-    Object.defineProperty(exports, "BulkWriter", { enumerable: true, get: function() {
-      return firestore_1.BulkWriter;
-    } });
-    Object.defineProperty(exports, "BundleBuilder", { enumerable: true, get: function() {
-      return firestore_1.BundleBuilder;
-    } });
-    Object.defineProperty(exports, "CollectionGroup", { enumerable: true, get: function() {
-      return firestore_1.CollectionGroup;
-    } });
-    Object.defineProperty(exports, "CollectionReference", { enumerable: true, get: function() {
-      return firestore_1.CollectionReference;
-    } });
-    Object.defineProperty(exports, "DocumentReference", { enumerable: true, get: function() {
-      return firestore_1.DocumentReference;
-    } });
-    Object.defineProperty(exports, "DocumentSnapshot", { enumerable: true, get: function() {
-      return firestore_1.DocumentSnapshot;
-    } });
-    Object.defineProperty(exports, "FieldPath", { enumerable: true, get: function() {
-      return firestore_1.FieldPath;
-    } });
-    Object.defineProperty(exports, "FieldValue", { enumerable: true, get: function() {
-      return firestore_1.FieldValue;
-    } });
-    Object.defineProperty(exports, "Filter", { enumerable: true, get: function() {
-      return firestore_1.Filter;
-    } });
-    Object.defineProperty(exports, "Firestore", { enumerable: true, get: function() {
-      return firestore_1.Firestore;
-    } });
-    Object.defineProperty(exports, "GeoPoint", { enumerable: true, get: function() {
-      return firestore_1.GeoPoint;
-    } });
-    Object.defineProperty(exports, "GrpcStatus", { enumerable: true, get: function() {
-      return firestore_1.GrpcStatus;
-    } });
-    Object.defineProperty(exports, "Query", { enumerable: true, get: function() {
-      return firestore_1.Query;
-    } });
-    Object.defineProperty(exports, "QueryDocumentSnapshot", { enumerable: true, get: function() {
-      return firestore_1.QueryDocumentSnapshot;
-    } });
-    Object.defineProperty(exports, "QueryPartition", { enumerable: true, get: function() {
-      return firestore_1.QueryPartition;
-    } });
-    Object.defineProperty(exports, "QuerySnapshot", { enumerable: true, get: function() {
-      return firestore_1.QuerySnapshot;
-    } });
-    Object.defineProperty(exports, "Timestamp", { enumerable: true, get: function() {
-      return firestore_1.Timestamp;
-    } });
-    Object.defineProperty(exports, "Transaction", { enumerable: true, get: function() {
-      return firestore_1.Transaction;
-    } });
-    Object.defineProperty(exports, "WriteBatch", { enumerable: true, get: function() {
-      return firestore_1.WriteBatch;
-    } });
-    Object.defineProperty(exports, "WriteResult", { enumerable: true, get: function() {
-      return firestore_1.WriteResult;
-    } });
-    Object.defineProperty(exports, "v1", { enumerable: true, get: function() {
-      return firestore_1.v1;
-    } });
-    Object.defineProperty(exports, "setLogFunction", { enumerable: true, get: function() {
-      return firestore_1.setLogFunction;
-    } });
-    function getFirestore2(appOrDatabaseId, optionalDatabaseId) {
-      const app = typeof appOrDatabaseId === "object" ? appOrDatabaseId : (0, app_1.getApp)();
-      const databaseId = (typeof appOrDatabaseId === "string" ? appOrDatabaseId : optionalDatabaseId) || firestore_internal_1.DEFAULT_DATABASE_ID;
-      const firebaseApp = app;
-      const firestoreService = firebaseApp.getOrInitService("firestore", (app2) => new firestore_internal_1.FirestoreService(app2));
-      return firestoreService.getDatabase(databaseId);
-    }
-    function initializeFirestore(app, settings, databaseId) {
-      settings ??= {};
-      databaseId ??= firestore_internal_1.DEFAULT_DATABASE_ID;
-      const firebaseApp = app;
-      const firestoreService = firebaseApp.getOrInitService("firestore", (app2) => new firestore_internal_1.FirestoreService(app2));
-      return firestoreService.initializeDatabase(databaseId, settings);
-    }
-    var error_1 = require_error4();
-    Object.defineProperty(exports, "FirestoreErrorCode", { enumerable: true, get: function() {
-      return error_1.FirestoreErrorCode;
-    } });
-    Object.defineProperty(exports, "FirebaseFirestoreError", { enumerable: true, get: function() {
-      return error_1.FirebaseFirestoreError;
-    } });
-  }
-});
-
 // src/server/netlifyApi.ts
 import serverless from "serverless-http";
+
+// src/server/affiliates.ts
+var import_firestore = __toESM(require_firestore(), 1);
+import crypto2 from "node:crypto";
 
 // src/packages.ts
 var PACKAGE_VERSION = 4;
@@ -13419,6 +13423,113 @@ var PACKAGES = {
 };
 var MONTHLY_AI_UNITS = { free: 0, lite: 20, plus: 50, max: 100, basic: 100, pro: 250, pro_plus: 500 };
 var PLAN_NAMES = { free: "Free", lite: "EZ Lite", plus: "EZ Plus", max: "EZ Max", basic: "EZ Basic (existing)", pro: "EZ Pro (existing)", pro_plus: "EZ Pro+ (existing)", focus: "Focus" };
+
+// src/affiliate.ts
+var MIN_CLAIM_CENTS = 1e3;
+var COMMISSION_CENTS = { lite: 100, plus: 200, max: 300, speak: 100, write: 100, read: 100, listen: 100 };
+var affiliatePlans = Object.values(PACKAGES).filter((p) => COMMISSION_CENTS[p.id]);
+function commissionForOrder(order) {
+  const plan = PACKAGES[order.planId];
+  return order.affiliateVersion === 1 && order.packageVersion === PACKAGE_VERSION && plan && order.amountInCents === plan.amountInCents && order.currency === "MYR" ? COMMISSION_CENTS[plan.id] || 0 : 0;
+}
+function validateClaim(amount, available) {
+  if (!Number.isSafeInteger(amount) || Number(amount) < MIN_CLAIM_CENTS) throw Error("Minimum claim RM10.");
+  if (Number(amount) > available) throw Error("Claim exceeds confirmed available balance.");
+}
+function validateTransition(from, to) {
+  if (!["Processing", "Paid"].includes(to) || from !== to && !(from === "Submitted" && to === "Processing" || from === "Processing" && to === "Paid")) throw Error("Invalid claim status change.");
+}
+
+// src/server/affiliates.ts
+async function ensureAffiliate(db, uid) {
+  const ref = db.collection("affiliate_accounts").doc(uid);
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const code = "EZ" + crypto2.randomBytes(6).toString("hex").toUpperCase();
+    const result = await db.runTransaction(async (t) => {
+      const account = await t.get(ref);
+      if (account.exists) return account.data();
+      const codeRef = db.collection("affiliate_codes").doc(code);
+      const taken = await t.get(codeRef);
+      if (taken.exists) return null;
+      const data = { uid, code, availableCents: 0, reservedCents: 0, paidCents: 0, earnedCents: 0, createdAt: import_firestore.FieldValue.serverTimestamp() };
+      t.set(codeRef, { uid });
+      t.set(ref, data);
+      return data;
+    });
+    if (result) return result;
+  }
+  throw Error("Could not allocate referral code. Please retry.");
+}
+var ReferralError = class extends Error {
+};
+async function resolveReferral(db, buyerUid, raw) {
+  if (raw === void 0 || raw === "") return {};
+  if (typeof raw !== "string" || !/^EZ[A-F0-9]{12}$/.test(raw)) throw new ReferralError("Invalid referral code.");
+  const code = await db.collection("affiliate_codes").doc(raw).get();
+  const uid = code.data()?.uid;
+  if (!uid) throw new ReferralError("Referral code not found.");
+  if (uid === buyerUid) throw new ReferralError("You cannot use your own referral code.");
+  return { affiliateUid: uid, referralCode: raw, affiliateVersion: 1 };
+}
+async function prepareCommission(db, t, orderId, order) {
+  const cents = commissionForOrder(order);
+  if (!cents || !order.affiliateUid || order.affiliateUid === order.userId) return () => {
+  };
+  const ledgerRef = db.collection("affiliate_commissions").doc(orderId);
+  const accountRef = db.collection("affiliate_accounts").doc(order.affiliateUid);
+  const [ledger, account] = await Promise.all([t.get(ledgerRef), t.get(accountRef)]);
+  if (ledger.exists) return () => {
+  };
+  if (!account.exists || account.data()?.code !== order.referralCode) throw Error("Referral account is unavailable.");
+  return () => {
+    t.set(ledgerRef, { orderId, uid: order.affiliateUid, buyerUid: order.userId, planId: order.planId, amountCents: cents, createdAt: import_firestore.FieldValue.serverTimestamp() });
+    t.update(accountRef, { availableCents: import_firestore.FieldValue.increment(cents), earnedCents: import_firestore.FieldValue.increment(cents) });
+  };
+}
+async function submitClaim(db, uid, body, identity) {
+  if (typeof body.requestId !== "string" || !/^[a-zA-Z0-9-]{16,64}$/.test(body.requestId)) throw Error("Invalid claim request.");
+  if (!["DuitNow", "Touch n Go eWallet QR"].includes(body.method)) throw Error("Choose a payout method.");
+  if (typeof body.recipientName !== "string" || !body.recipientName.trim() || body.recipientName.length > 120) throw Error("Enter the account holder name.");
+  if (body.method === "DuitNow" && (typeof body.duitNowId !== "string" || !body.duitNowId.trim() || body.duitNowId.length > 100)) throw Error("Enter your DuitNow ID.");
+  const id = crypto2.createHash("sha256").update(uid + ":" + body.requestId).digest("hex");
+  const claimRef = db.collection("affiliate_claims").doc(id);
+  const accountRef = db.collection("affiliate_accounts").doc(uid);
+  return db.runTransaction(async (t) => {
+    const [claim, account] = await Promise.all([t.get(claimRef), t.get(accountRef)]);
+    if (claim.exists) return { id, status: claim.data().status };
+    if (!account.exists) throw Error("Load your affiliate wallet first.");
+    validateClaim(body.amountCents, account.data().availableCents);
+    t.set(claimRef, {
+      uid,
+      userName: identity.name || identity.email || uid,
+      email: identity.email || "",
+      code: account.data().code,
+      amountCents: body.amountCents,
+      method: body.method,
+      recipientName: body.recipientName.trim(),
+      ...body.method === "DuitNow" ? { duitNowId: body.duitNowId.trim() } : { qr: body.qr },
+      status: "Submitted",
+      submittedAt: Date.now()
+    });
+    t.update(accountRef, { availableCents: import_firestore.FieldValue.increment(-body.amountCents), reservedCents: import_firestore.FieldValue.increment(body.amountCents) });
+    return { id, status: "Submitted" };
+  });
+}
+async function updateClaim(db, id, status, adminUid) {
+  if (!/^[a-f0-9]{64}$/.test(id)) throw Error("Invalid claim.");
+  return db.runTransaction(async (t) => {
+    const ref = db.collection("affiliate_claims").doc(id), snap = await t.get(ref);
+    if (!snap.exists) throw Error("Claim not found.");
+    const claim = snap.data();
+    validateTransition(claim.status, status);
+    if (claim.status === status) return;
+    const accountRef = db.collection("affiliate_accounts").doc(claim.uid);
+    const account = await t.get(accountRef);
+    if (!account.exists || account.data().reservedCents < claim.amountCents) throw Error("Claim reservation is unavailable.");
+    t.update(ref, { status, updatedAt: Date.now(), updatedBy: adminUid, ...status === "Paid" ? { paidAt: Date.now() } : {} });
+    if (status === "Paid") t.update(accountRef, { reservedCents: import_firestore.FieldValue.increment(-claim.amountCents), paidCents: import_firestore.FieldValue.increment(claim.amountCents) });
+  });
+}
 
 // src/legacyPackagesV3.ts
 var PACKAGES2 = {
@@ -13474,10 +13585,10 @@ function skillAccess(profile, ledger, skill, now = Date.now()) {
 
 // src/server/payments.ts
 var import_auth = __toESM(require_auth2(), 1);
-var import_firestore = __toESM(require_firestore(), 1);
+var import_firestore2 = __toESM(require_firestore(), 1);
 import axios from "axios";
 import querystring from "querystring";
-import crypto2 from "crypto";
+import crypto3 from "crypto";
 var LEGACY_PLANS = {
   "basic": {
     id: "basic",
@@ -13575,7 +13686,7 @@ async function applySuccessfulEntitlement(firestore, txId, verification) {
     const packageRef = firestore.collection("package_entitlements").doc(order.userId);
     const packageDoc = await t.get(packageRef);
     const packageData = packageDoc.data() || {};
-    const stamp = import_firestore.FieldValue.serverTimestamp();
+    const stamp = import_firestore2.FieldValue.serverTimestamp();
     if (order.status === "SUCCESS") return {
       success: true,
       alreadyProcessed: true,
@@ -13585,10 +13696,12 @@ async function applySuccessfulEntitlement(firestore, txId, verification) {
     };
     if (order.status === "REJECTED") throw new Error("This payment was rejected.");
     const invoiceRef = !manual ? firestore.collection("payment_invoices").doc(
-      crypto2.createHash("sha256").update(verification.transactionId).digest("hex")
+      crypto3.createHash("sha256").update(verification.transactionId).digest("hex")
     ) : null;
     const invoice = invoiceRef ? await t.get(invoiceRef) : null;
     if (invoice?.exists && invoice.data()?.orderId !== txId) throw new Error("This bank payment has already been used.");
+    const writeCommission = await prepareCommission(firestore, t, txId, order);
+    writeCommission();
     const now = /* @__PURE__ */ new Date();
     if (order.packageVersion === PACKAGE_VERSION || order.packageVersion === 3 || (packageData.purchases || []).length) {
       const pack = plan;
@@ -13597,7 +13710,7 @@ async function applySuccessfulEntitlement(firestore, txId, verification) {
       if (pack.type === "credits") {
         creditsAdded2 = pack.creditsGrant;
         ledger.topupUnits = Number(ledger.topupUnits || 0) + Number(pack.aiUnits || 0);
-        t.update(userRef, { credits: import_firestore.FieldValue.increment(creditsAdded2), updatedAt: stamp, lastPaymentAt: stamp, lastTransactionId: txId });
+        t.update(userRef, { credits: import_firestore2.FieldValue.increment(creditsAdded2), updatedAt: stamp, lastPaymentAt: stamp, lastTransactionId: txId });
       } else {
         const skill = pack.type === "skill" ? pack.id : void 0;
         const existing = currentPurchase(packageData, startsAt, skill);
@@ -13605,7 +13718,7 @@ async function applySuccessfulEntitlement(firestore, txId, verification) {
         startsAt = Math.max(startsAt, existing?.expiresAt || 0, oldExpiry, ...(packageData.purchases || []).filter((p) => skill ? p.skill === skill : p.type === "subscription").map((p) => Number(p.expiresAt) || 0));
         expiresAt = startsAt + (pack.durationDays || 30) * 864e5;
         ledger.purchases = [...packageData.purchases || [], { id: txId, version: order.packageVersion === PACKAGE_VERSION ? PACKAGE_VERSION : 3, planId: pack.id, type: pack.type, ...skill ? { skill } : {}, startsAt, expiresAt, included: pack.aiUnits || 0, dailyLimit: pack.dailyLimit || 0, ...pack.extraFree ? { extraFree: true, dailyScope: pack.dailyScope } : {}, ...![3, PACKAGE_VERSION].includes(order.packageVersion) ? { dailyLimits: pack.type === "skill" ? DAILY_PRACTICE_LIMITS.pro : DAILY_PRACTICE_LIMITS[pack.id], legacyUnlimited: !order.packageVersion } : {}, fullTests: pack.fullTests !== false }];
-        t.update(userRef, { updatedAt: stamp, lastPaymentAt: stamp, lastTransactionId: txId, ...pack.type === "subscription" && startsAt <= now.getTime() ? { plan: pack.id, planExpiresAt: import_firestore.Timestamp.fromMillis(expiresAt), planUpdatedAt: stamp } : {} });
+        t.update(userRef, { updatedAt: stamp, lastPaymentAt: stamp, lastTransactionId: txId, ...pack.type === "subscription" && startsAt <= now.getTime() ? { plan: pack.id, planExpiresAt: import_firestore2.Timestamp.fromMillis(expiresAt), planUpdatedAt: stamp } : {} });
       }
       t.set(packageRef, ledger);
       if (invoiceRef) t.set(invoiceRef, { orderId: txId, verifiedAt: stamp });
@@ -13618,20 +13731,20 @@ async function applySuccessfulEntitlement(firestore, txId, verification) {
     const userUpdate = { updatedAt: stamp, lastPaymentAt: stamp, lastTransactionId: txId };
     if (plan.type === "credits") {
       creditsAdded = plan.creditsGrant;
-      userUpdate.credits = import_firestore.FieldValue.increment(creditsAdded);
+      userUpdate.credits = import_firestore2.FieldValue.increment(creditsAdded);
     } else if (plan.type === "subscription") {
       const rank = { free: 0, basic: 1, pro: 2, pro_plus: 3 };
       const expiry = user.planExpiresAt?.toDate?.();
       const currentActive = expiry ? expiry > now : activePlan !== "free";
       if (currentActive && (rank[activePlan] || 0) > rank[plan.id]) {
-        userUpdate.planExpiresAt = import_firestore.Timestamp.fromDate(new Date(
+        userUpdate.planExpiresAt = import_firestore2.Timestamp.fromDate(new Date(
           Math.max(now.getTime(), expiry?.getTime() || now.getTime()) + plan.durationDays * 864e5 * plan.amountInCents / (packageData.version === 2 ? PACKAGES3 : LEGACY_PLANS)[activePlan].amountInCents
         ));
       } else {
         activePlan = plan.id;
         userUpdate.plan = activePlan;
         const starts = currentActive && user.plan === plan.id && expiry ? expiry.getTime() : now.getTime();
-        userUpdate.planExpiresAt = import_firestore.Timestamp.fromDate(new Date(starts + plan.durationDays * 864e5));
+        userUpdate.planExpiresAt = import_firestore2.Timestamp.fromDate(new Date(starts + plan.durationDays * 864e5));
       }
       userUpdate.planUpdatedAt = stamp;
     }
@@ -13693,8 +13806,8 @@ async function applySuccessfulEntitlement(firestore, txId, verification) {
 }
 function validPaymentHash(secret, body) {
   if (!secret || typeof body.hash !== "string" || !/^[a-f0-9]{32}$/i.test(body.hash)) return false;
-  const expected = crypto2.createHash("md5").update(secret + String(body.status) + String(body.order_id) + String(body.refno) + "ok").digest();
-  return crypto2.timingSafeEqual(expected, Buffer.from(body.hash, "hex"));
+  const expected = crypto3.createHash("md5").update(secret + String(body.status) + String(body.order_id) + String(body.refno) + "ok").digest();
+  return crypto3.timingSafeEqual(expected, Buffer.from(body.hash, "hex"));
 }
 function validateReceipt(data) {
   if (typeof data !== "string" || data.length > 4 * 1024 * 1024) return null;
@@ -13823,7 +13936,7 @@ async function saveBankTransferConfig(firestore, config, adminEmail) {
     bankQrImageUrl,
     whatsappNumber,
     instructions: config.instructions?.trim() || "Transfer the exact amount using your bank app. After paying, send your receipt. Your plan starts after we check your payment.",
-    updatedAt: import_firestore.FieldValue.serverTimestamp(),
+    updatedAt: import_firestore2.FieldValue.serverTimestamp(),
     updatedBy: adminEmail
   };
   await firestore.collection("system_config").doc("bank_transfer").set(payload, { merge: true });
@@ -13831,6 +13944,164 @@ async function saveBankTransferConfig(firestore, config, adminEmail) {
     ...payload,
     updatedAt: (/* @__PURE__ */ new Date()).toISOString()
   };
+}
+
+// src/server/affiliateRoutes.ts
+function registerAffiliateRoutes(app, db, authenticate = authenticateFirebaseUser) {
+  const route = (admin, handler) => async (req, res) => {
+    res.set("Cache-Control", "no-store");
+    const identity = await authenticate(req);
+    if (!identity) return res.status(401).json({ error: "Sign in required." });
+    if (admin && !isAuthorizedAdmin(identity)) return res.status(403).json({ error: "Admin access required." });
+    try {
+      return res.json(await handler(req, identity));
+    } catch (error2) {
+      return res.status(400).json({ error: error2 instanceof Error ? error2.message : "Affiliate request failed." });
+    }
+  };
+  app.post("/api/affiliate/account", route(false, async (_req, user) => {
+    const account = await ensureAffiliate(db, user.uid);
+    const claims = await db.collection("affiliate_claims").where("uid", "==", user.uid).get();
+    return { ...account, claims: claims.docs.map((d) => {
+      const { qr, duitNowId, ...data } = d.data();
+      return { id: d.id, ...data };
+    }).sort((a, b) => b.submittedAt - a.submittedAt) };
+  }));
+  app.post("/api/affiliate/claims", route(false, async (req, user) => {
+    if (req.body.method === "Touch n Go eWallet QR" && (typeof req.body.qr !== "string" || req.body.qr.length > 6e5 || !validateReceipt(req.body.qr))) throw Error("Upload a PNG, JPG or WebP QR image smaller than 440 KB.");
+    return submitClaim(db, user.uid, req.body, user);
+  }));
+  app.get("/api/admin/affiliate/claims", route(true, async (req) => {
+    let query = db.collection("affiliate_claims").orderBy("submittedAt", "desc").orderBy("__name__", "desc").limit(50);
+    if (req.query.before && req.query.id) query = query.startAfter(Number(req.query.before), String(req.query.id));
+    const result = await query.get();
+    const claims = await Promise.all(result.docs.map(async (d) => {
+      const claim = d.data();
+      const account = await db.collection("affiliate_accounts").doc(claim.uid).get();
+      return { id: d.id, ...claim, availableCents: account.data()?.availableCents || 0 };
+    }));
+    return { claims, more: result.size === 50 };
+  }));
+  app.post("/api/admin/affiliate/claims/:id", route(true, async (req, user) => {
+    await updateClaim(db, req.params.id, req.body.status, user.uid);
+    return { success: true };
+  }));
+}
+
+// src/server/rewards.ts
+var import_firestore3 = __toESM(require_firestore(), 1);
+function normalizeRewardCode(value) {
+  const code = typeof value === "string" ? value.trim().toUpperCase() : "";
+  if (!/^[A-Z0-9][A-Z0-9_-]{3,31}$/.test(code)) throw Object.assign(Error("Enter a valid reward code (4\u201332 letters, numbers, _ or -)."), { status: 400 });
+  return code;
+}
+function validateReward(input) {
+  const code = normalizeRewardCode(input?.code), type = input?.type;
+  if (!["plan", "ai_credits", "practices"].includes(type)) throw Object.assign(Error("Choose a reward type."), { status: 400 });
+  const planId = type === "plan" ? String(input.planId || "") : "";
+  if (type === "plan" && !["lite", "plus", "max"].includes(planId)) throw Object.assign(Error("Choose EZ Lite, Plus or Max."), { status: 400 });
+  const amount = type === "plan" ? 0 : Number(input.amount);
+  if (type !== "plan" && (!Number.isInteger(amount) || amount < 1 || amount > 1e3)) throw Object.assign(Error("Amount must be 1\u20131000."), { status: 400 });
+  const durationDays = type === "plan" ? Number(input.durationDays) : 0;
+  if (type === "plan" && (!Number.isInteger(durationDays) || durationDays < 1 || durationDays > 365)) throw Object.assign(Error("Duration must be 1\u2013365 days."), { status: 400 });
+  const maxRedemptions = Number(input.maxRedemptions);
+  if (!Number.isInteger(maxRedemptions) || maxRedemptions < 1 || maxRedemptions > 1e5) throw Object.assign(Error("Maximum redemptions must be 1\u2013100000."), { status: 400 });
+  const expiry = input.expiry ? Date.parse(String(input.expiry)) : null;
+  if (input.expiry && (!Number.isFinite(expiry) || expiry <= Date.now())) throw Object.assign(Error("Choose a future expiry date."), { status: 400 });
+  const reason = String(input.reason || "").trim();
+  if (reason.length > 300) throw Object.assign(Error("Reason must be 300 characters or less."), { status: 400 });
+  return { code, type, planId, amount, durationDays, maxRedemptions, expiresAt: expiry, active: input.active !== false, reason };
+}
+async function createReward(db, input, adminUid) {
+  const reward = validateReward(input), ref = db.doc(`reward_codes/${reward.code}`);
+  await ref.create({ ...reward, used: 0, createdBy: adminUid, createdAt: Date.now() });
+  return reward;
+}
+async function deactivateReward(db, codeValue, adminUid) {
+  const code = normalizeRewardCode(codeValue), ref = db.doc(`reward_codes/${code}`);
+  await db.runTransaction(async (t) => {
+    const snap = await t.get(ref);
+    if (!snap.exists) throw Object.assign(Error("Code not found."), { status: 404 });
+    t.update(ref, { active: false, deactivatedBy: adminUid, deactivatedAt: Date.now() });
+  });
+  return { success: true };
+}
+async function redeemReward(db, uid, codeValue, now = Date.now()) {
+  const code = normalizeRewardCode(codeValue), codeRef = db.doc(`reward_codes/${code}`), redemptionRef = db.doc(`reward_redemptions/${code}/users/${uid}`), historyRef = db.doc(`reward_user_history/${uid}/items/${code}`), userRef = db.doc(`users/${uid}`), ledgerRef = db.doc(`package_entitlements/${uid}`);
+  return db.runTransaction(async (t) => {
+    const [codeDoc, redemption, userDoc, ledgerDoc] = await Promise.all([t.get(codeRef), t.get(redemptionRef), t.get(userRef), t.get(ledgerRef)]);
+    const reward = codeDoc.data();
+    if (!codeDoc.exists) throw Object.assign(Error("This reward code is invalid."), { status: 404 });
+    if (redemption.exists) throw Object.assign(Error("You have already redeemed this code."), { status: 409 });
+    if (!reward.active) throw Object.assign(Error("This reward code is inactive."), { status: 409 });
+    if (reward.expiresAt && reward.expiresAt <= now) throw Object.assign(Error("This reward code has expired."), { status: 410 });
+    if (Number(reward.used || 0) >= reward.maxRedemptions) throw Object.assign(Error("This reward code has reached its limit."), { status: 409 });
+    if (!userDoc.exists) throw Object.assign(Error("Profile not found."), { status: 404 });
+    const ledger = ledgerDoc.data() || {}, user = userDoc.data() || {};
+    let message2 = "";
+    if (reward.type === "plan") {
+      const pack = PACKAGES[reward.planId];
+      if (!pack) throw Error("Invalid reward plan configuration.");
+      const current = currentPurchase(ledger, now);
+      const rank = { lite: 1, plus: 2, max: 3 };
+      const startsAt = current && rank[current.planId] >= rank[reward.planId] ? current.expiresAt : now;
+      const expiresAt = startsAt + reward.durationDays * 864e5;
+      const purchase = { id: `reward-${code}-${uid}`, version: PACKAGE_VERSION, planId: reward.planId, type: "subscription", startsAt, expiresAt, included: pack.aiUnits, dailyLimit: pack.dailyLimit, dailyScope: pack.dailyScope, extraFree: pack.extraFree, fullTests: pack.fullTests, source: "reward" };
+      t.set(ledgerRef, { ...ledger, purchases: [...ledger.purchases || [], purchase] });
+      if (startsAt === now) t.update(userRef, { plan: reward.planId, planExpiresAt: import_firestore3.Timestamp.fromMillis(expiresAt), planUpdatedAt: import_firestore3.FieldValue.serverTimestamp(), updatedAt: import_firestore3.FieldValue.serverTimestamp() });
+      message2 = startsAt === now ? `${pack.name} is active for ${reward.durationDays} days.` : `${pack.name} will start when your current plan ends.`;
+    } else if (reward.type === "ai_credits") {
+      t.set(ledgerRef, { ...ledger, topupUnits: Number(ledger.topupUnits || 0) + reward.amount });
+      t.update(userRef, { credits: import_firestore3.FieldValue.increment(reward.amount), updatedAt: import_firestore3.FieldValue.serverTimestamp() });
+      message2 = `${reward.amount} AI credits added. An active plan or skill pack is needed to use them.`;
+    } else {
+      t.set(ledgerRef, { ...ledger, rewardPracticeCredits: Number(ledger.rewardPracticeCredits || 0) + reward.amount });
+      message2 = `${reward.amount} extra practices added.`;
+    }
+    const receipt = { code, uid, type: reward.type, planId: reward.planId || null, amount: reward.amount || null, durationDays: reward.durationDays || null, redeemedAt: now, message: message2 };
+    t.create(redemptionRef, receipt);
+    t.create(historyRef, receipt);
+    t.update(codeRef, { used: import_firestore3.FieldValue.increment(1) });
+    return { success: true, message: message2 };
+  });
+}
+
+// src/server/rewardRoutes.ts
+function registerRewardRoutes(app, db, authenticate = authenticateFirebaseUser) {
+  const route = (admin, handler) => async (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    const user = await authenticate(req);
+    if (!user) return res.status(401).json({ error: "Sign in required." });
+    if (admin && !isAuthorizedAdmin(user)) return res.status(403).json({ error: "Admin access required." });
+    try {
+      return res.json(await handler(req, user));
+    } catch (error2) {
+      return res.status(error2.status || 400).json({ error: error2.message || "Reward request failed." });
+    }
+  };
+  app.get("/api/rewards/history", route(false, async (_req, user) => {
+    const [history, ledger] = await Promise.all([db.collection(`reward_user_history/${user.uid}/items`).orderBy("redeemedAt", "desc").limit(50).get(), db.doc(`package_entitlements/${user.uid}`).get()]);
+    return { history: history.docs.map((d) => d.data()), practiceCredits: Number(ledger.data()?.rewardPracticeCredits || 0) };
+  }));
+  app.post("/api/rewards/redeem", route(false, async (req, user) => {
+    const result = await redeemReward(db, user.uid, req.body?.code);
+    return result;
+  }));
+  app.get("/api/admin/rewards", route(true, async () => {
+    const codes = await db.collection("reward_codes").orderBy("createdAt", "desc").limit(200).get();
+    return { codes: codes.docs.map((d) => d.data()) };
+  }));
+  app.get("/api/admin/rewards/:code/redemptions", route(true, async (req) => {
+    const code = normalizeRewardCode(req.params.code);
+    const history = await db.collection(`reward_redemptions/${code}/users`).orderBy("redeemedAt", "desc").limit(100).get();
+    const redemptions = await Promise.all(history.docs.map(async (d) => {
+      const receipt = d.data(), user = await db.doc(`users/${receipt.uid}`).get();
+      return { ...receipt, name: user.data()?.displayName || "", email: user.data()?.email || "" };
+    }));
+    return { redemptions };
+  }));
+  app.post("/api/admin/rewards", route(true, async (req, user) => createReward(db, req.body, user.uid)));
+  app.post("/api/admin/rewards/:code/deactivate", route(true, async (req, user) => deactivateReward(db, req.params.code, user.uid)));
 }
 
 // src/server/practicePolicy.ts
@@ -13875,21 +14146,30 @@ function consumePracticeDay(profile, ledger, data, day, skill, mock = false, now
   if (!pool) throw Object.assign(Error("Your plan practices are used today."), { status: 429 });
   return { ...next, paidPools: { ...data?.paidPools, [pool.id]: Number(data?.paidPools?.[pool.id] || 0) + 1 } };
 }
+function consumePracticeWithReward(profile, ledger, data, day, skill, mock = false, now = Date.now()) {
+  try {
+    return { updated: consumePracticeDay(profile, ledger, data, day, skill, mock, now), rewardCreditUsed: false };
+  } catch (error2) {
+    if (error2.status !== 429 || mock || Number(ledger.rewardPracticeCredits || 0) <= 0) throw error2;
+    return { updated: { ...data, day, used: Number(data?.used || 0), bySkill: { ...data?.bySkill, [skill]: Number(data?.bySkill?.[skill] || 0) + 1 } }, rewardCreditUsed: true };
+  }
+}
 
 // src/server/dashboardAccess.ts
 function dashboardAccess(profile, ledger, usage, now = Date.now()) {
+  const extra = Math.max(0, Number(ledger.rewardPracticeCredits || 0));
   const skills = Object.fromEntries(["read", "write", "speak", "listen"].map((skill) => {
     const a = skillAccess(profile, ledger, skill, now), used = Number(usage.bySkill?.[skill] || 0);
     if (a.extraFree) {
       const q = practiceQuota(a, usage);
-      return [skill, { ...a, planLimit: a.limit, limit: a.limit + 2, shared: true, used: a.limit + 2 - q.remaining, remaining: q.remaining, paidRemaining: q.paidRemaining, freeRemaining: q.freeRemaining }];
+      return [skill, { ...a, planLimit: a.limit, limit: a.limit + 2 + extra, shared: true, used: a.limit + 2 - q.remaining, remaining: q.remaining + extra, paidRemaining: q.paidRemaining, freeRemaining: q.freeRemaining, rewardRemaining: extra }];
     }
-    return [skill, { ...a, shared: !a.paid, used, remaining: Math.max(0, a.limit - (a.paid ? used : Number(usage.used || 0))) }];
+    return [skill, { ...a, shared: !a.paid, used, remaining: Math.max(0, a.limit - (a.paid ? used : Number(usage.used || 0))) + extra, rewardRemaining: extra }];
   }));
   const bundle = currentPurchase(ledger, now);
   const focused = Object.entries(skills).filter(([, a]) => a.plan === "focus").map(([s]) => ({ speak: "SpeakEZ", write: "WriteEZ", read: "ReadEZ", listen: "ListenEZ" })[s]);
   const base = bundle?.planId || Object.values(skills).find((a) => a.paid && a.plan !== "focus")?.plan || "free";
-  return { planLabel: base !== "free" ? PLAN_NAMES[base] || base : focused.length ? focused.join(" + ") + " Focus" : "Free", sharedUsed: Number(usage.used || 0), sharedRemaining: Math.max(0, 2 - Number(usage.used || 0)), skills };
+  return { planLabel: base !== "free" ? PLAN_NAMES[base] || base : focused.length ? focused.join(" + ") + " Focus" : "Free", sharedUsed: Number(usage.used || 0), sharedRemaining: Math.max(0, 2 - Number(usage.used || 0)) + extra, practiceRewardCredits: extra, skills };
 }
 
 // src/data/c2VocabularyBank.json
@@ -14478,7 +14758,7 @@ function registerDashboardRoutes(app, db, { verify = authenticateFirebaseUser, n
 }
 
 // src/server/dailyReportRoutes.ts
-var import_firestore2 = __toESM(require_firestore(), 1);
+var import_firestore4 = __toESM(require_firestore(), 1);
 
 // src/server/dailyReport.ts
 var MY_DAY = 864e5;
@@ -14576,7 +14856,7 @@ function registerDailyReportRoutes(app, db) {
       const start = at - 13 * MY_DAY, end = at + MY_DAY, warnings = [];
       async function bounded(group, field) {
         try {
-          const [a, b] = await Promise.all([db.collectionGroup(group).where(field, ">=", import_firestore2.Timestamp.fromMillis(start)).where(field, "<", import_firestore2.Timestamp.fromMillis(end)).limit(10001).get(), db.collectionGroup(group).where(field, ">=", start).where(field, "<", end).limit(10001).get()]);
+          const [a, b] = await Promise.all([db.collectionGroup(group).where(field, ">=", import_firestore4.Timestamp.fromMillis(start)).where(field, "<", import_firestore4.Timestamp.fromMillis(end)).limit(10001).get(), db.collectionGroup(group).where(field, ">=", start).where(field, "<", end).limit(10001).get()]);
           const map = new Map([...a.docs, ...b.docs].map((d) => [d.ref.path, d]));
           if (a.size > 1e4 || b.size > 1e4) warnings.push("High activity: this report may be incomplete.");
           return [...map.values()];
@@ -15517,12 +15797,11 @@ function registerMUETBankRoutes(app, db, overrides) {
           if (r.data()?.topicId !== topicId || r.data()?.mode !== mode || r.data()?.day && r.data()?.day !== day) throw error("Use a new request for this question.", 409);
           return { used };
         }
-        const paid = hasPaidPractice(p.data() || {}, l.data() || {}, "speak");
-        assertSkillPractice(p.data() || {}, l.data() || {}, d.data() || {}, "speak", mode === "Mock");
-        const updated = consumePracticeDay(p.data() || {}, l.data() || {}, d.data() || {}, day, "speak", mode === "Mock");
+        const { updated, rewardCreditUsed } = consumePracticeWithReward(p.data() || {}, l.data() || {}, d.data() || {}, day, "speak", mode === "Mock");
         const next = updated.used;
         t.set(daily, updated);
-        t.set(receipt, { topicId, mode, day, createdAt: Date.now() });
+        if (rewardCreditUsed) t.set(db.doc(`package_entitlements/${user.uid}`), { rewardPracticeCredits: Number(l.data()?.rewardPracticeCredits || 0) - 1 }, { merge: true });
+        t.set(receipt, { topicId, mode, day, createdAt: Date.now(), rewardCreditUsed });
         return { used: next };
       });
       res.json(result);
@@ -15553,7 +15832,7 @@ function registerMUETBankRoutes(app, db, overrides) {
 
 // src/server/practiceRoutes.ts
 var import_auth3 = __toESM(require_auth2(), 1);
-var import_firestore3 = __toESM(require_firestore(), 1);
+var import_firestore5 = __toESM(require_firestore(), 1);
 
 // src/data/trialReading2024.ts
 var TRIAL_READING_2024 = [
@@ -26487,8 +26766,793 @@ Score: **${correct}/${total} (${result.percent}%)**${total < 30 ? " \u2014 check
   return session;
 }
 
+// src/lib/trialPaperAuthorization.json
+var trialPaperAuthorization_default = {
+  basis: "user-attestation",
+  recordedAt: "2026-10-26",
+  scope: "Existing inventoried asset families only; original assets and confidentiality labels unchanged. No independently reviewed legal documents.",
+  fingerprints: [
+    {
+      file: "src/data/listeningLayout.ts",
+      sha256: "99eab71d88291142a065759afcd34869996c545594926c5e9b6da1974fab588a"
+    },
+    {
+      file: "src/data/readingPapers/johor-2025.json",
+      sha256: "e85f2dbca6249e0ade0ce7859ddcf14917095654afe55dc6b00fa834d7440d2b"
+    },
+    {
+      file: "src/data/readingPapers/johor-batu-pahat-2024.json",
+      sha256: "cf28850083ba9441710248e6f2016f468c4da3b2e550165327963d101f7654f3"
+    },
+    {
+      file: "src/data/readingPapers/johor-batu-pahat-2026.json",
+      sha256: "8e0a52838e9ca4c09e6ab515166bebe2e2bd6fc6796cd98adf13d5f7f88a19ba"
+    },
+    {
+      file: "src/data/readingPapers/johor-kluang-set-a-2024.json",
+      sha256: "ac4c8dbe805674c967fcd2af914e8d8d387284a7febe4d175c7d576dd9c5799f"
+    },
+    {
+      file: "src/data/readingPapers/johor-kluang-set-b-2024.json",
+      sha256: "53abd2e0a2070342867a7808388331aa16613dc3b64e1af6faa4baec84e266de"
+    },
+    {
+      file: "src/data/readingPapers/johor-muar-2024.json",
+      sha256: "69cbbb54dc17a236fbdc110efbc2850f2a22f62967fbf864ff554862176238d9"
+    },
+    {
+      file: "src/data/readingPapers/johor-pontian-2024.json",
+      sha256: "110d7f60abce3c9ec6275bdca128dcbf7b834aa2f2404ee9d3f46ce3bc450f22"
+    },
+    {
+      file: "src/data/readingPapers/johor-segamat-set-1-2024.json",
+      sha256: "5666497b3400cb05047848e4fd6553ccd38bd021ebc4c38a3774d41d67b189d0"
+    },
+    {
+      file: "src/data/readingPapers/johor-segamat-set-2-2024.json",
+      sha256: "dbbdc1445eeeb5b532f599c97b2c9199b0bbc516d63025250350482910075087"
+    },
+    {
+      file: "src/data/readingPapers/kedah-2024.json",
+      sha256: "dbd3946a119c72fccbca4dd043f089021672e4f54f9362b07573a89cd899c73e"
+    },
+    {
+      file: "src/data/readingPapers/kedah-2025.json",
+      sha256: "30bf733fbcad568f3960550000c321e3d42742f53e28b05294b98e8784d2509a"
+    },
+    {
+      file: "src/data/readingPapers/kedah-2026.json",
+      sha256: "affd111dbfdca305b12815307020148453f86e2dacc11e9f2285bc79b585d746"
+    },
+    {
+      file: "src/data/readingPapers/kelantan-2024.json",
+      sha256: "9a7f1337c0acaec2210687801c97fe559e25a9140eff1d0aa6cfdb5ad2f7124b"
+    },
+    {
+      file: "src/data/readingPapers/kelantan-2025.json",
+      sha256: "fba69ee86fa14e7697457856b1042216ec508015b374f41bbf21711775e0971d"
+    },
+    {
+      file: "src/data/readingPapers/kelantan-2026.json",
+      sha256: "d85023aca409ba10fad82e3c40a70e4c7aaaf706699b2eb85c01aece3469cf2d"
+    },
+    {
+      file: "src/data/readingPapers/kuala-lumpur-2026.json",
+      sha256: "f9ca2b2c62cd5dcd4ecb67ec9ef7174dc23fc5ffaeb99f53a8c8f54cd2addaf7"
+    },
+    {
+      file: "src/data/readingPapers/melaka-2024.json",
+      sha256: "7f3714df32410d72521706a99f0bbb716b7a2935d2dd498890eab4a834f2a000"
+    },
+    {
+      file: "src/data/readingPapers/melaka-2025.json",
+      sha256: "9da111d6ba770fd1e0b6280e67235170bf76d8879c28b66d67c921c1c0c1093d"
+    },
+    {
+      file: "src/data/readingPapers/melaka-2026.json",
+      sha256: "a1587918764d3fdd0670f23e99001e45db515ca711f18b77b0ea93288e1cca24"
+    },
+    {
+      file: "src/data/readingPapers/n9-2024.json",
+      sha256: "85699133b44776297f9d166df39f9df7b26a17d2a250414bc917d45e286e3e40"
+    },
+    {
+      file: "src/data/readingPapers/negeri-sembilan-2025.json",
+      sha256: "034561fc16759fd5601c2cf3340e1a3ded4126b15ceb728ccf982640e3ca7168"
+    },
+    {
+      file: "src/data/readingPapers/negeri-sembilan-2026.json",
+      sha256: "fb7f53ea6ec2f21187e7f9222bf1cf613c0ae67ee4568f3e9f9d9257528d4f0f"
+    },
+    {
+      file: "src/data/readingPapers/pahang-2024.json",
+      sha256: "d05e2f3b50fb82ede36113d630df56457e3cf92d7ab241b196b9350a6dd75ba7"
+    },
+    {
+      file: "src/data/readingPapers/pahang-2025.json",
+      sha256: "7750d058e43852024b30b2c002d2dc9dd03d6f5b8e470046f7dc321b6c631b7b"
+    },
+    {
+      file: "src/data/readingPapers/pahang-2026.json",
+      sha256: "17588c002aba01b5574e2ec5fc63daf5b59e47f844d342c1ff68e5951a7dabc6"
+    },
+    {
+      file: "src/data/readingPapers/penang-2024.json",
+      sha256: "7b9c3f8d4ab1ff91b3c051f6392a01dd5bbafd7ed26b62abd5b5ac1228d14528"
+    },
+    {
+      file: "src/data/readingPapers/penang-sabk-2026.json",
+      sha256: "5a31c8885f7456afab8fc86123dc6af65e48443c82415a055f0f7af74db3b931"
+    },
+    {
+      file: "src/data/readingPapers/penang-spu-2025.json",
+      sha256: "c9127821df8d6f8d71c1c91afd2ae174adc990512a250286d32431684faadbb8"
+    },
+    {
+      file: "src/data/readingPapers/perak-2024.json",
+      sha256: "6870b1fcefb64451ef693a5f0843fae381099540179e4fbf7160b2c70b2a7ba7"
+    },
+    {
+      file: "src/data/readingPapers/perak-2025.json",
+      sha256: "e14952434fc5560e7841ec66d6c3794ba1650d53fd62005a5c0225d709c43108"
+    },
+    {
+      file: "src/data/readingPapers/perak-2026.json",
+      sha256: "33d5c1a31887ddd9e9971ef967c2759f5fbbb44b0fba4f2c5880285e9ee59ab4"
+    },
+    {
+      file: "src/data/readingPapers/perlis-2024.json",
+      sha256: "5eb14587ebfd9f4d1f9a19492a652945725caf409cd49eefcf3508a410ee07f9"
+    },
+    {
+      file: "src/data/readingPapers/perlis-2025.json",
+      sha256: "9b50da3dd08a3ac1868dd6adda6c48774c35a5dd14096cd3720511c4c9bb3964"
+    },
+    {
+      file: "src/data/readingPapers/perlis-2026.json",
+      sha256: "a28774505bb956a58d1ed43955649b5e46d4a7933b8cbbedc8318ed9d8799df4"
+    },
+    {
+      file: "src/data/readingPapers/putrajaya-2025.json",
+      sha256: "ec0e041dc69c265a8d63b9bea99e06809df5dfd918ed9c911a33c0cb7c246df6"
+    },
+    {
+      file: "src/data/readingPapers/putrajaya-2026.json",
+      sha256: "e873359ad5a4e718824abed02d4e4e1138e9b1ad4d739935bdfb352a34bf4f89"
+    },
+    {
+      file: "src/data/readingPapers/sabah-lahad-datu-2026.json",
+      sha256: "f6833672671f5eb6c152e160fe51408564d4b092c94803753067e50c906bf84c"
+    },
+    {
+      file: "src/data/readingPapers/sabk-set-1-2025.json",
+      sha256: "07ac04bb61714430ceae6a6974774f4d24e110bb636c793b8d9879f8f716568f"
+    },
+    {
+      file: "src/data/readingPapers/sabk-set-2-2025.json",
+      sha256: "ca8d5fc4fdd4fdae673cf705ed2dce3bb93f1b19a9eaa5e4be5102c65426495a"
+    },
+    {
+      file: "src/data/readingPapers/sarawak-2026.json",
+      sha256: "8ea23af721028c2bd9e3f2bc45607a4bdaf66a056521d7e1c0e398654447c6a9"
+    },
+    {
+      file: "src/data/readingPapers/sarawak-lubok-antu-2024.json",
+      sha256: "f67910cc97e579dfcaefc82d92e5bd33ca2d237101eafa69eb3f8d0046a3ccb2"
+    },
+    {
+      file: "src/data/readingPapers/sbp-2026.json",
+      sha256: "2e68f48fe91c5a36db546f17da54dd8604443c2f20fb602a35d550594b931832"
+    },
+    {
+      file: "src/data/readingPapers/selangor-2025.json",
+      sha256: "63dbba746765fca2cd0e9214a1759480850d6063f520c0d24448d24c579caed5"
+    },
+    {
+      file: "src/data/readingPapers/selangor-set-1-2024.json",
+      sha256: "4a7f8ee3f736f300767e25366fe700b70fd53e1988fac7ac478836cf1572f3ef"
+    },
+    {
+      file: "src/data/readingPapers/selangor-set-1-2026.json",
+      sha256: "2c38dc7ec8d4a73acb283ad0913086fc4d6e616252274597b6d8a0f4f9522a92"
+    },
+    {
+      file: "src/data/readingPapers/selangor-set-2-2024.json",
+      sha256: "e16b003e267df9f6a4d53c534a8ab30066eef7fa3c75af0affcda58d1d94dfce"
+    },
+    {
+      file: "src/data/readingPapers/selangor-set-2-2026.json",
+      sha256: "bf1b6e35bf683f769fbad4489927013ddb4a7a8f5b0338917af025e585824c9f"
+    },
+    {
+      file: "src/data/readingPapers/smka-and-sabk-2024.json",
+      sha256: "5c9d302def0507ad7a55ff36027d78388a2835ab663e6eb936cc9c3d95e16b95"
+    },
+    {
+      file: "src/data/readingPapers/terengganu-2024.json",
+      sha256: "5c43090a8245c702dd81f4115864fb5db133780c31c523444555390b79cf0c67"
+    },
+    {
+      file: "src/data/readingPapers/terengganu-2025.json",
+      sha256: "36427d982f3162edc32ad98bd23577a525d40c0c5cf78b9e27a69fbe1ee886a8"
+    },
+    {
+      file: "src/data/readingPapers/terengganu-2026.json",
+      sha256: "132dc2eae177f687099715b08650c09178c17545bdfc61a992eef35bd3d00b7f"
+    },
+    {
+      file: "src/data/readingTextLayout.ts",
+      sha256: "c4dc0f5a27152433d7ff65b9d5432136689dec12bb6db9ee23d409d4bd3b590a"
+    },
+    {
+      file: "src/data/trialListening2024.ts",
+      sha256: "479029f7512aee1c8d00903bfc5f29bb18f1d668f7c8bb5e2706b7bb298fd583"
+    },
+    {
+      file: "src/data/trialListening2025.ts",
+      sha256: "f76765e8b5b3d4412d3e723133e8c6479cbe5768c030afcd43469a0e35f3c881"
+    },
+    {
+      file: "src/data/trialListeningKeys.ts",
+      sha256: "d8d27a231fbe6d92b6c6a99a68263748062740fc6a8c2d176d482b9fb406823e"
+    },
+    {
+      file: "src/data/trialListeningKeys2024.ts",
+      sha256: "a010b208cf374dd2ed346e020d328f67e8d42eff9509ac5c895c71b2cc1f7438"
+    },
+    {
+      file: "src/data/trialListeningParts.ts",
+      sha256: "66e06f85875d354746f3cc181737a567762efcc33be20fbd1df5029bbf9d5a14"
+    },
+    {
+      file: "src/data/trialListeningParts2024.ts",
+      sha256: "2f9c69b5bd52791dad8b21cc5bf3aae91a61aa3d0d45489d754e5fff993c9a5c"
+    },
+    {
+      file: "src/data/trialListeningParts2025.ts",
+      sha256: "65adcded332a20f87be974e65e647d4b70ca8e0346bcd5f1182f5a853fdc09f1"
+    },
+    {
+      file: "src/data/trialListeningScans.ts",
+      sha256: "230297079bfc3ed8d0af4fc627068eb4406c9c598f714fb8b30058b91f801058"
+    },
+    {
+      file: "src/data/trialListeningTests.ts",
+      sha256: "d7133375e6f4998e85b1213acbee8151aea46d6a852fd6288f949c898f7f668f"
+    },
+    {
+      file: "src/data/trialReading2024.ts",
+      sha256: "b5a7b2f9379e1cb1c64516f509dbc5570a12c67e4159394895a5732210b1cfb1"
+    },
+    {
+      file: "src/data/trialReadingKeys.ts",
+      sha256: "51cda93b431ba2e8df8aea44c9a85cfcddc9e82b231ab63be5c82291ea690eb1"
+    },
+    {
+      file: "src/data/trialReadingKeys2024.ts",
+      sha256: "76d9e67e89d5a35dfa072cb8b05dd8692de713dc1fa8669a5dd93961d5332dc0"
+    },
+    {
+      file: "src/data/trialReadingTests.ts",
+      sha256: "c32d745c2b0bcc0896f8d20541214f5d71fa94dc7236c98c85128b11b86c3772"
+    }
+  ],
+  reading: [
+    {
+      id: "kuala-lumpur-2026",
+      questionFileId: "1nwH5D21h2zht_2FpC1S9Cb0NqERbT8Wc",
+      answerFileId: null
+    },
+    {
+      id: "kedah-2026",
+      questionFileId: "1Z85hbtEEn0yXvVEtxC9SXZcvb3MPJ3CB",
+      answerFileId: "1BEFpLIC9NS1WdhZeWrn5XMKD30i18w1Y"
+    },
+    {
+      id: "perak-2026",
+      questionFileId: "1qgHmJRYpkGwCkedNWb24qQYz7ThGByVd",
+      answerFileId: "1kjVTgucO83IeaBZwrTNmSixvKL0oNI0I"
+    },
+    {
+      id: "kelantan-2026",
+      questionFileId: "1LOSZwsLI0kooHabIhV_saQZJ16XhqS49",
+      answerFileId: "16LfiQ29lLLBi9ul6nZsZMMIZIqvcnQ3k"
+    },
+    {
+      id: "johor-batu-pahat-2026",
+      questionFileId: "1sbyEeSrP2JQfycorx3vSo1NTNplU2NA5",
+      answerFileId: "1WAIVnaXTCpDWRY0VrOm3JXUu-18j8Vn_"
+    },
+    {
+      id: "sarawak-2026",
+      questionFileId: "1YjSPk19JicQGkrlVwyxq485RUe7JxGSU",
+      answerFileId: null
+    },
+    {
+      id: "putrajaya-2026",
+      questionFileId: "1DBZ5mVqAmuhuX9o49t_UB6nw-bh1DYzk",
+      answerFileId: "1ZBFx4MwhiPbnof-7B2pbC3Qi2HESePlL"
+    },
+    {
+      id: "selangor-set-1-2026",
+      questionFileId: "1z3_Rhxz1xETF8rOY8hSNpE3_xCQOi-Vm",
+      answerFileId: "15m0UyI_4qgnRount70DjRaQIIsoMH2R5"
+    },
+    {
+      id: "selangor-set-2-2026",
+      questionFileId: "1p25LSyqz4QygFkLvipTaVuqHdJRoAmP0",
+      answerFileId: "1qB-1eFi32QahpcWW0Rg0CQQc65Ak6E9Z"
+    },
+    {
+      id: "penang-sabk-2026",
+      questionFileId: "1PJGrpbWJk_RxLYAQUpFZnbQleSUDrKYc",
+      answerFileId: "1WLiPzVSQqvwL9PwE3dd7JDveCSx4Uky1"
+    },
+    {
+      id: "perlis-2026",
+      questionFileId: "1YV9Ct6Jiv3tYUnDCICpNPR5q3STxHwex",
+      answerFileId: "1wUyius71LWW9IV-puG1XaUp-cP2AVqDv"
+    },
+    {
+      id: "melaka-2026",
+      questionFileId: "162LKZBYIV6VkXlA6U7sGjhnD6us714Hc",
+      answerFileId: "1nzJ8mw7XApyVjOQwnlwIPXTz20XcOCK1"
+    },
+    {
+      id: "pahang-2026",
+      questionFileId: "1xHwZsYWTSLWjlpIUmMVCvShehBTOgTTz",
+      answerFileId: "1kKT9O177br8Z1NIGHmT-driu3uFMPtWx"
+    },
+    {
+      id: "sbp-2026",
+      questionFileId: "1ou477oWIwnBhYUZflIrIxP8MXpYqjWiX",
+      answerFileId: "1OYS_5icXe0b8wrL1zlHanVGE1TEfhqlU"
+    },
+    {
+      id: "terengganu-2026",
+      questionFileId: "1NrzpUQxjAh4wGZfPKRCDDl8n-zVcFj7I",
+      answerFileId: "1qut5nKp3sapeKtL8lHIg5DKRR8O6p9-D"
+    },
+    {
+      id: "negeri-sembilan-2026",
+      questionFileId: "1Q0h04hthf9uIPWd9qqdRK6q-TRPNmloo",
+      answerFileId: "12TR1vm36e7D_bra2DAR98yaYilmMRYNj"
+    },
+    {
+      id: "putrajaya-2025",
+      questionFileId: "1KgmpPdAwHWcx4HHicPF8xEu6PB2GxNTL",
+      answerFileId: "1GfYGh-1x3tX8Dz0SJRi1E_V52oUC5aGA"
+    },
+    {
+      id: "selangor-2025",
+      questionFileId: "1hde5gHhsT8ZCwSClbBYZKW0RlL1pMErE",
+      answerFileId: "1TMMucXewYMj1driCnbE48znwF7WIm0yd"
+    },
+    {
+      id: "pahang-2025",
+      questionFileId: "1pUm7mjBXF0WMh0u5DArn93EJan2kYlKF",
+      answerFileId: "14vBHsQH8czEAC_57o9dt0bSBATYUdVIs"
+    },
+    {
+      id: "johor-2025",
+      questionFileId: "1wt-qOIKl_CVzUQS-ofczKZ0BxVv-e9QR",
+      answerFileId: "193dpSUA5PdKWJQyrdpOhNrOeKlEYCplo"
+    },
+    {
+      id: "negeri-sembilan-2025",
+      questionFileId: "1z4df-8UjszmYoUpMaN5DjW8GF1VubDYW",
+      answerFileId: "1LvjclBUXuXkiKB0mc4Enqp4ISvk9qKCe"
+    },
+    {
+      id: "kelantan-2025",
+      questionFileId: "1GsjDCUOpG863pWM9l5uLir0GHr1282X7",
+      answerFileId: "1RCjGQ8N4ioVjat8hBJcpIW1VlN5OHecT"
+    },
+    {
+      id: "sabk-set-1-2025",
+      questionFileId: "1e1CDjBmRWr2HWZAbSf0co241ZQz3aAAK",
+      answerFileId: "146PELvuQ4WMf7R2jQaVeDG4lsvWAcOHd"
+    },
+    {
+      id: "sabk-set-2-2025",
+      questionFileId: "1PeBL6LarXW1j1HOWdB01KiVMmlOC_bCV",
+      answerFileId: "1Rph4Y1yMX2GoabWUs6TCzGtGQ4WH7bII"
+    },
+    {
+      id: "perlis-2025",
+      questionFileId: "1sZKO1OAOxD9DFq-lI_Wq2NPV6BK2nOAY",
+      answerFileId: "165UjcLwI3Oy2Hu8SROh9aqD2IAQAGvPP"
+    },
+    {
+      id: "penang-spu-2025",
+      questionFileId: "10MdNntEhcNAFSl2233GayVWwAQ0QMXnr",
+      answerFileId: "18w-J2UWq1JlX0k-H-e4ofJKF7ba8aQhm"
+    },
+    {
+      id: "kedah-2025",
+      questionFileId: "1GaBijn8822luhSTVnIaeosz39TH-7fTt",
+      answerFileId: "1zbU2ItN_-TxuLVubW435QKadVeAwjrow"
+    },
+    {
+      id: "perak-2025",
+      questionFileId: "1uzLzJguOKJyxnz83qhN8IU7xOVSYyHd3",
+      answerFileId: "1tg-j_QZ8KIC3TdVxCLghnufYyMzLJhtc"
+    },
+    {
+      id: "melaka-2025",
+      questionFileId: "1jb8N9FAlckGAyd8xCgdM1kzwY-klxPlM",
+      answerFileId: "1_LTNX17kIEV_sc2d8OffpatJiz7B6PXA"
+    },
+    {
+      id: "terengganu-2025",
+      questionFileId: "1IhUYq47dB7eUDrthHAjEty2KeyDNBDqE",
+      answerFileId: "1vr5DG7UIojtLNcK3LdOQ37gEKpHcKYo7"
+    },
+    {
+      id: "sabah-lahad-datu-2026",
+      questionFileId: "18ZwZBJYY-iDPOq2PoOSE1vJIz9-FdOYG",
+      answerFileId: "18ZwZBJYY-iDPOq2PoOSE1vJIz9-FdOYG"
+    },
+    {
+      id: "n9-2024",
+      questionFileId: "1APG1ivuUXXpNs1tTUWiFlxBSOpoPSvTg",
+      answerFileId: "1O5fvkEOmWN2xDfhctoPTClkx2DnKRu1y"
+    },
+    {
+      id: "kelantan-2024",
+      questionFileId: "1TNHE03GRcXKHheLFun7pRebgA5A29emH",
+      answerFileId: "15zjqdEHbj0P5hqtH-p3f0WGL5pAJeBUG"
+    },
+    {
+      id: "pahang-2024",
+      questionFileId: "1Fay66eDr1UrmBwQgi2xDEoukVCeWZBRD",
+      answerFileId: "1hF-Ru3n2D4lykxH67wT5nvbo5jcd7hbZ"
+    },
+    {
+      id: "penang-2024",
+      questionFileId: "1VidxnhaUujc5P54KODrrJRYtY9m1wXbx",
+      answerFileId: "1zWbx4vKtSy4yHpL6Yd-upTRPMA8PmwvG"
+    },
+    {
+      id: "perak-2024",
+      questionFileId: "1SaZEMFF3i5VdeWpRgPanvXUjlhWoado9",
+      answerFileId: "1VnWVc8wfl42TjS11EOeuXVPWkEFhUXfZ"
+    },
+    {
+      id: "perlis-2024",
+      questionFileId: "1nrGh7y8Qr8dsJDtzq9eHx6k3xVu8_-0r",
+      answerFileId: "1R2-9MjILqS7Mve58MIVpRusiwLxqtUSp"
+    },
+    {
+      id: "selangor-set-2-2024",
+      questionFileId: "11s5XC0k0lXpkUze8w4LIiqLtn2TNoZ1o",
+      answerFileId: "1UD6JPoZwjCJ3bTxjvx_R0G_UzvMTK8IM"
+    },
+    {
+      id: "selangor-set-1-2024",
+      questionFileId: "1affqa2QiZVeF6MCYvgK6AFzaIUKB_UDe",
+      answerFileId: "1Rat6C6_fJqRqv-6lDEuFJ0l1GtjL1XiP"
+    },
+    {
+      id: "smka-and-sabk-2024",
+      questionFileId: "1tr_onCQ6F0muBcV-rMJhg38PHwuYchyR",
+      answerFileId: "1NNJmZZbffdM6OYdEdNgUYKHF_D7TN3MU"
+    },
+    {
+      id: "terengganu-2024",
+      questionFileId: "1UwHoF7EuBb3oZuS3OUN4TWRlRDmUvs8m",
+      answerFileId: "1xacJF-dCR7sFwW35Xd5UTwes5xvFiCqk"
+    },
+    {
+      id: "kedah-2024",
+      questionFileId: "1HVUr-wRB0fH9LmaDozUSl6zBCWRvI98O",
+      answerFileId: "1CDVZJkCdpSxCMYvUycPShWBgpoLxUtRc"
+    },
+    {
+      id: "melaka-2024",
+      questionFileId: "1aLIUjmeYbxkHW_l872QpsN2yLrq8GjK3",
+      answerFileId: "1CNPhwP9xWITixCNamHpQJ-aJY5tSETL2"
+    },
+    {
+      id: "johor-batu-pahat-2024",
+      questionFileId: "1Q3NC9MFyZZKWTleN8sSPdH2S9RFj_bxK",
+      answerFileId: "1pSdWfdr7OmANYxsyhR42ESeR3Af1wGJs"
+    },
+    {
+      id: "johor-muar-2024",
+      questionFileId: "1vIq9W0rfNXirPkiS7z_z1O1ROYdqHkM1",
+      answerFileId: "1-158Eubj8iffMIWMNGPYLDftrzb2LIci"
+    },
+    {
+      id: "johor-pontian-2024",
+      questionFileId: "1FVaAyzSknSXwc2X23jBRakbKjKMfob7f",
+      answerFileId: "1zPhOoVZHb8vt0oaPYXDMy3BfybMsO7BB"
+    },
+    {
+      id: "johor-segamat-set-2-2024",
+      questionFileId: "163vOJ8kOvR9ILl3RNor_yxICEyzpQ7_c",
+      answerFileId: "1J3ct1wS2C-njCajVmEGZ9okmvwPTxsSj"
+    },
+    {
+      id: "johor-segamat-set-1-2024",
+      questionFileId: "1iCBddc8Rdd8-I9y6kNKhygo8lEyxwSnb",
+      answerFileId: "1qj8kbqAsqsrJ9zEWq7smCooYwi2MT0Yk"
+    },
+    {
+      id: "sarawak-lubok-antu-2024",
+      questionFileId: "1JSeUCzZqwnl_gmIcFKHmc45CORk5aWt6",
+      answerFileId: "1NXuf4Qu4iJyElYMfN9_m4-amHZOidxxj"
+    },
+    {
+      id: "johor-kluang-set-a-2024",
+      questionFileId: "112y_urCD6cjXH3eBIzv5m0TvvdglLYk1",
+      answerFileId: null
+    },
+    {
+      id: "johor-kluang-set-b-2024",
+      questionFileId: "1qRx0ud0k7j4mFyZUbLT0p2whcKEh-aI1",
+      answerFileId: null
+    }
+  ],
+  listening: [
+    {
+      id: "kuala-lumpur",
+      questionFileId: "1keL_ST3bXHCMDBE_LcHJfIAVaGqKdrJq",
+      answerFileId: "1ac3szG9MicVTahdL91Hlh_HYrPKGqJy8",
+      audioFileId: "1dhlAhlbOcaM3fb-lUc4O7Byhf81Oan9f"
+    },
+    {
+      id: "kedah",
+      questionFileId: "1C9pC0gKe7AuJVfXqWA4CNpzX50nCKAo_",
+      answerFileId: "1hT85QJwZASY8E9-21RmPTNKMn5ufxMvS",
+      audioFileId: "1Y_P_s-JhhfufCh6vWc_2Wpccju54OSLg"
+    },
+    {
+      id: "perak",
+      questionFileId: "1dVrohrk3TxpLfV68RoSaSTKttDTu5Ddm",
+      answerFileId: "18C2LTAVD2bTvScuO7W3jPAfVz5xmCZ06",
+      audioFileId: "1cFsqsfeStwAVqgGuPlVmwHzbwTdJDFPo"
+    },
+    {
+      id: "kelantan",
+      questionFileId: "1PRycVkTNR42-oQSoIOs8Wh6Skc52Ucmn",
+      answerFileId: "1r8gansBDxCyrXACKGE3cFm7q7wGbFrTb",
+      audioFileId: "10w2o0wpXQdA_Z0tS-G7uFOVpFT38TADk"
+    },
+    {
+      id: "johor-set-1",
+      questionFileId: "12NWmejFZDy6tz_yvK1C1jhv1T_XlsxM1",
+      answerFileId: "1vfFjZgwthbbufvWBaKMYbphyUcNFUbFo",
+      audioFileId: "1MimJ3d4mIGWUOLZDh5WXcHc4mDZa9zQI"
+    },
+    {
+      id: "johor-set-3",
+      questionFileId: "13phbSk03wJy80ZzMCDJRcr6qOO5gyWi2",
+      audioFileId: "1pmhRt9VEKq5_RZoIzmg7282fnm4YGUAT"
+    },
+    {
+      id: "putrajaya",
+      questionFileId: "1fUGbhK42Tp8adkH3QSYDQLE_xLtqIO54",
+      answerFileId: "18cOZ9Vahn7ZwTyrQ5elWiSL8rZTioAk4",
+      audioFileId: "1muQdnf5MPHrpbhb8iu2J4f_Gfs-_mazb"
+    },
+    {
+      id: "selangor",
+      questionFileId: "1855WZmAXmzZ6_LMzwdSbuuZfDaBX9yef",
+      answerFileId: "1epHjoqi94veD8f8udchmt1JDsJ_E8ngh",
+      audioFileId: "1_xA95-TuiyZP8hNydUy8wDwlf0avs1sP"
+    },
+    {
+      id: "perlis",
+      questionFileId: "1u2b9nbH1gEcv_tDfNmok3oNbAVmzWtBw",
+      answerFileId: "1QHnylLomzk6vsLGKG41GJv8rAI62F0BE",
+      audioFileId: "1N6xBkpBeJuNMYk_qAbG5KqkRwahbCovH"
+    },
+    {
+      id: "melaka",
+      questionFileId: "1dNpB3tyLDu2zxqHt4sMba_erBzspybmt",
+      answerFileId: "1xymOueBWOyXx7PAcBh4ixNdUJLw4KxsA",
+      audioFileId: "1QzaDBMEsBu-YkxVJUANOgEB7EnhG0Bxc"
+    },
+    {
+      id: "pahang",
+      questionFileId: "10-xHI23J_dJC7zaxkYZUpPoesBTxcK66",
+      answerFileId: "1BDo45w0_ohRVDDR7UN8G0mfbu-fLDJ4m",
+      audioFileId: "1kIGfGP6D8rXsdQ05pqjwbDxCsMYfHpX6"
+    },
+    {
+      id: "terengganu",
+      questionFileId: "1KLMoR-Xe7AWPkPYM878bWIrDRbjIFwMU",
+      answerFileId: "1KTxzgeXzdd4__YRkKpuL-t6RNrfttEAp",
+      audioFileId: "1uyz6X_n2u3fI8W6gonaXTTPmgkOBC1Vr"
+    },
+    {
+      id: "negeri-sembilan",
+      questionFileId: "1ExeSxH-hgiw1XanhfIZxLZT5Fmqj5J6M",
+      answerFileId: "1MOon5Et5FbPnq1_X64wqfezqRZ9nsThf",
+      audioFileId: "1B2_DzqdSo_QQw-PwJ_DhowTAjV6-jlH3"
+    },
+    {
+      id: "sarawak-lubok-antu",
+      questionFileId: "11p52AhD13fbUPbtk11zXGEFcHRI66IM7",
+      answerFileId: "1yj4oPV7Ocbo9iFw6hdulbR5E7d8Susov",
+      audioFileId: "1Xm_BU7TEfjLeYVFGCoO0LSX91JZzDOBR"
+    },
+    {
+      id: "selangor-2025",
+      questionFileId: "12wkTckGGtJRsCFH_-ojXYWLzyldevsg7",
+      answerFileId: "1PKLGApNSd55mc4qJ1FT_Xn_TVZ-HHRJq",
+      audioFileId: "13EiwYLdvrfyJ2QiGGEHk1JU6Hb8h9ovG"
+    },
+    {
+      id: "pahang-2025",
+      questionFileId: "1_jptMU8CEtTCYv81oClgA7YGaZPBl2UW",
+      answerFileId: "1lYrXAhdiYopLcBWl-B4n-xjJwwgPXVkW",
+      audioFileId: "1rPTZNI-XvlK4bLTppToRootV-_aeA8ku"
+    },
+    {
+      id: "johor-2025",
+      questionFileId: "174Cge_Ia50IQ38JG2u97bO70bk9MWhS6",
+      answerFileId: "1QKerwzi6ar8K0ajoS1PepdlTU33uo1CS",
+      audioFileId: "1e4crgoRJ7gYPx0kzfNuen-LmsCSGW52P"
+    },
+    {
+      id: "negeri-sembilan-2025",
+      questionFileId: "1d19Ah_TtEI-q6nHj3zi-VX_fxorC6Yef",
+      answerFileId: "1LvjclBUXuXkiKB0mc4Enqp4ISvk9qKCe",
+      audioFileId: "1B0WfZgq5UFjo3JeyBE3nUUmgIOAGsirN"
+    },
+    {
+      id: "kelantan-2025",
+      questionFileId: "1HxkiDjmBwS7Fkx_m9RcgLrIB142QlGL3",
+      answerFileId: "1qPIFREpHiCbzHBX_MzrYZEdKt5PqyxOx",
+      audioFileId: "1w_sgzaXxwRgiVVJfe1U974khW6jfm0So"
+    },
+    {
+      id: "perlis-2025",
+      questionFileId: "1DD0MaF_63UJq4ZS_yHecepa6X8rfuD9h",
+      answerFileId: "1fenzThnzb0m5b64JuaoPxl9AlOZDghgl",
+      audioFileId: "1LX0F9EjlIUCckIwB4OGP3SyAqvH4zPO9"
+    },
+    {
+      id: "kedah-2025",
+      questionFileId: "1H2QIYzGeh8mMfhS2f4YoDlD8m67bX3Rf",
+      answerFileId: "1tJUfwBxVDzHF6DYadL2OSonYgcvUuc0J",
+      audioFileId: "1PAh8aW6jDE5VNpfXIAbqq7iIcti7TEJA"
+    },
+    {
+      id: "perak-2025",
+      questionFileId: "1OcHlDLyhxfZevL3PYaY4uJnO-XwJB4es",
+      answerFileId: "17P-cv0wMBw5u3wkQuHWBzd09CUNruNbe",
+      audioFileId: "1az0TYFtXygvqIw1naQegVgok-2RCushV"
+    },
+    {
+      id: "melaka-2025",
+      questionFileId: "1ohXh0Cu5RsZ55W2qB26IwjoVe2zikTRh",
+      answerFileId: "1Hq_Fak_fEsQ2U7ay_GX4KR8pXgIojy8a",
+      audioFileId: "1HmzPoelhMSyCRAkhy71SYKYRV0fG4NHP"
+    },
+    {
+      id: "terengganu-2025",
+      questionFileId: "1ThaJOWbaAVSIsGd2VJiphm3EKqLtvxdQ",
+      answerFileId: "1PSmgcLxBhVZvqRYRdixwtbxHNqxZNmOl",
+      audioFileId: "1Cwdv-GE8bRfTekIRo-tt1OVeS4zGPXCN"
+    },
+    {
+      id: "negeri-sembilan-2024",
+      questionFileId: "1UX7FR5VF6BYut4Wei65VxbsG8FBSGVVk",
+      audioFileId: "1ngCjPmaq3ct7gQtwQhscQFl2kGDdZOP3"
+    },
+    {
+      id: "kelantan-2024",
+      questionFileId: "1u1abmsh4pIGtrf_z7UBH7ktrexdYG30j",
+      answerFileId: "15zjqdEHbj0P5hqtH-p3f0WGL5pAJeBUG",
+      audioFileId: "1rIBMKBRAWNXaVweJanvrz9Z5zttnEbsy"
+    },
+    {
+      id: "pahang-2024",
+      questionFileId: "1oLJJnabt1EOEbW13piaG_aX9uDn9PRbN",
+      answerFileId: "1hF-Ru3n2D4lykxH67wT5nvbo5jcd7hbZ",
+      audioFileId: "1wpiW3DR-mDzYkG7HGPiMP0Zbjq3_Q-R0"
+    },
+    {
+      id: "penang-2024",
+      questionFileId: "1q1LUfkWhs3a0DL7N3DGuOc7S9Ik9GTzZ",
+      answerFileId: "12MaVPbbPInImnA9yDFyd0Vvf_eiF_UvS",
+      audioFileId: "113Lh6aUTWbXBSyBh4IjOKID4YTmPCokH"
+    },
+    {
+      id: "perak-2024",
+      questionFileId: "1Z80ZhSs_wJffmdYJ7AJ5iaHA3dojVzpV",
+      answerFileId: "1Sq51NHBcoSRVSixnWfc81PhZr2KeTkRO",
+      audioFileId: "1qydGlNTaUZA3c2eHy1Xm75k5xdAbPc7X"
+    },
+    {
+      id: "perlis-2024",
+      questionFileId: "1XszdVFeBU6FVGDcrsMjvTgYNYlZLf51y",
+      answerFileId: "15DQTZ65OShbVtcH8X4rRWw7OzjdMz6Ry",
+      audioFileId: "1HlSqH40wRsJdWfN-fbDo4uzZMNVwWRus"
+    },
+    {
+      id: "selangor-2024",
+      questionFileId: "1n093jrap6ujqx2xaqe0-5uLZGbfrik00",
+      answerFileId: "1-4s8EWy92exPHgtNW5FiszIA4Ma1CBQP",
+      audioFileId: "1QrImFAB8dumCBkYM8TSPd_CflQtj69my"
+    },
+    {
+      id: "terengganu-2024",
+      questionFileId: "1XwK_fmA2m2oYJShLe1nVL5ItRCZfzdD-",
+      answerFileId: "1bFrcnpinNgvwnwlaVBcZuaoycaVyr_D2",
+      audioFileId: "1eu2yoHxc1D7omIewr__U7U5qlKVaU_GY"
+    },
+    {
+      id: "kedah-2024",
+      questionFileId: "1ZMlF42nydvNk9NPwI3TYUCfmcRasK5mk",
+      answerFileId: "18usHhUQ0Y1m0mn_dytqa39EG9Dz_ZK-e",
+      audioFileId: "1c7aHpnYeIfZyCvTUDKTR4ic2_VItajBw"
+    },
+    {
+      id: "melaka-2024",
+      questionFileId: "1XIBwnQfhVuNBEmRKQmW8ySsZqo-Jwsms",
+      answerFileId: "1YjwVPM-_9yAljiHGvoOgBP4bX4i8HSax",
+      audioFileId: "1zX8f6A0MYMg6_g1BbGcgZG2S73CJNxVZ"
+    },
+    {
+      id: "johor-batu-pahat-2024",
+      questionFileId: "1_7dwQUWq_dC7h1TtR_u8fMoQDV6chdEj",
+      answerFileId: "1NG-q3M5OnkKUFct87pH3steHl7d14_j6",
+      audioFileId: "1cjsD3iHoHhPixdGdDTTVGsjljfXRyalK"
+    },
+    {
+      id: "johor-muar-2024",
+      questionFileId: "162gLndlRTDLeY12n2W_1AerObP1oXCHk",
+      answerFileId: "1TNf3CpK1Jmdewk9Z2HKOfcCk1ozvSTCt",
+      audioFileId: "1_EYxVm5IMIGptA8uhSjcVTfkOoifSCMC"
+    },
+    {
+      id: "johor-pontian-2024",
+      questionFileId: "1o7KGHUGCittlOyiwTyKiLflWGP2gypvA",
+      answerFileId: "1-43NcOt_l4e3z6x-SdyEEFQScmFEIPuR",
+      audioFileId: "1h8D0-kL2Hd-7lEiNazGbdfpIzFYr_tWk"
+    },
+    {
+      id: "johor-segamat-2024",
+      questionFileId: "1uCBzufnWvWSJ3WukUoEhg2mw1j67qY1k",
+      answerFileId: "1whfiU7niWrSki6DvLTZcUYPxrt4nVxtp",
+      audioFileId: "1HalJCMEs05vr1RoL-kncb-0XOAP2WydI"
+    },
+    {
+      id: "johor-kluang-set-a-2024",
+      questionFileId: "1BVT8TIxCuTrT1SInzdGPMpvBg3BSgARr",
+      answerFileId: "1HoMgwpZ3UTAW78fJRyQ5_DtTm0uEcQF1",
+      audioFileId: "1S9ORXotPxnP1xeu6Easog8FluUm4Ke3Z"
+    },
+    {
+      id: "johor-kluang-set-b-2024",
+      questionFileId: "1NmDjyd_q8pwVoxuKpYtiTqTL7Y3rGMr3",
+      answerFileId: "1zWLsmEVsRtaf3uI8n8ukf8Gdex-7D9h6",
+      audioFileId: "1VerE6rmsesiUp7ztmIMZlvpUQzaZ7tiz"
+    }
+  ]
+};
+
+// src/lib/trialPaperRights.ts
+var TRIAL_RIGHTS_MESSAGE = "This trial asset is unavailable pending authorization. Original files and confidentiality labels have been preserved.";
+function isAuthorizedTrialAsset(asset, kind) {
+  return trialPaperAuthorization_default[kind].some((approved) => approved.id === asset.id && approved.questionFileId === asset.questionFileId && approved.answerFileId === asset.answerFileId && approved.audioFileId === asset.audioFileId);
+}
+var mayDisplayTrialPaper = (testId, kind) => {
+  if (typeof testId !== "string") return false;
+  const allowed = (family) => {
+    const catalog = family === "reading" ? TRIAL_READING_TESTS : TRIAL_LISTENING_TESTS;
+    const asset = catalog.find((test) => test.id === testId);
+    return !!asset && isAuthorizedTrialAsset(asset, family);
+  };
+  return kind ? allowed(kind) : allowed("reading") || allowed("listening");
+};
+
 // src/server/practiceRoutes.ts
-function registerPracticeRoutes(app, db, verifyOverride) {
+function registerPracticeRoutes(app, db, verifyOverride, rights = mayDisplayTrialPaper) {
   const verify = async (req) => {
     const token = req.headers.authorization?.match(/^Bearer (.+)$/i)?.[1];
     if (!token) throw Object.assign(Error("Please sign in again."), { status: 401 });
@@ -26532,18 +27596,18 @@ function registerPracticeRoutes(app, db, verifyOverride) {
       if (!PRACTICE_SKILLS.includes(skill) || typeof requestId !== "string" || !/^[-a-zA-Z0-9]{1,100}$/.test(requestId) || typeof mock !== "boolean") throw Object.assign(Error("Invalid practice."), { status: 400 });
       const day = malaysiaPracticeDay(), daily = db.doc(`practice_days/${u.uid}_${day}`), receipt = db.doc(`practice_starts/${u.uid}_${requestId}`);
       const result = await db.runTransaction(async (t) => {
-        const [p, l, d, r] = await Promise.all([t.get(db.doc(`users/${u.uid}`)), t.get(db.doc(`package_entitlements/${u.uid}`)), t.get(daily), t.get(receipt)]);
+        const profileRef = db.doc(`users/${u.uid}`), ledgerRef = db.doc(`package_entitlements/${u.uid}`);
+        const [p, l, d, r] = await Promise.all([t.get(profileRef), t.get(ledgerRef), t.get(daily), t.get(receipt)]);
         const used = Number(d.data()?.used || 0);
         if (r.exists) {
           if (r.data()?.skill !== skill || Boolean(r.data()?.mock) !== mock || r.data()?.day !== day) throw Object.assign(Error("Use a new practice request for this task."), { status: 409 });
           return { day, used };
         }
-        const paid = hasPaidPractice(p.data() || {}, l.data() || {}, skill);
-        assertSkillPractice(p.data() || {}, l.data() || {}, d.data() || {}, skill, mock);
-        const updated = consumePracticeDay(p.data() || {}, l.data() || {}, d.data() || {}, day, skill, mock);
+        const { updated, rewardCreditUsed } = consumePracticeWithReward(p.data() || {}, l.data() || {}, d.data() || {}, day, skill, mock);
         const next = updated.used;
         t.set(daily, updated);
-        t.set(receipt, { skill, mock, day, createdAt: Date.now() });
+        if (rewardCreditUsed) t.set(ledgerRef, { rewardPracticeCredits: Number(l.data()?.rewardPracticeCredits || 0) - 1 }, { merge: true });
+        t.set(receipt, { skill, mock, day, createdAt: Date.now(), rewardCreditUsed });
         return { day, used: next };
       });
       res.json(result);
@@ -26555,6 +27619,7 @@ function registerPracticeRoutes(app, db, verifyOverride) {
     app.post(`/api/${kind}/check`, async (req, res) => {
       try {
         const u = await verify(req), { testId, part, answers } = req.body || {};
+        if (!rights(String(testId), kind)) return res.status(451).set("Cache-Control", "private, no-store").json({ error: TRIAL_RIGHTS_MESSAGE });
         if (typeof testId !== "string" || !/^[-a-zA-Z0-9_]{1,100}$/.test(testId) || !Number.isInteger(part) || part < 1 || part > (skill === "read" ? 5 : 4) || !answers || typeof answers !== "object" || Array.isArray(answers) || Object.entries(answers).some(([n, v]) => !/^([1-9]|[1-3][0-9]|40)$/.test(n) || typeof v !== "string" || v.length > 100)) throw Object.assign(Error("Check your answers and try again."), { status: 400 });
         const previousParts = (await history(u.uid))[`${skill}:${testId}`] || [];
         const day = malaysiaPracticeDay(), daily = db.doc(`practice_days/${u.uid}_${day}`), ref = db.doc(`users/${u.uid}/sessions/${skill}_trial_bank_${testId}`), lock = db.doc(`practice_progress/${u.uid}/tests/${skill}_${testId}`);
@@ -26562,8 +27627,6 @@ function registerPracticeRoutes(app, db, verifyOverride) {
           const [p, l, d, s, locked] = await Promise.all([t.get(db.doc(`users/${u.uid}`)), t.get(db.doc(`package_entitlements/${u.uid}`)), t.get(daily), t.get(ref), t.get(lock)]);
           const old = s.data(), oldResult = old?.readingResult || old?.listeningResult;
           if (previousParts.includes(part) || locked.data()?.parts?.includes(part) || oldResult?.parts?.[part]) throw Object.assign(Error("This part is completed and locked. Choose another part."), { status: 409 });
-          const paid = hasPaidPractice(p.data() || {}, l.data() || {}, skill);
-          assertSkillPractice(p.data() || {}, l.data() || {}, d.data() || {}, skill);
           let session;
           try {
             session = build(u.uid, `bank_${testId}`, testId, part, answers, old);
@@ -26576,10 +27639,12 @@ function registerPracticeRoutes(app, db, verifyOverride) {
           }
           const partResult = (session.readingResult || session.listeningResult).parts[part];
           const eventId = `${u.uid}:${session.type}:${testId}:${part}`;
+          const { updated, rewardCreditUsed } = consumePracticeWithReward(p.data() || {}, l.data() || {}, d.data() || {}, day, skill);
           t.set(db.doc(`usage_tasks/${eventId}`), { id: eventId, userId: u.uid, skill: skill === "read" ? "Reading" : "Listening", at: Date.now(), score: Math.round(partResult.correct / partResult.total * 100) });
-          t.set(ref, { ...session, timestamp: import_firestore3.Timestamp.fromMillis(session.timestamp) });
+          t.set(ref, { ...session, timestamp: import_firestore5.Timestamp.fromMillis(session.timestamp) });
           t.set(lock, { skill, testId, parts: [.../* @__PURE__ */ new Set([...previousParts, ...locked.data()?.parts || [], part])] });
-          t.set(daily, consumePracticeDay(p.data() || {}, l.data() || {}, d.data() || {}, day, skill));
+          t.set(daily, updated);
+          if (rewardCreditUsed) t.set(db.doc(`package_entitlements/${u.uid}`), { rewardPracticeCredits: Number(l.data()?.rewardPracticeCredits || 0) - 1 }, { merge: true });
           return session;
         });
         res.json({ saved: true, result: saved.readingResult || saved.listeningResult });
@@ -27195,15 +28260,16 @@ function registerAchievementRoutes(app, db, verify = (token) => (0, import_auth4
 
 // src/server/application.ts
 var import_auth8 = __toESM(require_auth2(), 1);
-var import_firestore7 = __toESM(require_firestore(), 1);
+var import_firestore9 = __toESM(require_firestore(), 1);
 import express2 from "express";
+import cors from "cors";
 import { createHash as createHash3 } from "node:crypto";
 import OpenAI6 from "openai";
 
 // src/server/firebaseAdmin.ts
 var import_app = __toESM(require_app(), 1);
 var import_auth5 = __toESM(require_auth2(), 1);
-var import_firestore4 = __toESM(require_firestore(), 1);
+var import_firestore6 = __toESM(require_firestore(), 1);
 
 // firebase-applet-config.json
 var firebase_applet_config_default = {
@@ -27234,12 +28300,12 @@ function initializeExistingFirebase() {
   }
   if ((0, import_app.getApp)().options.projectId !== firebase_applet_config_default.projectId) throw new Error("Firebase project mismatch");
   const databaseId = firebase_applet_config_default.firestoreDatabaseId === "(default)" ? void 0 : firebase_applet_config_default.firestoreDatabaseId;
-  return { auth: (0, import_auth5.getAuth)(), database: (0, import_firestore4.getFirestore)((0, import_app.getApp)(), databaseId) };
+  return { auth: (0, import_auth5.getAuth)(), database: (0, import_firestore6.getFirestore)((0, import_app.getApp)(), databaseId) };
 }
 
 // src/server/listeningRoutes.ts
 var import_auth6 = __toESM(require_auth2(), 1);
-var import_firestore5 = __toESM(require_firestore(), 1);
+var import_firestore7 = __toESM(require_firestore(), 1);
 import express from "express";
 
 // src/server/listeningAudio.ts
@@ -27253,10 +28319,11 @@ function validAudioRange(range) {
   const end = match[2] ? Number(match[2]) : null;
   return (start === null || Number.isSafeInteger(start)) && (end === null || Number.isSafeInteger(end)) && !(start === null && end === 0) && (start === null || end === null || start <= end);
 }
-function createListeningAudioHandler(fetcher = fetch) {
+function createListeningAudioHandler(fetcher = fetch, rights = mayDisplayTrialPaper) {
   return async (req, res) => {
     const fileId = audioFiles.get(String(req.params.testId));
     if (!fileId) return res.status(404).json({ error: "This recording was not found." });
+    if (!rights(String(req.params.testId), "listening")) return res.status(451).set("Cache-Control", "private, no-store").json({ error: TRIAL_RIGHTS_MESSAGE });
     const range = req.get("range");
     if (range && !validAudioRange(range)) return res.status(416).end();
     const controller = new AbortController();
@@ -27322,6 +28389,7 @@ function createListeningCheckHandler(deps) {
       return res.status(401).json({ error: "Please sign in again to check your answers." });
     }
     const { testId, part, answers, attemptId } = req.body || {};
+    if (!mayDisplayTrialPaper(testId, "listening")) return res.status(451).set("Cache-Control", "private, no-store").json({ error: TRIAL_RIGHTS_MESSAGE });
     if (typeof testId !== "string" || !Number.isInteger(part) || part < 1 || part > 4 || typeof attemptId !== "string" || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(attemptId) || !answers || typeof answers !== "object" || Array.isArray(answers) || Object.entries(answers).some(([n, v]) => !/^(?:[1-9]|[12]\d|30)$/.test(n) || typeof v !== "string" || v.length > 100)) {
       return res.status(400).json({ error: "Please check your answers and try again." });
     }
@@ -27348,14 +28416,14 @@ function registerListeningRoutes(router, database) {
       const ref = database.doc(`users/${uid}/sessions/${id}`);
       const snapshot = await transaction.get(ref);
       const session = build(snapshot.exists ? snapshot.data() : void 0);
-      transaction.set(ref, { ...session, timestamp: import_firestore5.Timestamp.fromMillis(session.timestamp) });
+      transaction.set(ref, { ...session, timestamp: import_firestore7.Timestamp.fromMillis(session.timestamp) });
       return session;
     })
   }));
 }
 
 // src/server/paymentRoutes.ts
-var import_firestore6 = __toESM(require_firestore(), 1);
+var import_firestore8 = __toESM(require_firestore(), 1);
 import axios2 from "axios";
 import querystring2 from "querystring";
 function registerPaymentRoutes(app, adminDb, overrides = {}) {
@@ -27428,7 +28496,9 @@ function registerPaymentRoutes(app, adminDb, overrides = {}) {
       const callbackUrl = process.env.TOYYIBPAY_CALLBACK_URL || `${appUrl.replace(/\/$/, "")}/api/tx/callback`;
       const txRef = adminDb.collection("transactions").doc();
       const txId = txRef.id;
+      const referral = await resolveReferral(adminDb, decodedUser.uid, req.body.referralCode);
       await txRef.set({
+        ...referral,
         id: txId,
         userId,
         userEmail,
@@ -27441,8 +28511,8 @@ function registerPaymentRoutes(app, adminDb, overrides = {}) {
         currency: "MYR",
         paymentMethod: channel === "duitnow_qr" ? "toyyibpay_qr" : "toyyibpay_fpx",
         status: "PENDING",
-        createdAt: import_firestore6.FieldValue.serverTimestamp(),
-        updatedAt: import_firestore6.FieldValue.serverTimestamp()
+        createdAt: import_firestore8.FieldValue.serverTimestamp(),
+        updatedAt: import_firestore8.FieldValue.serverTimestamp()
       });
       const billData = {
         userSecretKey: TOYYIBPAY_SECRET_KEY,
@@ -27480,7 +28550,7 @@ function registerPaymentRoutes(app, adminDb, overrides = {}) {
         const redirectUrl = `https://${TOYYIBPAY_HOSTNAME}/${billCode}`;
         await txRef.update({
           billCode,
-          updatedAt: import_firestore6.FieldValue.serverTimestamp()
+          updatedAt: import_firestore8.FieldValue.serverTimestamp()
         });
         return res.json({
           success: true,
@@ -27491,10 +28561,11 @@ function registerPaymentRoutes(app, adminDb, overrides = {}) {
       } else {
         const msg = Array.isArray(result) ? result[0]?.msg || result[0]?.status : typeof result === "string" ? result : "Payment gateway returned unexpected response";
         console.warn("[ToyyibPay] Bill creation was rejected.");
-        await txRef.update({ status: "FAILED", updatedAt: import_firestore6.FieldValue.serverTimestamp() });
+        await txRef.update({ status: "FAILED", updatedAt: import_firestore8.FieldValue.serverTimestamp() });
         return res.status(400).json({ success: false, message: `Payment gateway error: ${msg}` });
       }
     } catch (err) {
+      if (err instanceof ReferralError) return res.status(400).json({ success: false, message: err.message });
       console.error("[Payment Checkout Error]", err?.code || err?.response?.status || "Gateway unavailable");
       res.status(500).json({ success: false, message: "Failed to initiate payment. Please try again." });
     }
@@ -27597,7 +28668,7 @@ function registerPaymentRoutes(app, adminDb, overrides = {}) {
       } else if (String(req.body.status) === "3") {
         await adminDb.runTransaction(async (t) => {
           const current = await t.get(ref);
-          if (current.data()?.status !== "SUCCESS") t.update(ref, { status: "FAILED", updatedAt: import_firestore6.FieldValue.serverTimestamp() });
+          if (current.data()?.status !== "SUCCESS") t.update(ref, { status: "FAILED", updatedAt: import_firestore8.FieldValue.serverTimestamp() });
         });
       }
       res.send("OK");
@@ -27627,7 +28698,9 @@ function registerPaymentRoutes(app, adminDb, overrides = {}) {
       const orderRef = `EZ-BT-${Date.now().toString().slice(-6)}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
       const txDocRef = adminDb.collection("transactions").doc();
       const txId = txDocRef.id;
+      const referral = await resolveReferral(adminDb, decodedUser.uid, req.body.referralCode);
       await txDocRef.set({
+        ...referral,
         id: txId,
         orderReference: orderRef,
         userId: decodedUser.uid,
@@ -27650,8 +28723,8 @@ function registerPaymentRoutes(app, adminDb, overrides = {}) {
           bankQrImageUrl: bankConfig.bankQrImageUrl,
           whatsappNumber: bankConfig.whatsappNumber
         },
-        createdAt: import_firestore6.FieldValue.serverTimestamp(),
-        updatedAt: import_firestore6.FieldValue.serverTimestamp()
+        createdAt: import_firestore8.FieldValue.serverTimestamp(),
+        updatedAt: import_firestore8.FieldValue.serverTimestamp()
       });
       res.json({
         success: true,
@@ -27669,6 +28742,7 @@ function registerPaymentRoutes(app, adminDb, overrides = {}) {
         }
       });
     } catch (err) {
+      if (err instanceof ReferralError) return res.status(400).json({ success: false, message: err.message });
       console.error("[Manual Initiate Error]:", err);
       res.status(500).json({ success: false, message: "Failed to create bank transfer order." });
     }
@@ -27718,8 +28792,8 @@ function registerPaymentRoutes(app, adminDb, overrides = {}) {
           receiptUrl: receipt ? `/api/payment/receipt/${txId}` : txData.receiptUrl || null,
           userBankReference: transactionReference?.trim() || null,
           userNotes: notes?.trim() || null,
-          receiptSubmittedAt: import_firestore6.FieldValue.serverTimestamp(),
-          updatedAt: import_firestore6.FieldValue.serverTimestamp()
+          receiptSubmittedAt: import_firestore8.FieldValue.serverTimestamp(),
+          updatedAt: import_firestore8.FieldValue.serverTimestamp()
         });
       });
       res.json({
@@ -27794,8 +28868,8 @@ function registerPaymentRoutes(app, adminDb, overrides = {}) {
         await txRef.update({
           archived: action === "ARCHIVE",
           archivedBy: decodedUser.email,
-          archivedAt: action === "ARCHIVE" ? import_firestore6.FieldValue.serverTimestamp() : null,
-          updatedAt: import_firestore6.FieldValue.serverTimestamp()
+          archivedAt: action === "ARCHIVE" ? import_firestore8.FieldValue.serverTimestamp() : null,
+          updatedAt: import_firestore8.FieldValue.serverTimestamp()
         });
         return res.json({ success: true, message: action === "ARCHIVE" ? "Payment archived. You can restore it from archived records." : "Payment restored." });
       }
@@ -27836,8 +28910,8 @@ function registerPaymentRoutes(app, adminDb, overrides = {}) {
             status: "REJECTED",
             rejectedBy: decodedUser.uid,
             adminNote: String(adminNote || "Payment could not be confirmed").slice(0, 1e3),
-            rejectedAt: import_firestore6.FieldValue.serverTimestamp(),
-            updatedAt: import_firestore6.FieldValue.serverTimestamp()
+            rejectedAt: import_firestore8.FieldValue.serverTimestamp(),
+            updatedAt: import_firestore8.FieldValue.serverTimestamp()
           });
         });
         return res.json({
@@ -28007,6 +29081,34 @@ function createTaskProvider(env = process.env, factory = (options) => new OpenAI
       return { text: await complete(request.config?.systemInstruction || "You are the EZ Academy English learning assistant.", input, request.config?.responseMimeType === "application/json") };
     }
   };
+}
+
+// src/lib/speakingTaskCompatibility.ts
+function normalizeSpeakingBankQuestion(data, part) {
+  if (!data || typeof data !== "object") return null;
+  const text2 = (value) => typeof value === "string" ? value.trim() : "";
+  const texts = (value) => Array.isArray(value) ? value.filter((v) => typeof v === "string" && v.trim()).map((v) => v.trim()) : [];
+  if (part === 2) {
+    const topic = text2(data.promptCard?.topic) || text2(data.topic);
+    const prompts2 = texts(data.promptCard?.prompts).length ? texts(data.promptCard.prompts) : texts(data.prompts);
+    if (!topic || !prompts2.length) return null;
+    const prepTip = text2(data.promptCard?.prepTip) || text2(data.prepTip);
+    return { ...data, part: 2, topic, prompts: prompts2, prepTip, promptCard: { topic, prompts: prompts2, ...prepTip ? { prepTip } : {} } };
+  }
+  if (part === 3) {
+    const topic = text2(data.discussion?.situation) || text2(data.topic);
+    const prompts2 = texts(data.discussion?.points).length ? texts(data.discussion.points) : texts(data.prompts);
+    if (!topic || !prompts2.length) return null;
+    return { ...data, part: 3, topic, prompts: prompts2, discussion: {
+      ...data.discussion,
+      situation: topic,
+      points: prompts2,
+      guides: texts(data.discussion?.guides ?? data.guides),
+      decisionQuestion: text2(data.discussion?.decisionQuestion) || text2(data.decisionQuestion),
+      hotQuestion: text2(data.discussion?.hotQuestion) || text2(data.hotQuestion)
+    } };
+  }
+  return data;
 }
 
 // src/server/retry.ts
@@ -28759,7 +29861,13 @@ async function generateSPMSpeakingTask(part, theme, recentTopics = []) {
           responseMimeType: "application/json"
         }
       });
-      return safeJsonParse(result.text || "{}");
+      const parsed = safeJsonParse(result.text || "{}");
+      const requestedPart = part === "Full" ? 1 : part;
+      const normalized = normalizeSpeakingBankQuestion(parsed, requestedPart);
+      if (!normalized || requestedPart === 1 && (!Array.isArray(parsed.questions) || !parsed.questions.some((q) => typeof q === "string" && q.trim()))) {
+        throw new Error("The generated speaking task was incomplete.");
+      }
+      return { ...normalized, part: requestedPart };
     });
   } catch (e) {
     console.warn("Question generation unavailable; using sample practice questions:", e?.message || e);
@@ -28808,6 +29916,9 @@ async function generateSPMSpeakingTask(part, theme, recentTopics = []) {
   }
 }
 async function analyzeSPMSpeaking(part, task, transcript, config) {
+  if (!transcript.trim() || !new RegExp("\\p{L}", "u").test(transcript) || /^\s*\(?no response captured\)?\s*$/i.test(transcript)) {
+    throw new Error("No answer was captured. Your answer was not scored. Please record or confirm your transcript.");
+  }
   const model = resolveModel(config);
   const systemInstruction = `
     Role: You are a professional SPM English Speaking Test Examiner.
@@ -28817,7 +29928,7 @@ async function analyzeSPMSpeaking(part, task, transcript, config) {
     A transcript cannot establish pronunciation, accent, speaking pace, pauses, or vocal clarity. Do not claim to have measured those qualities.
     
     CRITICAL SCORING MANDATE:
-    1. TRANSCRIPT VALIDITY: If the transcript is empty, only contains punctuation, only contains "(No response captured)", or is extremely short (under 10 meaningful words), YOU MUST ASSIGN A SCORE OF 0 FOR ALL BANDS.
+    1. TRANSCRIPT VALIDITY: Assess the language actually provided in the context of this part. Do not impose a minimum word count or automatically give zero to a short relevant answer. If there is too little evidence for a criterion, state that limitation; do not invent performance evidence.
     2. IDENTITY CHECK: The transcript provided ONLY contains what the student said. Do NOT score based on your own generated questions. If the student repeats the question back without answering, score low (1-2). If they say nothing relevant, score 0.
     3. NO HALLUCINATION: Do not imagine that the student said something they didn't. If the transcript is "${transcript || "EMPTY"}", and it's empty, they get 0.
     
@@ -28930,6 +30041,7 @@ async function analyzeSPMSpeaking(part, task, transcript, config) {
   };
   result.score = Math.round(result.marks.total / 24 * 100);
   if (isNaN(result.score)) result.score = 0;
+  result.transcript = transcript;
   return result;
 }
 async function evaluateSpeechTranscript(transcript) {
@@ -30036,6 +31148,19 @@ function createApplication() {
   const { database: adminDb } = initializeExistingFirebase();
   const app = express2();
   app.set("trust proxy", 1);
+  const allowedOrigins = [
+    "https://ez-academy.my",
+    "https://app.ez-academy.my",
+    "https://www.ez-academy.my"
+  ];
+  app.use(cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(null, false);
+    },
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-EZ-Request-ID"]
+  }));
   app.use((req, res, next) => {
     const host = req.get("host") || "";
     const xForwardedHost = req.get("x-forwarded-host");
@@ -30095,6 +31220,8 @@ function createApplication() {
       return res.status(401).json({ error: "Sign in required" });
     }
   });
+  registerAffiliateRoutes(app, adminDb);
+  registerRewardRoutes(app, adminDb);
   registerMUETBankRoutes(app, adminDb);
   registerPracticeRoutes(app, adminDb);
   registerListeningRoutes(app, adminDb);
@@ -30147,8 +31274,8 @@ function createApplication() {
           } catch (error2) {
             await refundPackage();
             if (dailyReserved) await Promise.allSettled([
-              totalRef.update({ count: import_firestore7.FieldValue.increment(-1) }),
-              userRef.update({ count: import_firestore7.FieldValue.increment(-1) })
+              totalRef.update({ count: import_firestore9.FieldValue.increment(-1) }),
+              userRef.update({ count: import_firestore9.FieldValue.increment(-1) })
             ]);
             throw error2;
           }
@@ -30180,6 +31307,7 @@ function createApplication() {
     });
   });
   app.get("/api/leaderboard", async (req, res) => {
+    res.set("Cache-Control", "no-store");
     try {
       console.log("[Leaderboard] Fetching top users...");
       let usersData = [];
@@ -30268,10 +31396,14 @@ async function api(request, context2) {
     const headers = new Headers();
     for (const [key, value] of Object.entries(result.headers || {})) if (value !== void 0) headers.set(key, String(value));
     for (const [key, values] of Object.entries(result.multiValueHeaders || {})) for (const value of values || []) headers.append(key, String(value));
+    headers.set("X-Content-Type-Options", "nosniff");
+    headers.set("X-Frame-Options", "SAMEORIGIN");
+    headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+    if (!headers.has("Cache-Control")) headers.set("Cache-Control", "no-store");
     const responseBody = request.method === "HEAD" || [204, 304].includes(result.statusCode) ? null : result.isBase64Encoded ? Buffer.from(result.body || "", "base64") : result.body || "";
     return new Response(responseBody, { status: result.statusCode, headers });
   } catch {
-    return Response.json({ error: "The server is not configured yet. Please try again later." }, { status: 503, headers: { "Cache-Control": "no-store" } });
+    return Response.json({ error: "The server is not configured yet. Please try again later." }, { status: 503, headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", "X-Frame-Options": "SAMEORIGIN", "Referrer-Policy": "strict-origin-when-cross-origin" } });
   }
 }
 export {
@@ -30284,12 +31416,12 @@ firebase-admin/lib/utils/validator.js:
 firebase-admin/lib/utils/index.js:
 firebase-admin/lib/utils/deep-copy.js:
 firebase-admin/lib/app/firebase-app.js:
+firebase-admin/lib/firestore/firestore-internal.js:
 firebase-admin/lib/utils/api-request.js:
 firebase-admin/lib/auth/auth-api-request.js:
 firebase-admin/lib/auth/token-generator.js:
 firebase-admin/lib/auth/user-record.js:
 firebase-admin/lib/auth/auth.js:
-firebase-admin/lib/firestore/firestore-internal.js:
   (*! firebase-admin v14.5.0 *)
   (*!
    * @license
@@ -30309,8 +31441,8 @@ firebase-admin/lib/firestore/firestore-internal.js:
    *)
 
 firebase-admin/lib/app/error.js:
-firebase-admin/lib/auth/error.js:
 firebase-admin/lib/firestore/error.js:
+firebase-admin/lib/auth/error.js:
   (*! firebase-admin v14.5.0 *)
   (*!
    * Copyright 2026 Google LLC
@@ -30369,6 +31501,26 @@ firebase-admin/lib/utils/crypto-signer.js:
    * limitations under the License.
    *)
 
+firebase-admin/lib/firestore/index.js:
+firebase-admin/lib/auth/identifier.js:
+firebase-admin/lib/auth/index.js:
+  (*! firebase-admin v14.5.0 *)
+  (*!
+   * Copyright 2020 Google LLC
+   *
+   * Licensed under the Apache License, Version 2.0 (the "License");
+   * you may not use this file except in compliance with the License.
+   * You may obtain a copy of the License at
+   *
+   *   http://www.apache.org/licenses/LICENSE-2.0
+   *
+   * Unless required by applicable law or agreed to in writing, software
+   * distributed under the License is distributed on an "AS IS" BASIS,
+   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   * See the License for the specific language governing permissions and
+   * limitations under the License.
+   *)
+
 firebase-admin/lib/auth/user-import-builder.js:
 firebase-admin/lib/auth/action-code-settings-builder.js:
 firebase-admin/lib/auth/auth-config.js:
@@ -30395,26 +31547,6 @@ firebase-admin/lib/auth/tenant-manager.js:
   (*! firebase-admin v14.5.0 *)
   (*!
    * Copyright 2019 Google LLC
-   *
-   * Licensed under the Apache License, Version 2.0 (the "License");
-   * you may not use this file except in compliance with the License.
-   * You may obtain a copy of the License at
-   *
-   *   http://www.apache.org/licenses/LICENSE-2.0
-   *
-   * Unless required by applicable law or agreed to in writing, software
-   * distributed under the License is distributed on an "AS IS" BASIS,
-   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   * See the License for the specific language governing permissions and
-   * limitations under the License.
-   *)
-
-firebase-admin/lib/auth/identifier.js:
-firebase-admin/lib/auth/index.js:
-firebase-admin/lib/firestore/index.js:
-  (*! firebase-admin v14.5.0 *)
-  (*!
-   * Copyright 2020 Google LLC
    *
    * Licensed under the Apache License, Version 2.0 (the "License");
    * you may not use this file except in compliance with the License.
@@ -30472,9 +31604,9 @@ firebase-admin/lib/auth/project-config-manager.js:
 
 require('google-auth-library');
 require('fast-deep-equal');
+require('@google-cloud/firestore');
 require('@fastify/busboy');
 require('debug');
 require('lru-memoizer');
 require('limiter');
 require('jsonwebtoken');
-require('@google-cloud/firestore');

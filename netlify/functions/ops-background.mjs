@@ -13499,6 +13499,34 @@ var currentPurchase = (ledger, now, skill) => (ledger.purchases || []).filter((p
 // src/server/packageBudget.ts
 var PERIOD = 30 * 864e5;
 
+// src/server/affiliates.ts
+var import_firestore2 = __toESM(require_firestore(), 1);
+
+// src/affiliate.ts
+var COMMISSION_CENTS = { lite: 100, plus: 200, max: 300, speak: 100, write: 100, read: 100, listen: 100 };
+var affiliatePlans = Object.values(PACKAGES).filter((p) => COMMISSION_CENTS[p.id]);
+function commissionForOrder(order) {
+  const plan = PACKAGES[order.planId];
+  return order.affiliateVersion === 1 && order.packageVersion === PACKAGE_VERSION && plan && order.amountInCents === plan.amountInCents && order.currency === "MYR" ? COMMISSION_CENTS[plan.id] || 0 : 0;
+}
+
+// src/server/affiliates.ts
+async function prepareCommission(db, t, orderId, order) {
+  const cents = commissionForOrder(order);
+  if (!cents || !order.affiliateUid || order.affiliateUid === order.userId) return () => {
+  };
+  const ledgerRef = db.collection("affiliate_commissions").doc(orderId);
+  const accountRef = db.collection("affiliate_accounts").doc(order.affiliateUid);
+  const [ledger, account] = await Promise.all([t.get(ledgerRef), t.get(accountRef)]);
+  if (ledger.exists) return () => {
+  };
+  if (!account.exists || account.data()?.code !== order.referralCode) throw Error("Referral account is unavailable.");
+  return () => {
+    t.set(ledgerRef, { orderId, uid: order.affiliateUid, buyerUid: order.userId, planId: order.planId, amountCents: cents, createdAt: import_firestore2.FieldValue.serverTimestamp() });
+    t.update(accountRef, { availableCents: import_firestore2.FieldValue.increment(cents), earnedCents: import_firestore2.FieldValue.increment(cents) });
+  };
+}
+
 // src/legacyPackagesV3.ts
 var PACKAGES2 = {
   lite: { id: "lite", name: "EZ Lite", price: 5, amountInCents: 500, type: "subscription", durationDays: 30, aiUnits: 20, dailyLimit: 5, fullTests: false, description: "All 4 skills; 5 practices per skill daily, 20 AI credits, no full tests; 30 days" },
@@ -13526,7 +13554,7 @@ var PACKAGES3 = {
 
 // src/server/payments.ts
 var import_auth2 = __toESM(require_auth2(), 1);
-var import_firestore2 = __toESM(require_firestore(), 1);
+var import_firestore3 = __toESM(require_firestore(), 1);
 import axios from "axios";
 import querystring from "querystring";
 import crypto2 from "crypto";
@@ -13607,7 +13635,7 @@ async function applySuccessfulEntitlement(firestore, txId, verification) {
     const packageRef = firestore.collection("package_entitlements").doc(order.userId);
     const packageDoc = await t.get(packageRef);
     const packageData = packageDoc.data() || {};
-    const stamp = import_firestore2.FieldValue.serverTimestamp();
+    const stamp = import_firestore3.FieldValue.serverTimestamp();
     if (order.status === "SUCCESS") return {
       success: true,
       alreadyProcessed: true,
@@ -13621,6 +13649,8 @@ async function applySuccessfulEntitlement(firestore, txId, verification) {
     ) : null;
     const invoice = invoiceRef ? await t.get(invoiceRef) : null;
     if (invoice?.exists && invoice.data()?.orderId !== txId) throw new Error("This bank payment has already been used.");
+    const writeCommission = await prepareCommission(firestore, t, txId, order);
+    writeCommission();
     const now = /* @__PURE__ */ new Date();
     if (order.packageVersion === PACKAGE_VERSION || order.packageVersion === 3 || (packageData.purchases || []).length) {
       const pack = plan;
@@ -13629,7 +13659,7 @@ async function applySuccessfulEntitlement(firestore, txId, verification) {
       if (pack.type === "credits") {
         creditsAdded2 = pack.creditsGrant;
         ledger.topupUnits = Number(ledger.topupUnits || 0) + Number(pack.aiUnits || 0);
-        t.update(userRef, { credits: import_firestore2.FieldValue.increment(creditsAdded2), updatedAt: stamp, lastPaymentAt: stamp, lastTransactionId: txId });
+        t.update(userRef, { credits: import_firestore3.FieldValue.increment(creditsAdded2), updatedAt: stamp, lastPaymentAt: stamp, lastTransactionId: txId });
       } else {
         const skill = pack.type === "skill" ? pack.id : void 0;
         const existing = currentPurchase(packageData, startsAt, skill);
@@ -13637,7 +13667,7 @@ async function applySuccessfulEntitlement(firestore, txId, verification) {
         startsAt = Math.max(startsAt, existing?.expiresAt || 0, oldExpiry, ...(packageData.purchases || []).filter((p) => skill ? p.skill === skill : p.type === "subscription").map((p) => Number(p.expiresAt) || 0));
         expiresAt = startsAt + (pack.durationDays || 30) * 864e5;
         ledger.purchases = [...packageData.purchases || [], { id: txId, version: order.packageVersion === PACKAGE_VERSION ? PACKAGE_VERSION : 3, planId: pack.id, type: pack.type, ...skill ? { skill } : {}, startsAt, expiresAt, included: pack.aiUnits || 0, dailyLimit: pack.dailyLimit || 0, ...pack.extraFree ? { extraFree: true, dailyScope: pack.dailyScope } : {}, ...![3, PACKAGE_VERSION].includes(order.packageVersion) ? { dailyLimits: pack.type === "skill" ? DAILY_PRACTICE_LIMITS.pro : DAILY_PRACTICE_LIMITS[pack.id], legacyUnlimited: !order.packageVersion } : {}, fullTests: pack.fullTests !== false }];
-        t.update(userRef, { updatedAt: stamp, lastPaymentAt: stamp, lastTransactionId: txId, ...pack.type === "subscription" && startsAt <= now.getTime() ? { plan: pack.id, planExpiresAt: import_firestore2.Timestamp.fromMillis(expiresAt), planUpdatedAt: stamp } : {} });
+        t.update(userRef, { updatedAt: stamp, lastPaymentAt: stamp, lastTransactionId: txId, ...pack.type === "subscription" && startsAt <= now.getTime() ? { plan: pack.id, planExpiresAt: import_firestore3.Timestamp.fromMillis(expiresAt), planUpdatedAt: stamp } : {} });
       }
       t.set(packageRef, ledger);
       if (invoiceRef) t.set(invoiceRef, { orderId: txId, verifiedAt: stamp });
@@ -13650,20 +13680,20 @@ async function applySuccessfulEntitlement(firestore, txId, verification) {
     const userUpdate = { updatedAt: stamp, lastPaymentAt: stamp, lastTransactionId: txId };
     if (plan.type === "credits") {
       creditsAdded = plan.creditsGrant;
-      userUpdate.credits = import_firestore2.FieldValue.increment(creditsAdded);
+      userUpdate.credits = import_firestore3.FieldValue.increment(creditsAdded);
     } else if (plan.type === "subscription") {
       const rank = { free: 0, basic: 1, pro: 2, pro_plus: 3 };
       const expiry = user.planExpiresAt?.toDate?.();
       const currentActive = expiry ? expiry > now : activePlan !== "free";
       if (currentActive && (rank[activePlan] || 0) > rank[plan.id]) {
-        userUpdate.planExpiresAt = import_firestore2.Timestamp.fromDate(new Date(
+        userUpdate.planExpiresAt = import_firestore3.Timestamp.fromDate(new Date(
           Math.max(now.getTime(), expiry?.getTime() || now.getTime()) + plan.durationDays * 864e5 * plan.amountInCents / (packageData.version === 2 ? PACKAGES3 : LEGACY_PLANS)[activePlan].amountInCents
         ));
       } else {
         activePlan = plan.id;
         userUpdate.plan = activePlan;
         const starts = currentActive && user.plan === plan.id && expiry ? expiry.getTime() : now.getTime();
-        userUpdate.planExpiresAt = import_firestore2.Timestamp.fromDate(new Date(starts + plan.durationDays * 864e5));
+        userUpdate.planExpiresAt = import_firestore3.Timestamp.fromDate(new Date(starts + plan.durationDays * 864e5));
       }
       userUpdate.planUpdatedAt = stamp;
     }

@@ -26,6 +26,7 @@ const MarketingEZEnglish = lazy(() => import('./pages/marketing/EZEnglish').then
 const MarketingPrograms = lazy(() => import('./pages/marketing/Programs').then(m => ({ default: m.MarketingPrograms })));
 const MarketingResources = lazy(() => import('./pages/marketing/Resources').then(m => ({ default: m.MarketingResources })));
 const ContentPage = lazy(() => import('./pages/marketing/ContentPage').then(m => ({ default: m.ContentPage })));
+const LegalInfo = lazy(() => import('./pages/marketing/LegalInfo').then(m => ({ default: m.LegalInfo })));
 const PaymentGate = lazy(() => import('./pages/PaymentGate'));
 const AdminPage = lazy(() => import('./pages/AdminPage').then(m => ({ default: m.AdminPage })));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
@@ -348,6 +349,8 @@ export default function App() {
         <Route path="/ecosystem" element={<MarketingEcosystem />} />
         <Route path="/programs" element={<MarketingPrograms />} />
         <Route path="/resources" element={<MarketingResources />} />
+        <Route path="/privacy" element={<LegalInfo kind="privacy" />} />
+        <Route path="/terms" element={<LegalInfo kind="terms" />} />
         <Route path="/section/:slug" element={<ContentPage />} />
       </Route>
 

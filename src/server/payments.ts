@@ -1,3 +1,4 @@
+import {prepareCommission} from './affiliates';
 import { PACKAGES, PACKAGE_VERSION } from '../packages';
 import {PACKAGES as V3_PACKAGES} from '../legacyPackagesV3';
 import {PACKAGES as V2_PACKAGES} from '../legacyPackagesV2';
@@ -173,6 +174,8 @@ export async function applySuccessfulEntitlement(
       crypto.createHash('sha256').update(verification.transactionId!).digest('hex')) : null;
     const invoice = invoiceRef ? await t.get(invoiceRef) : null;
     if (invoice?.exists && invoice.data()?.orderId !== txId) throw new Error('This bank payment has already been used.');
+    const writeCommission = await prepareCommission(firestore, t, txId, order);
+    writeCommission();
     const now = new Date();
     if(order.packageVersion===PACKAGE_VERSION||order.packageVersion===3||(packageData.purchases||[]).length){
       const pack:ServerPlanConfig=plan;

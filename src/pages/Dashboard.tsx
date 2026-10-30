@@ -1,3 +1,5 @@
+import {DashboardPortrait} from '../components/profile/DashboardPortrait';
+import {useDevicePhoto} from '../lib/devicePhoto';
 import React,{useEffect,useState,useRef} from 'react';
 import {Link} from 'react-router-dom';
 import {BookOpen,PenTool,Mic,Headphones,ArrowRight,Flame,Star,Volume2,Bookmark,Check,RefreshCw,Crown,Bell,CalendarDays,Target,Lightbulb,Trophy,BarChart3,ChevronRight,Sparkles} from 'lucide-react';
@@ -9,6 +11,7 @@ import './dashboard.css';
 import type {UserProfile,PracticeSession} from '../types';
 const tiles=[{key:'speak',name:'Speaking',module:'speakez',Icon:Mic},{key:'write',name:'Writing',module:'writeez',Icon:PenTool},{key:'read',name:'Reading',module:'readez',Icon:BookOpen},{key:'listen',name:'Listening',module:'listenez',Icon:Headphones}];
 export const Dashboard:React.FC<{profile:UserProfile;onSelectModule:(id:string)=>void}>=({profile,onSelectModule})=>{
+ const devicePhoto=useDevicePhoto(profile.uid);
  const dirtySentence=useRef(false),loadedWordId=useRef('');
  const [range,setRange]=useState('weeks'),[totalPractices,setTotalPractices]=useState<number|null>(null);
  const [today,setToday]=useState<any>(null),[balanceError,setBalanceError]=useState(''),[retry,setRetry]=useState(0),[sessions,setSessions]=useState<PracticeSession[]>([]),[scoreError,setScoreError]=useState(''),[scoresLoading,setScoresLoading]=useState(true),[achievements,setAchievements]=useState<number|null>(null);
@@ -30,11 +33,11 @@ export const Dashboard:React.FC<{profile:UserProfile;onSelectModule:(id:string)=
  return <div className="ezd">
   <header className="ezd-top">
    <Link to="/app" className="ezd-brand" aria-label="EZ Academy home"><img src="/images/dashboard/ez-emblem-v1.webp" alt="EZ Academy logo"/><span><b>Academy</b><small>{profile.goal==='MUET'?'MUET English Practice':'SPM English Practice'}</small></span></Link>
-   <div className="ezd-account"><Link className="ezd-plan" to="/app/pricing"><Crown/><span><b>{plan}</b><small>{today?.planLabel==='Free'?'2 practices/day':'View your plan'}</small></span></Link><Link to="/app/study-tools" className="ezd-bell" aria-label="Reminders and study tips"><Bell/></Link><Link to="/app/profile" className="ezd-avatar" aria-label="Open your profile"><img src={profile.photoURL||'/images/dashboard/ez-mascot-v1.webp'} alt="Your profile" referrerPolicy="no-referrer"/></Link></div>
+   <div className="ezd-account"><Link className="ezd-plan" to="/app/pricing"><Crown/><span><b>{plan}</b><small>{today?.planLabel==='Free'?'2 practices/day':'View your plan'}</small></span></Link><Link to="/app/study-tools" className="ezd-bell" aria-label="Reminders and study tips"><Bell/></Link><Link to="/app/profile" className="ezd-avatar" aria-label="Open your profile"><img src={devicePhoto?.avatar||profile.photoURL||'/images/dashboard/ez-mascot-v1.webp'} alt="Your profile" referrerPolicy="no-referrer"/></Link></div>
   </header>
   <section className="ezd-hello" aria-label="Welcome">
    <div className="ezd-greeting"><h1>Hi, {profile.displayName?.split(' ')[0]||'there'}! <span>👋</span></h1><p>Ready for today’s practice?</p></div>
-   <img className="ezd-hero-mascot" src="/images/dashboard/ez-mascot-v1.webp" alt=""/>
+   <DashboardPortrait uid={profile.uid}/>
    <span className="ezd-scribble">Better English.<br/>Brighter you!<i>⤴</i></span>
    <div className="ezd-stats"><div><span className="ezd-emoji">🔥</span><span><b>{profile.streak||0} day{profile.streak===1?'':'s'}</b><small>streak</small></span></div><div><span className="ezd-emoji">⭐</span><span><b>{(profile.points||0).toLocaleString()}</b><small>points</small></span></div><div><BarChart3/><span><b>Your level</b><small>{levelLabel}</small></span></div></div>
   </section>

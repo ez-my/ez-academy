@@ -1,0 +1,68 @@
+[
+  {
+    "skill": "Reading",
+    "viewport": [
+      1440,
+      900
+    ],
+    "noOverflow": true,
+    "consoleErrors": [],
+    "screenshot": "docs/paper-rights/reactivation/screenshots/reading-1440.png",
+    "scope": "Real trial library with mocked auth/progress and blocked external media; not authenticated E2E."
+  },
+  {
+    "skill": "Reading",
+    "viewport": [
+      390,
+      844
+    ],
+    "noOverflow": true,
+    "consoleErrors": [],
+    "screenshot": "docs/paper-rights/reactivation/screenshots/reading-390.png",
+    "scope": "Real trial library with mocked auth/progress and blocked external media; not authenticated E2E."
+  },
+  {
+    "skill": "Reading",
+    "viewport": [
+      320,
+      740
+    ],
+    "noOverflow": true,
+    "consoleErrors": [],
+    "screenshot": "docs/paper-rights/reactivation/screenshots/reading-320.png",
+    "scope": "Real trial library with mocked auth/progress and blocked external media; not authenticated E2E."
+  },
+  {
+    "skill": "Listening",
+    "viewport": [
+      1440,
+      900
+    ],
+    "noOverflow": true,
+    "consoleErrors": [],
+    "screenshot": "docs/paper-rights/reactivation/screenshots/listening-1440.png",
+    "scope": "Real trial library with mocked auth/progress and blocked external media; not authenticated E2E."
+  },
+  {
+    "skill": "Listening",
+    "viewport": [
+      390,
+      844
+    ],
+    "noOverflow": true,
+    "consoleErrors": [],
+    "screenshot": "docs/paper-rights/reactivation/screenshots/listening-390.png",
+    "scope": "Real trial library with mocked auth/progress and blocked external media; not authenticated E2E."
+  },
+  {
+    "skill": "Listening",
+    "viewport": [
+      320,
+      740
+    ],
+    "noOverflow": true,
+    "consoleErrors": [],
+    "screenshot": "docs/paper-rights/reactivation/screenshots/listening-320.png",
+    "scope": "Real trial library with mocked auth/progress and blocked external media; not authenticated E2E."
+  }
+]

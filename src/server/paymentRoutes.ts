@@ -1,3 +1,4 @@
+import {resolveReferral,ReferralError} from './affiliates';
 import { PACKAGE_VERSION } from '../packages';
 import type { Express } from 'express';
 import { getAuth, type DecodedIdToken } from 'firebase-admin/auth';
@@ -92,7 +93,9 @@ export function registerPaymentRoutes(app: Express, adminDb: Firestore, override
       const txRef = adminDb.collection('transactions').doc();
       const txId = txRef.id;
 
+      const referral = await resolveReferral(adminDb, decodedUser.uid, req.body.referralCode);
       await txRef.set({
+        ...referral,
         id: txId,
         userId,
         userEmail,
@@ -164,6 +167,7 @@ export function registerPaymentRoutes(app: Express, adminDb: Firestore, override
         return res.status(400).json({ success: false, message: `Payment gateway error: ${msg}` });
       }
     } catch (err: any) {
+      if (err instanceof ReferralError) return res.status(400).json({success:false,message:err.message});
       // Axios errors contain the submitted API key and payer details.
       console.error('[Payment Checkout Error]', err?.code || err?.response?.status || 'Gateway unavailable');
       res.status(500).json({ success: false, message: "Failed to initiate payment. Please try again." });
@@ -311,7 +315,9 @@ export function registerPaymentRoutes(app: Express, adminDb: Firestore, override
       const txDocRef = adminDb.collection('transactions').doc();
       const txId = txDocRef.id;
 
+      const referral = await resolveReferral(adminDb, decodedUser.uid, req.body.referralCode);
       await txDocRef.set({
+        ...referral,
         id: txId,
         orderReference: orderRef,
         userId: decodedUser.uid,
@@ -354,6 +360,7 @@ export function registerPaymentRoutes(app: Express, adminDb: Firestore, override
         }
       });
     } catch (err: any) {
+      if (err instanceof ReferralError) return res.status(400).json({success:false,message:err.message});
       console.error("[Manual Initiate Error]:", err);
       res.status(500).json({ success: false, message: "Failed to create bank transfer order." });
     }

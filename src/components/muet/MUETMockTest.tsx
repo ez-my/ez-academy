@@ -376,6 +376,8 @@ export const MUETMockTest: React.FC<MUETMockTestProps> = ({
     }
   };
 
+  useEffect(() => { if (finalReport && onSaveReport) void handleSaveFinalReport(); }, [finalReport]);
+
   const formatTimer = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;

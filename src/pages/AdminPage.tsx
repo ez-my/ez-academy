@@ -1,3 +1,5 @@
+import {AffiliateClaims} from './AffiliateClaims';
+import {RewardCodesPanel} from './RewardCodesPanel';
 import {MarketingPanel} from './MarketingPanel';
 import {OperationsPanel} from './OperationsPanel';
 import './admin.css';
@@ -38,7 +40,7 @@ export const AdminPage: React.FC = () => {
     return <Navigate to="/app" replace />;
   }
 
-  const [activeTab, setActiveTab] = useState<'marketing' | 'operations' | 'overview' | 'users' | 'payments' | 'content' | 'questions' | 'system' | 'maintenance' | 'ui'>(() => { const tab = new URLSearchParams(window.location.search).get('tab'); return ['marketing','operations','overview','users','payments','content','questions','system','maintenance','ui'].includes(tab || '') ? tab as any : 'overview'; });
+  const [activeTab, setActiveTab] = useState<'rewards' | 'affiliates' | 'marketing' | 'operations' | 'overview' | 'users' | 'payments' | 'content' | 'questions' | 'system' | 'maintenance' | 'ui'>(() => { const tab = new URLSearchParams(window.location.search).get('tab'); return ['rewards','affiliates','marketing','operations','overview','users','payments','content','questions','system','maintenance','ui'].includes(tab || '') ? tab as any : 'overview'; });
   const [systemUsers, setSystemUsers] = useState<UserProfile[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [showArchivedPayments, setShowArchivedPayments] = useState(false);
@@ -1030,7 +1032,9 @@ export const AdminPage: React.FC = () => {
   };
 
   const tabs = [
+    { id: 'rewards', label: 'Reward Codes', icon: Tag },
     { id: 'marketing', label: 'Marketing', icon: Target },
+    { id: 'affiliates', label: 'Affiliate claims', icon: DollarSign },
     { id: 'operations', label: 'Operations', icon: Activity },
     { id: 'overview', label: 'Overview', icon: Activity },
     { id: 'users', label: 'Users', icon: Users },
@@ -1134,6 +1138,8 @@ export const AdminPage: React.FC = () => {
         </div>
       </header>
 
+      {activeTab === 'affiliates' && <AffiliateClaims/>}
+      {activeTab === 'rewards' && <RewardCodesPanel/>}
       {activeTab === 'marketing' && <MarketingPanel/>}
       {(activeTab === 'operations' || activeTab === 'overview') && <OperationsPanel/>}
 

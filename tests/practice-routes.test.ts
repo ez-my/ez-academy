@@ -9,6 +9,7 @@ test('shared budget, durable lock, idempotency and cross-skill use are enforced'
  const snapshot=(path:string)=>({exists:store.has(path),data:()=>store.get(path)});
  let queue=Promise.resolve();
  const db:any={doc:(path:string)=>({path,get:async()=>snapshot(path)}),collection:(path:string)=>({get:async()=>({docs:[...store.entries()].filter(([k])=>k.startsWith(path+'/')).map(([,data])=>({data:()=>data}))})}),runTransaction:(fn:any)=>{const result=queue.then(()=>fn({get:async(ref:any)=>snapshot(ref.path),set:(ref:any,value:any)=>store.set(ref.path,value)}));queue=result.catch(()=>{});return result;}};
+ // Exercise the production authorization default for this inventoried set.
  const app=express();app.use(express.json());registerPracticeRoutes(app,db,async()=>({uid:'u'}));const server=app.listen(0);await new Promise<void>(r=>server.once('listening',r));const port=(server.address() as any).port;
  const post=async(path:string,data:any)=>{const res=await fetch(`http://127.0.0.1:${port}/api/${path}`,{method:'POST',headers:{Authorization:'Bearer test','Content-Type':'application/json'},body:JSON.stringify(data)});return {status:res.status,body:await res.json() as any};};
  try{

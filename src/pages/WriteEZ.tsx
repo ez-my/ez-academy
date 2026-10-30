@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { usePracticeProgress, usePracticeDraft } from '../hooks/usePracticeProgress';
+import { ProgressSaveStatus } from '../components/ProgressSaveStatus';
 import { useNavigate } from 'react-router-dom';
 import { PenTool, Send, Trash2, Loader2, Sparkles, AlertCircle, CheckCircle2, Mail, RefreshCw, ChevronRight, MessageSquare, BookOpen, User, FileText, X, Info, Zap, Trophy, Gamepad2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -141,12 +143,13 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
 
   const [useDeepFeedback, setUseDeepFeedback] = useState(false);
 
-  const [text, setText] = useState('');
+  const progress = usePracticeProgress(profile?.uid, 'WriteEZ');
+  const [text, setText] = useState(progress.attempt?.draft?.text || '');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [feedback, setFeedback] = useState<any>(null);
-  const [activePart, setActivePart] = useState<'PART 1' | 'PART 2' | 'PART 3'>('PART 1');
+  const [activePart, setActivePart] = useState<'PART 1' | 'PART 2' | 'PART 3'>(progress.attempt?.draft?.activePart || 'PART 1');
   const [showSuccess, setShowSuccess] = useState(false);
-  const [spmTask, setSpmTask] = useState<SPMTask | null>(null);
+  const [spmTask, setSpmTask] = useState<SPMTask | null>(progress.attempt?.draft?.task || null);
   const [isGeneratingTask, setIsGeneratingTask] = useState(false);
   const [isOfflineMode, setIsOfflineMode] = useState(!navigator.onLine);
   const [error, setError] = useState<string | null>(null);
@@ -155,7 +158,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
   const [part2SubMode, setPart2SubMode] = useState<'AUTO' | 'Full' | 'Introduction' | 'Body' | 'Conclusion'>('AUTO');
   const [part3SubMode, setPart3SubMode] = useState<'AUTO' | 'Full' | 'Introduction' | 'Body' | 'Conclusion'>('AUTO');
   const [part3Type, setPart3Type] = useState<'Article' | 'Email' | 'Story' | 'Review' | 'Speech' | 'Report' | null>(null);
-  const [selectedPointIdx, setSelectedPointIdx] = useState<number | null>(null);
+  const [selectedPointIdx, setSelectedPointIdx] = useState<number | null>(progress.attempt?.draft?.selectedPointIdx ?? null);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -165,21 +168,21 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
     onConfirm: () => void;
   } | null>(null);
   const [justSavedPart, setJustSavedPart] = useState<string | null>(null);
-  const [essayComponents, setEssayComponents] = useState<EssayComponents>({
+  const [essayComponents, setEssayComponents] = useState<EssayComponents>(progress.attempt?.draft?.essayComponents || {
     intro: '',
     body1: '',
     body2: '',
     body3: '',
     conclusion: ''
   });
-  const [part3EssayComponents, setPart3EssayComponents] = useState<EssayComponents>({
+  const [part3EssayComponents, setPart3EssayComponents] = useState<EssayComponents>(progress.attempt?.draft?.part3EssayComponents || {
     intro: '',
     body1: '',
     body2: '',
     body3: '',
     conclusion: ''
   });
-  const [isFullEssayMode, setIsFullEssayMode] = useState(false);
+  const [isFullEssayMode, setIsFullEssayMode] = useState(progress.attempt?.draft?.isFullEssayMode || false);
   const [assemblyMode, setAssemblyMode] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState<string>('People and Culture');
   const [usedPart1Indices, setUsedPart1Indices] = useState<number[]>(() => {
@@ -204,6 +207,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
   const isSPM = userGoal === 'SPM';
 
   const handleGenerateTaskWithLimit = () => {
+    if (assessmentInFlight.current) return;
     if (isLimitReached('write')) {
       setPaywallProps(null);
       setPendingFeedback(false);
@@ -215,6 +219,8 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
   };
 
   const handleGenerateTask = async (skipLimitCheck = false) => {
+    if (assessmentInFlight.current) return;
+    if (progress.attempt?.status === 'not-synced' || progress.attempt?.status === 'saving') { setError('Sync this completion before starting another task.'); return; }
     if (!skipLimitCheck && isLimitReached('write')) {
       setPaywallProps(null);
       setPendingFeedback(false);
@@ -294,6 +300,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
         await saveQuestionToBank('Writing', 1, task, profile?.uid);
       }
     }
+    progress.attempt?.newAttempt();
     setSpmTask(task || null);
 
   } catch (err: any) {
@@ -325,6 +332,22 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
     }
   }, [spmTask?.practiceMode]);
 
+  const draftOwner = useRef(profile?.uid);
+  useEffect(() => {
+    if (draftOwner.current !== profile?.uid) {
+      draftOwner.current = profile?.uid; setText(progress.attempt?.draft?.text || ''); setSpmTask(progress.attempt?.draft?.task || null); setFeedback(null);
+      setActivePart(progress.attempt?.draft?.activePart || 'PART 1'); setIsFullEssayMode(progress.attempt?.draft?.isFullEssayMode || false); setSelectedPointIdx(progress.attempt?.draft?.selectedPointIdx ?? null);
+      const empty = { intro: '', body1: '', body2: '', body3: '', conclusion: '' };
+      setEssayComponents(progress.attempt?.draft?.essayComponents || empty); setPart3EssayComponents(progress.attempt?.draft?.part3EssayComponents || empty);
+    }
+  }, [profile?.uid]);
+  usePracticeDraft(progress, draftOwner.current === profile?.uid ? { text, task: spmTask, activePart, essayComponents, part3EssayComponents, isFullEssayMode, selectedPointIdx } : progress.attempt?.draft);
+  const finishPractice = async (answer = text, analysis?: any) => {
+    const learnerAnswer = answer.replace(/\s*\[Sample Introduction[^\]]*\][\s\S]*?justification for your final thoughts\.\s*/g, '');
+    if (!spmTask || learnerAnswer.replace(/[^a-zA-Z]/g, '').length < 10) { setError('Write your own answer before finishing practice.'); return false; }
+    return progress.complete({ transcript: answer, score: analysis?.score ?? null, feedback: analysis?.rawFeedback || analysis?.feedback || '', metrics: analysis?.metrics });
+  };
+
   const handleAnalyzeWithLimit = (overrideText?: string) => {
     if ((plan || 'free') === 'free') {window.dispatchEvent(new CustomEvent('ez-general-feedback',{detail:{skill:'write'}}));return;}
     if (isLimitReached('write')) {
@@ -337,7 +360,9 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
     handleAnalyze(overrideText, false);
   };
 
+  const assessmentInFlight = useRef(false);
   const handleAnalyze = async (overrideText?: string, skipLimitCheck = false, paidFeedbackCost = 0) => {
+    if (assessmentInFlight.current || isGeneratingTask) return;
     if ((plan || 'free') === 'free') {window.dispatchEvent(new CustomEvent('ez-general-feedback',{detail:{skill:'write'}}));return;}
     if (!skipLimitCheck && isLimitReached('write')) {
       setPendingFeedback(true);
@@ -359,6 +384,17 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
       setError('Your free AI feedback allowance has been used. Your writing is still here. Get more feedback access to receive a score.');
       return;
     }
+    if (!isFullEssayMode && !overrideText && activePart === 'PART 2' && spmTask?.practiceMode === 'Body' && selectedPointIdx === null) {
+      setError('Please select a bullet point below to elaborate on using the PEEL method.'); return;
+    }
+    if (progress.attempt && !progress.attempt.acceptsAnswer(textToAnalyze)) {
+      setError('Sync the previous answer first before requesting feedback on an edited answer.'); return;
+    }
+    assessmentInFlight.current = true;
+    setIsAnalyzing(true);
+    const completed = await finishPractice(textToAnalyze);
+    if (!completed && progress.attempt?.status !== 'not-synced') { assessmentInFlight.current = false; setIsAnalyzing(false); return; }
+    if (auth.currentUser?.uid !== profile?.uid) { assessmentInFlight.current = false; setIsAnalyzing(false); return; }
     setError(null);
     setFeedback(null);
 
@@ -368,20 +404,23 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
         let analysis;
         {
           analysis = await analyzeSPMFullEssay(spmTask!, textToAnalyze, { useDeepFeedback, wordCount: textToAnalyze.length, isProPlus: plan === 'pro_plus', aiEngine: profile?.aiEngine });
+          if (auth.currentUser?.uid !== profile?.uid) return;
           if (feedbackCreditCost > 0 && profile) await updateProfile(profile.uid, { credits: increment(-feedbackCreditCost) as any });
           if (isFree) incrementFreeFeedbackCount();
         }
         // Feedback belongs to the practice already counted at task creation.
         setFeedback(analysis);
-        setShowSuccess(true);
+        const synced = await finishPractice(textToAnalyze, analysis);
+        setShowSuccess(synced && progress.attempt?.status !== 'draft');
+        if (!synced) setError('Feedback is ready but not synced. Retry sync to save it without another AI call.');
         setTimeout(() => setShowSuccess(false), 2000);
-        if (overrideText) setText(overrideText);
       } catch (err: any) {
         console.warn('Feedback unavailable');
         const friendlyMsg = getFriendlyErrorMessage(err);
         setError(friendlyMsg);
         toast.error(friendlyMsg);
       } finally {
+        assessmentInFlight.current = false;
         setIsAnalyzing(false);
       }
       return;
@@ -399,6 +438,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
         if (isSPM && spmTask) {
           if (activePart === 'PART 1') {
             analysis = await analyzeSPMEmail(spmTask, textToAnalyze, { useDeepFeedback, wordCount: textToAnalyze.length, isProPlus: plan === 'pro_plus', aiEngine: profile?.aiEngine });
+            if (auth.currentUser?.uid !== profile?.uid) return;
           } else if (activePart === 'PART 2') {
             // Identify which body paragraph this is for
             let contextPrefix = '';
@@ -411,6 +451,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
               context: `${spmTask.context}\n\n${contextPrefix}`
             };
             analysis = await analyzeSPMPart2(focusedTask, textToAnalyze, { useDeepFeedback, wordCount: textToAnalyze.length, isProPlus: plan === 'pro_plus', aiEngine: profile?.aiEngine });
+            if (auth.currentUser?.uid !== profile?.uid) return;
             
             // Auto-save component if it's a "good" try or user wants to keep it
             if (analysis.score >= 50) {
@@ -420,6 +461,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
             }
           } else if (activePart === 'PART 3') {
             analysis = await analyzeSPMPart3(spmTask, textToAnalyze, part3Type!, { useDeepFeedback, wordCount: textToAnalyze.length, isProPlus: plan === 'pro_plus', aiEngine: profile?.aiEngine });
+            if (auth.currentUser?.uid !== profile?.uid) return;
             
             if (analysis.score >= 50) {
               setPart3EssayComponents(prev => {
@@ -438,10 +480,12 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
             }
           } else {
             analysis = await analyzeSpeech(textToAnalyze, `${userGoal} Writing Task - ${activePart}`, { useDeepFeedback, wordCount: textToAnalyze.length, isProPlus: plan === 'pro_plus', aiEngine: profile?.aiEngine });
+            if (auth.currentUser?.uid !== profile?.uid) return;
           }
         } else {
           analysis = await analyzeSpeech(textToAnalyze, `${userGoal} Writing Task - ${activePart}`, { useDeepFeedback, wordCount: textToAnalyze.length, isProPlus: plan === 'pro_plus', aiEngine: profile?.aiEngine });
         }
+        if (auth.currentUser?.uid !== profile?.uid) return;
         if (feedbackCreditCost > 0 && profile) await updateProfile(profile.uid, { credits: increment(-feedbackCreditCost) as any });
         if (isFree) incrementFreeFeedbackCount();
       }
@@ -459,7 +503,9 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
 
       // Feedback belongs to the practice already counted at task creation.
       setFeedback(analysis);
-      setShowSuccess(true);
+      const synced = await finishPractice(textToAnalyze, analysis);
+      setShowSuccess(synced && progress.attempt?.status !== 'draft');
+      if (!synced) setError('Feedback is ready but not synced. Retry sync to save it without another AI call.');
       setTimeout(() => setShowSuccess(false), 2000);
 
       // Track completion for rotation
@@ -472,6 +518,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
       setError(friendlyMsg);
       toast.error(friendlyMsg);
     } finally {
+      assessmentInFlight.current = false;
       setIsAnalyzing(false);
     }
   };
@@ -545,27 +592,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
     return fullEssay;
   };
 
-  const handleSave = async () => {
-    if (!text || !feedback || !auth.currentUser) return;
-    const id = Date.now().toString();
-    try {
-      await saveSession(auth.currentUser.uid, {
-        id,
-        userId: auth.currentUser.uid,
-        type: 'WriteEZ',
-        timestamp: Date.now(),
-        duration: 0,
-        score: feedback.score,
-        metrics: feedback.metrics,
-        feedback: feedback.rawFeedback || feedback.feedback,
-        transcript: text
-      });
-      toast.success('Examination Data Synchronized!');
-    } catch (err: any) {
-      console.error('Failed to save session:', err);
-      toast.error(getFriendlyFirebaseError(err));
-    }
-  };
+  const handleSave = async () => { await finishPractice(text, feedback); };
 
   const PART_INFO = {
     'PART 1': { label: 'Message/Email', desc: 'Short Communicative Task' },
@@ -600,8 +627,9 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
           {(['PART 1', 'PART 2', 'PART 3'] as const).map((part) => (
             <button
               key={part}
-              disabled={(!!spmTask && !feedback && text.length > 50) || isGeneratingTask} 
+              disabled={(!!spmTask && !feedback && text.length > 50) || isGeneratingTask || isAnalyzing}
               onClick={() => {
+                if (assessmentInFlight.current) return;
                 const proceed = () => {
                   setConfirmDialog(null);
                   setActivePart(part);
@@ -711,7 +739,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                     </button>
                     <button 
                       onClick={handleGenerateTaskWithLimit}
-                      disabled={isGeneratingTask}
+                      disabled={isGeneratingTask || isAnalyzing}
                       className="p-2 bg-white/5 rounded-xl hover:bg-white/10 transition-colors text-white/50"
                       title="New Scenario"
                     >
@@ -1434,6 +1462,8 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
               </button>
             </div>
 
+            <ProgressSaveStatus progress={progress} />
+            <button type="button" disabled={isAnalyzing || progress.attempt?.status === 'saving'} onClick={() => finishPractice()} className="btn-secondary min-h-12">Finish practice</button>
             <div className="flex gap-4">
                <button 
                 onClick={() => {

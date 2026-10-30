@@ -311,6 +311,9 @@ export const MUETPart2Practice: React.FC<MUETPart2PracticeProps> = ({
     }
   };
 
+  // A new assessed report is persisted automatically; retries never ask AI again.
+  useEffect(() => { if (report && onSaveReport) void handleSaveReport(); }, [report]);
+
   const formatTimer = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;

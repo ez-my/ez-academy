@@ -1,3 +1,4 @@
+import {assertTrialPaperBuildAuthorized} from './src/server/trialPaperBuildGuard';
 import {listeningPreviewPlugin} from './src/server/listeningPreviewPlugin';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
@@ -12,7 +13,7 @@ function readingPaperAssets(): Plugin {
   const emitted = new Set<string>();
   return {
     name: 'reading-paper-assets', apply: 'build', enforce: 'pre',
-    buildStart() { emitted.clear(); },
+    buildStart() { assertTrialPaperBuildAuthorized(); emitted.clear(); },
     transform(code, id) {
       if (!/\/readingPapers\/[^/]+\.json$/.test(id)) return;
       const paper = JSON.parse(code);

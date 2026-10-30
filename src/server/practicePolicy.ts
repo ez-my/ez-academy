@@ -30,3 +30,10 @@ export function consumePracticeDay(profile:any,ledger:any,data:any,day:string,sk
  if(!pool)throw Object.assign(Error('Your plan practices are used today.'),{status:429});
  return {...next,paidPools:{...data?.paidPools,[pool.id]:Number(data?.paidPools?.[pool.id]||0)+1}};
 }
+export function consumePracticeWithReward(profile:any,ledger:any,data:any,day:string,skill:string,mock=false,now=Date.now()){
+ try{return {updated:consumePracticeDay(profile,ledger,data,day,skill,mock,now),rewardCreditUsed:false};}
+ catch(error:any){
+  if(error.status!==429||mock||Number(ledger.rewardPracticeCredits||0)<=0)throw error;
+  return {updated:{...data,day,used:Number(data?.used||0),bySkill:{...data?.bySkill,[skill]:Number(data?.bySkill?.[skill]||0)+1}},rewardCreditUsed:true};
+ }
+}

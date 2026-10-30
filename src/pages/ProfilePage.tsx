@@ -1,3 +1,8 @@
+import {DevicePhotoPicker} from '../components/profile/DevicePhotoPicker';
+import {useDevicePhoto,removeDevicePhoto} from '../lib/devicePhoto';
+import {AffiliateWallet} from '../components/affiliate/AffiliateWallet';
+import {Rewards} from '../components/profile/Rewards';
+import {OfficialSocialLinks} from '../components/social/OfficialSocialLinks';
 import {practiceRequest} from '../lib/practice';
 import {Achievements} from '../components/dashboard/Achievements';
 import React, { useState, useRef, useEffect } from 'react';
@@ -337,24 +342,8 @@ export function ProfilePage({ profile, onLogout }: ProfilePageProps) {
   const [success, setSuccess] = useState(false);
   const [section, setSection] = useState<'account' | 'progress' | 'settings' | 'help'>(() => new URLSearchParams(window.location.search).get('section') === 'progress' ? 'progress' : 'account');
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 500 * 1024) {
-      setError('Image must be less than 500KB to save to profile');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      setEditedPhotoUrl(result);
-    };
-    reader.readAsDataURL(file);
-  };
+  const devicePhoto=useDevicePhoto(profile.uid);
+  const [clearLocalPhoto,setClearLocalPhoto]=useState(false);
 
   const goals = [
     { id: 'SPM', label: 'SPM Examination', icon: '📝' },
@@ -393,6 +382,7 @@ const AVATAR_OPTIONS = [
         streakGoal: editedStreakGoal,
         photoURL: editedPhotoUrl.trim() || undefined
       });
+      if(clearLocalPhoto){await removeDevicePhoto(profile.uid);setClearLocalPhoto(false);}
       setIsEditing(false);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
@@ -408,6 +398,7 @@ const AVATAR_OPTIONS = [
     setEditedName(profile.displayName);
     setEditedGoal(profile.goal);
     setEditedPhotoUrl(profile.photoURL || '');
+    setClearLocalPhoto(false);
     setIsEditing(false);
     setError(null);
   };
@@ -438,8 +429,8 @@ const AVATAR_OPTIONS = [
         <div className="flex items-start sm:items-center gap-4 relative">
           <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-obsidian border-2 border-primary/20 flex items-center justify-center text-primary text-2xl font-black italic shadow-2xl shadow-primary/10 shrink-0 group hover:border-primary transition-colors overflow-hidden relative">
              <div className="absolute inset-2 rounded-xl border border-primary/10 pointer-events-none" />
-             {profile.photoURL ? (
-               <img src={profile.photoURL} alt={profile.displayName} className="w-full h-full object-cover" />
+             {(devicePhoto?.avatar||profile.photoURL) ? (
+               <img src={devicePhoto?.avatar||profile.photoURL} alt={profile.displayName} className="w-full h-full object-cover" />
              ) : (
                profile.displayName[0]
              )}
@@ -495,7 +486,7 @@ const AVATAR_OPTIONS = [
                  {AVATAR_OPTIONS.map((url, i) => (
                    <button
                      key={i}
-                     onClick={() => setEditedPhotoUrl(url)}
+                     onClick={() => {setEditedPhotoUrl(url);setClearLocalPhoto(true);}}
                      className={`w-16 h-16 rounded-full overflow-hidden border-2 transition-all ${
                        editedPhotoUrl === url ? 'border-primary ring-2 ring-primary/30 scale-110' : 'border-white/10 hover:border-white/30 hover:scale-105'
                      }`}
@@ -504,7 +495,7 @@ const AVATAR_OPTIONS = [
                    </button>
                  ))}
                  <button
-                   onClick={() => setEditedPhotoUrl('')}
+                   onClick={() => {setEditedPhotoUrl('');setClearLocalPhoto(true);}}
                    className={`w-16 h-16 rounded-full flex items-center justify-center border-2 transition-all font-bold text-xs ${
                      !editedPhotoUrl ? 'border-primary text-primary bg-primary/10 ring-2 ring-primary/30 scale-110' : 'border-white/10 text-white/40 hover:border-white/30 hover:text-white hover:scale-105'
                    }`}
@@ -513,30 +504,14 @@ const AVATAR_OPTIONS = [
                  </button>
               </div>
               <div className="space-y-4">
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-white/40 mb-3">Upload a picture</label>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileUpload}
-                    accept="image/*"
-                    className="hidden"
-                  />
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-colors font-bold text-xs uppercase tracking-widest"
-                  >
-                    <Upload size={16} />
-                    Upload Profile Picture
-                  </button>
-                </div>
+                <DevicePhotoPicker uid={profile.uid} onSaved={()=>setClearLocalPhoto(false)}/>
                 <div>
                   <label htmlFor="avatar-url" className="block text-[10px] font-black uppercase tracking-[0.3em] text-white/40 mb-3">Picture link</label>
                   <input 
                     id="avatar-url"
                     type="text" 
                     value={editedPhotoUrl}
-                    onChange={(e) => setEditedPhotoUrl(e.target.value)}
+                    onChange={(e) => {setEditedPhotoUrl(e.target.value);setClearLocalPhoto(true);}}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary/50 transition-colors"
                     placeholder="https://example.com/avatar.jpg"
                   />
@@ -626,10 +601,10 @@ const AVATAR_OPTIONS = [
         {(['account', 'progress', 'settings', 'help'] as const).map(item => <button key={item} type="button" aria-current={section === item ? 'page' : undefined} onClick={() => setSection(item)} className={`min-h-11 min-w-0 rounded-lg px-1 text-sm font-semibold capitalize ${section === item ? 'bg-primary text-obsidian' : 'text-white/70 hover:bg-white/10'}`}>{item}</button>)}
       </nav>
       <section aria-label={`${section} details`} className="space-y-4 min-w-0">
-        {section === 'account' && <div className="glass-card p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
+        {section === 'account' && <><div className="glass-card p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
           <div><h3 className="text-base font-semibold">Your plan</h3><p className="text-sm text-white/60 mt-1">{currentPlanLabel} · {profile.credits || 0} credits</p></div>
           <Link to="/app/pricing" className="min-h-11 inline-flex items-center rounded-lg bg-primary px-4 text-sm font-semibold text-obsidian">Upgrade account</Link>
-        </div>}
+        </div><Rewards uid={profile.uid} onRedeemed={()=>practiceRequest('practice/status').then(d=>setCurrentPlanLabel(d.planLabel||'Free')).catch(()=>{})}/><AffiliateWallet uid={profile.uid}/></>}
         {section === 'progress' && <>
           <div className="grid sm:grid-cols-2 gap-4"><LevelIndicator level={profile.level} points={profile.points} /><GoalSetter userId={profile.uid} initialGoal={profile.dailyGoalMinutes || 15} /></div>
           <Achievements profile={profile} compact />
@@ -749,6 +724,10 @@ const AVATAR_OPTIONS = [
           <AppInstallWidget />
         </>}
       </section>
+
+      <div className="flex flex-wrap items-center justify-center gap-2 pt-1 text-xs text-white/40">
+        <span>Follow us</span><OfficialSocialLinks variant="footer" />
+      </div>
 
       {/* Logout Action */}
       <div className="flex justify-center pt-2">

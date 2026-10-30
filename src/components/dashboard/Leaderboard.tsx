@@ -1,10 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, orderBy, limit, getDocs, where } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
 import { motion } from 'motion/react';
 import { Trophy, Medal, Crown, Star, TrendingUp, TrendingDown, User } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { ADMIN_EMAIL } from '../../constants';
 
 interface LeaderboardUser {
   uid: string;
@@ -78,35 +75,9 @@ export const Leaderboard: React.FC = () => {
           console.warn('API fetch failed, falling back to direct Firestore:', fetchErr);
         }
         
-        // Fallback to direct Firebase if backend fails or not setup or times out
-        const { collection, query, orderBy, limit, getDocs } = await import('firebase/firestore');
-        const q = query(
-          collection(db, 'users'),
-          orderBy('points', 'desc'),
-          limit(20) // Fetch more to account for filtered admin
-        );
-        const snapshot = await getDocs(q);
-        const users = snapshot.docs
-          .map(doc => ({
-            uid: doc.id,
-            ...doc.data()
-          } as LeaderboardUser))
-          .filter(u => u.email !== ADMIN_EMAIL)
-          .slice(0, 10);
-        
-        // Fallback trends
-        const usersWithTrends = users.map(user => {
-          const hash = user.uid.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-          return {
-            ...user,
-            trend: {
-              isUp: hash % 2 === 0,
-              percentage: (hash % 15) + 1
-            }
-          };
-        });
-        
-        setTopUsers(usersWithTrends);
+        // Never query the full users collection from a browser: profiles contain
+        // private fields, and only the server may read and redact them.
+        setTopUsers([]);
       } catch (err) {
         console.error('Error fetching leaderboard:', err);
       } finally {

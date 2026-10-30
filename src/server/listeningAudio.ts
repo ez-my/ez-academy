@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { TRIAL_LISTENING_TESTS } from '../data/trialListeningTests';
+import {mayDisplayTrialPaper,TRIAL_RIGHTS_MESSAGE,type TrialRightsCheck} from '../lib/trialPaperRights';
 
 const audioFiles = new Map(TRIAL_LISTENING_TESTS.map(test => [test.id, test.audioFileId]));
 
@@ -16,10 +17,11 @@ export function validAudioRange(range: string) {
 
 // Stream only the public recordings already listed in the shared test bank.
 // Forward byte ranges so large MP3/WAV files can start and seek without a full download.
-export function createListeningAudioHandler(fetcher: typeof fetch = fetch) {
+export function createListeningAudioHandler(fetcher: typeof fetch = fetch, rights: TrialRightsCheck = mayDisplayTrialPaper) {
   return async (req: Request, res: Response) => {
     const fileId = audioFiles.get(String(req.params.testId));
     if (!fileId) return res.status(404).json({ error: 'This recording was not found.' });
+    if (!rights(String(req.params.testId),'listening')) return res.status(451).set('Cache-Control','private, no-store').json({error:TRIAL_RIGHTS_MESSAGE});
     const range = req.get('range');
     if (range && !validAudioRange(range)) return res.status(416).end();
     const controller = new AbortController();

@@ -1,0 +1,106 @@
+ M firestore.rules
+ M netlify.toml
+ M netlify/functions/api.mjs
+ M netlify/functions/listening-audio.ts
+ M netlify/functions/ops-background.mjs
+ M package-lock.json
+ M package.json
+ M scripts/build-netlify-server.mjs
+ M src/App.tsx
+ M src/components/Navigation.tsx
+ M src/components/PersistentNavigation.tsx
+ M src/components/dashboard/Leaderboard.tsx
+ M src/components/layout/MarketingLayout.tsx
+ M src/hooks/useAudioRecorder.ts
+ M src/pages/AdminPage.tsx
+ M src/pages/Dashboard.tsx
+ M src/pages/ListenEZ.tsx
+ M src/pages/ProfilePage.tsx
+ M src/pages/ReadEZ.tsx
+ M src/pages/SpeakEZ.tsx
+ M src/pages/SupportPage.tsx
+ M src/pages/marketing/About.tsx
+ M src/pages/marketing/home.css
+ M src/server/application.ts
+ M src/server/dashboardAccess.ts
+ M src/server/listeningAudio.ts
+ M src/server/muetBankRoutes.ts
+ M src/server/netlifyApi.ts
+ M src/server/paymentRoutes.ts
+ M src/server/payments.ts
+ M src/server/practicePolicy.ts
+ M src/server/practiceRoutes.ts
+ M src/server/tasks/spm.ts
+ M src/services/questionBankService.ts
+ M tests/full-migration.test.ts
+ M tests/listening-audio.test.ts
+ M tests/practice-routes.test.ts
+?? docs/SPEAKEZ_LOCAL_AUDIT.md
+?? docs/paper-rights/AFFECTED_ASSETS.md
+?? docs/paper-rights/README.md
+?? docs/paper-rights/build-output.txt
+?? docs/paper-rights/check-render.py
+?? docs/paper-rights/fetch-papers.py
+?? docs/paper-rights/index.html
+?? docs/paper-rights/inspect-remote.swift
+?? docs/paper-rights/inventory.json
+?? docs/paper-rights/notice-render.tsx
+?? docs/paper-rights/ocr.swift
+?? docs/paper-rights/package-evidence.py
+?? docs/paper-rights/render-results.json
+?? docs/paper-rights/retry-papers.py
+?? docs/paper-rights/rights-hold-tracked.patch
+?? docs/paper-rights/screenshots/listening-1440.png
+?? docs/paper-rights/screenshots/listening-320.png
+?? docs/paper-rights/screenshots/listening-390.png
+?? docs/paper-rights/screenshots/reading-1440.png
+?? docs/paper-rights/screenshots/reading-320.png
+?? docs/paper-rights/screenshots/reading-390.png
+?? docs/paper-rights/test-output.txt
+?? docs/paper-rights/typecheck-output.txt
+?? netlify/functions/daily-reminders.mjs
+?? public/photo-tools/LICENSE.txt
+?? public/photo-tools/README.md
+?? public/photo-tools/portrait-worker.js
+?? public/photo-tools/selfie_segmenter.tflite
+?? public/photo-tools/vision_bundle.js
+?? public/photo-tools/wasm/vision_wasm_internal.js
+?? public/photo-tools/wasm/vision_wasm_internal.wasm
+?? public/photo-tools/wasm/vision_wasm_nosimd_internal.js
+?? public/photo-tools/wasm/vision_wasm_nosimd_internal.wasm
+?? scripts/audit-trial-paper-rights.ts
+?? scripts/build-photo-tools.mjs
+?? scripts/generate-sw.mjs
+?? src/affiliate.ts
+?? src/components/TrialPaperRightsNotice.tsx
+?? src/components/affiliate/AffiliateWallet.tsx
+?? src/components/affiliate/affiliate.css
+?? src/components/profile/DashboardPortrait.tsx
+?? src/components/profile/DevicePhotoPicker.tsx
+?? src/components/profile/Rewards.tsx
+?? src/components/social/OfficialSocialLinks.tsx
+?? src/lib/devicePhoto.ts
+?? src/lib/devicePhotoPolicy.ts
+?? src/lib/notifications.ts
+?? src/lib/speakingTaskCompatibility.ts
+?? src/lib/trialPaperRights.ts
+?? src/pages/AffiliateClaims.tsx
+?? src/pages/RewardCodesPanel.tsx
+?? src/pages/marketing/LegalInfo.tsx
+?? src/server/affiliateRoutes.ts
+?? src/server/affiliates.ts
+?? src/server/daily-reminders.ts
+?? src/server/dailyReminders.ts
+?? src/server/rewardRoutes.ts
+?? src/server/rewards.ts
+?? src/workers/devicePhotoWorker.ts
+?? tests/affiliate-payment-flow.test.ts
+?? tests/affiliate.test.ts
+?? tests/device-photo.test.ts
+?? tests/helpers/affiliateMemoryDb.ts
+?? tests/helpers/speakezUiHarness.ts
+?? tests/paper-rights.test.ts
+?? tests/rewards.test.ts
+?? tests/speakez-assessment.test.ts
+?? tests/speakez-bank.test.ts
+?? tests/speakez-recorder.test.ts

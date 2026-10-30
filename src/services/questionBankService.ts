@@ -1,4 +1,5 @@
 import { withoutRecordingData } from '../lib/recordingPrivacy';
+import { normalizeSpeakingBankQuestion } from '../lib/speakingTaskCompatibility';
 import { normalizeReadTest } from '../lib/readTestCompatibility';
 import { collection, query, where, getDocs, limit, orderBy, doc, setDoc, serverTimestamp, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -250,6 +251,10 @@ export async function getRandomQuestion(
   isOffline: boolean = false,
   localExcludeIds: string[] = []
 ): Promise<any | null> {
+  const forPractice = (data: any, id: string) => {
+    const normalized = type === 'Speaking' ? normalizeSpeakingBankQuestion(data, part) : data;
+    return normalized ? { ...normalized, id } : null;
+  };
   try {
     const dbExcludeIds = (userId && !isOffline) ? await getAttemptedQuestionIds(userId) : [];
     const excludeIds = [...new Set([...dbExcludeIds, ...localExcludeIds])];
@@ -274,7 +279,7 @@ export async function getRandomQuestion(
             
             if (results.length > 0) {
               const randomItem = results[Math.floor(Math.random() * results.length)];
-              return { ...randomItem.data, id: randomItem.id };
+              return forPractice(randomItem.data, randomItem.id);
             }
           } catch (e) {
             console.warn("Firestore theme query failed, likely offline:", e);
@@ -304,12 +309,12 @@ export async function getRandomQuestion(
             );
             if (themeMatch.length > 0) {
               const randomItem = themeMatch[Math.floor(Math.random() * themeMatch.length)];
-              return { ...randomItem.data, id: randomItem.id };
+              return forPractice(randomItem.data, randomItem.id);
             }
           }
           // If no theme match among these, just pick one that isn't excluded
           const randomItem = firestoreResults[Math.floor(Math.random() * firestoreResults.length)];
-          return { ...randomItem.data, id: randomItem.id };
+          return forPractice(randomItem.data, randomItem.id);
         }
       } catch (e) {
         console.warn("Firestore generic query failed, likely offline:", e);
@@ -351,7 +356,7 @@ export async function getRandomQuestion(
         const originalIndex = filtered.indexOf(bankItem);
         random.id = `local_s${part}_${(random.topic || random.theme || 'generic').replace(/\s+/g, '_').toLowerCase()}_${originalIndex === -1 ? Math.floor(Math.random()*1000) : originalIndex}`;
       }
-      return random;
+      return forPractice(random, random.id);
     }
   } catch (error) {
     console.error('Error fetching question from bank:', error);

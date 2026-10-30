@@ -232,8 +232,9 @@ export const StudyTools: React.FC<DashboardProps> = ({ profile, onSelectModule }
     };
   }, []);
 
+  const scoredSessions = rawSessions.filter(s => typeof s.score === 'number' && Number.isFinite(s.score) && s.score >= 0 && s.score <= 100);
   const generateDiagnostic = async () => {
-    if (isGeneratingAI || rawSessions.length < 3) return;
+    if (isGeneratingAI || scoredSessions.length < 3) return;
     setIsGeneratingAI(true);
     try {
       // Aggregate data for AI analysis
@@ -241,7 +242,7 @@ export const StudyTools: React.FC<DashboardProps> = ({ profile, onSelectModule }
       const skillCounts: any = { SpeakEZ: 0, WriteEZ: 0, ReadEZ: 0, ListenEZ: 0 };
       const metricsAcc = { fluency: 0, grammar: 0, vocabulary: 0, comprehension: 0, pronunciation: 0, structure: 0 };
       
-      rawSessions.forEach(s => {
+      scoredSessions.forEach(s => {
         if (skillAverages[s.type] !== undefined) {
           skillAverages[s.type] += s.score || 0;
           skillCounts[s.type]++;
@@ -260,7 +261,7 @@ export const StudyTools: React.FC<DashboardProps> = ({ profile, onSelectModule }
 
       const finalMetrics: any = {};
       Object.keys(metricsAcc).forEach(k => {
-        finalMetrics[k] = rawSessions.length > 0 ? Math.round((metricsAcc as any)[k] / rawSessions.length) : 0;
+        finalMetrics[k] = scoredSessions.length > 0 ? Math.round((metricsAcc as any)[k] / scoredSessions.length) : 0;
       });
 
       const rec = await GeminiService.generateStudyRecommendation({
@@ -269,7 +270,7 @@ export const StudyTools: React.FC<DashboardProps> = ({ profile, onSelectModule }
         goal: profile.goal,
         scores: finalScores,
         metrics: finalMetrics,
-        recentSessions: rawSessions.slice(-5)
+        recentSessions: scoredSessions.slice(-5)
       });
       setAiRecommendation(rec);
     } catch (error) {
@@ -549,7 +550,7 @@ export const StudyTools: React.FC<DashboardProps> = ({ profile, onSelectModule }
 
       </div></details>
       <details className="dashboard-card"><summary className="min-h-11 flex items-center cursor-pointer text-sm font-semibold">Study tips</summary><div className="pt-3 space-y-3"><p className="text-sm text-white/70">{dailyTip.fact}</p>
-        {rawSessions.length >= 3 && <button onClick={generateDiagnostic} disabled={isGeneratingAI} className="min-h-11 px-3 rounded-lg border border-white/10 text-sm">{isGeneratingAI ? 'Loading…' : 'Get personal tips (AI credits)'}</button>}
+        {scoredSessions.length >= 3 && <button onClick={generateDiagnostic} disabled={isGeneratingAI} className="min-h-11 px-3 rounded-lg border border-white/10 text-sm">{isGeneratingAI ? 'Loading…' : 'Get personal tips (AI credits)'}</button>}
         {aiRecommendation && <><p className="text-sm text-white/70">{aiRecommendation.analysis}</p>{aiRecommendation.recommendations.map((rec,i)=><button key={i} onClick={()=>onSelectModule(rec.type.toLowerCase())} className="w-full text-left rounded-lg border border-white/10 p-3"><span className="block text-sm font-semibold">{rec.title}</span><span className="block text-xs text-white/60 mt-1">{rec.desc}</span></button>)}</>}
       </div></details>
       {/* Confirmation Modal */}

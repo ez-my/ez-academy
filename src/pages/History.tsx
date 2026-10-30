@@ -61,8 +61,8 @@ export const History: React.FC = () => {
             className="glass-card p-4 sm:p-6 flex items-center gap-3 sm:gap-6 text-left group hover:bg-white/10 transition-all border-l-4 border-primary"
           >
             <div className="w-16 h-16 shrink-0 bg-white/5 rounded-2xl flex flex-col items-center justify-center">
-              <span className="text-primary font-bold text-xl">{(session.readingResult || session.listeningResult) ? `${(session.readingResult || session.listeningResult).correct}/${(session.readingResult || session.listeningResult).total}` : session.score}</span>
-              <span className="text-[10px] text-white/40 font-bold uppercase">{(session.readingResult || session.listeningResult) ? 'Marks' : 'Score'}</span>
+              <span className="text-primary font-bold text-xl">{(session.readingResult || session.listeningResult) ? `${(session.readingResult || session.listeningResult).correct}/${(session.readingResult || session.listeningResult).total}` : session.score === null ? 'Not scored' : session.score}</span>
+              <span className="text-[10px] text-white/40 font-bold uppercase">{(session.readingResult || session.listeningResult) ? 'Marks' : session.score === null ? 'Completed' : 'Score'}</span>
             </div>
 
             <div className="min-w-0 flex-1">
