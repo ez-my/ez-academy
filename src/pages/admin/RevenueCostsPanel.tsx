@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { Activity, AlertCircle, DollarSign, TrendingDown, TrendingUp, Users, Zap } from 'lucide-react';
-import { collection, getDocs, query, where, Timestamp, collectionGroup } from 'firebase/firestore';
+import { collection, getDocs, orderBy, query, where, Timestamp, collectionGroup } from 'firebase/firestore';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import { db } from '../../lib/firebase';
+import { PLAN_NAMES } from '../../packages';
 import { ModuleFlagsGrid } from './ModulesPanel';
 import { TooltipHelp } from './TooltipHelp';
 import { useUsers } from './UsersPanel';
@@ -17,12 +18,65 @@ const PRICING = {
   CONVERSION_RATE: 4.5, // USD to MYR
 };
 
+const MS_PER_DAY = 86400000;
+const REVENUE_WINDOW_DAYS = 30;
+
+// createdAt turns up as a Firestore Timestamp, a millis number or an ISO string
+// depending on which code path wrote the record.
+const toMillis = (value: any): number => {
+  if (!value) return 0;
+  if (typeof value.toMillis === 'function') return value.toMillis();
+  if (typeof value.seconds === 'number') return value.seconds * 1000;
+  if (typeof value === 'number') return value;
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? 0 : parsed;
+};
+
+// Revenue from money that actually settled, rather than a headcount multiplied by a
+// flat RM10. The catalogue is nine products between RM5 and RM15, so that flat rate
+// made the margin, the break-even point and the cash-flow verdict all wrong.
+function useRevenue() {
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [isRevenueLoading, setIsRevenueLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    getDocs(query(collection(db, 'transactions'), orderBy('createdAt', 'desc')))
+      .then(snapshot => { if (alive) setTransactions(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as any))); })
+      .catch(error => console.error('Could not load transactions for revenue:', error))
+      .finally(() => { if (alive) setIsRevenueLoading(false); });
+    return () => { alive = false; };
+  }, []);
+
+  const since = Date.now() - REVENUE_WINDOW_DAYS * MS_PER_DAY;
+  const recent = transactions.filter(tx => tx.status === 'SUCCESS' && toMillis(tx.createdAt) >= since);
+
+  const monthlyRevenue = recent.reduce((total, tx) => total + (Number(tx.amount) || 0), 0);
+  const payingCustomers = new Set(recent.map(tx => tx.userEmail || tx.userId || tx.id)).size;
+  const revenuePerCustomer = payingCustomers ? monthlyRevenue / payingCustomers : 0;
+
+  const grouped: Record<string, { id: string; name: string; orders: number; revenue: number }> = {};
+  for (const tx of recent) {
+    const id = tx.planId || 'unknown';
+    grouped[id] ??= { id, name: tx.planName || PLAN_NAMES[id] || id, orders: 0, revenue: 0 };
+    grouped[id].orders += 1;
+    grouped[id].revenue += Number(tx.amount) || 0;
+  }
+  const byProduct = Object.values(grouped).sort((a, b) => b.revenue - a.revenue);
+
+  const awaitingApproval = transactions.filter(tx =>
+    !tx.archived && tx.status !== 'SUCCESS' && tx.status !== 'REJECTED' && tx.status !== 'FAILED').length;
+
+  return { isRevenueLoading, monthlyRevenue, payingCustomers, revenuePerCustomer, byProduct, awaitingApproval };
+}
+
 // Revenue, running costs, margin and the per-skill feature flags.
 // This was the "Maintenance" tab; the profit-and-loss numbers are its real subject.
-export const RevenueCostsPanel: React.FC = () => {
+export const RevenueCostsPanel: React.FC<{ onOpenTab?: (tab: string) => void }> = ({ onOpenTab }) => {
   // Counts come from the shared user list rather than a stats object some other tab
   // had to populate first, which is why these figures used to read zero.
   const { totalUsers, activeSubscribers } = useUsers();
+  const { monthlyRevenue, payingCustomers, revenuePerCustomer, byProduct, awaitingApproval } = useRevenue();
   const [costBreakdown, setCostBreakdown] = useState<any[]>([]);
   const [usageByDay, setUsageByDay] = useState<any[]>([]);
   const [isCostsLoading, setIsCostsLoading] = useState(false);
@@ -119,14 +173,41 @@ export const RevenueCostsPanel: React.FC = () => {
   useEffect(() => { fetchMaintenanceCosts(); }, []);
 
   useEffect(() => {
-    setStats(prev => ({ ...prev, totalUsers, activeSubscribers, monthlyRevenue: activeSubscribers * 10 }));
-  }, [totalUsers, activeSubscribers]);
+    setStats(prev => ({ ...prev, totalUsers, activeSubscribers, monthlyRevenue }));
+  }, [totalUsers, activeSubscribers, monthlyRevenue]);
 
   return (
     <>
       {(
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {awaitingApproval > 0 && (
+            <button
+              type="button"
+              onClick={() => onOpenTab?.('payments')}
+              className="w-full glass-card p-5 flex items-center justify-between gap-4 text-left border-amber-500/30 bg-amber-500/5 hover:border-amber-500/60 transition-colors"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <AlertCircle size={20} className="text-amber-400 shrink-0" />
+                <div className="min-w-0">
+                  <div className="text-sm font-bold text-white">
+                    {awaitingApproval} {awaitingApproval === 1 ? 'payment is' : 'payments are'} waiting for you
+                  </div>
+                  <p className="text-xs text-white/50 mt-0.5">Nothing is credited to a learner until you approve it.</p>
+                </div>
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400 italic whitespace-nowrap">Review →</span>
+            </button>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            <div className="glass-card p-6 flex flex-col justify-between border-primary/20">
+              <h4 className="text-xs font-bold uppercase tracking-widest text-primary mb-4 flex items-center">
+                Revenue · {REVENUE_WINDOW_DAYS} days
+                <TooltipHelp text="Sum of successful transactions over the period. Pending and rejected payments are excluded." />
+              </h4>
+              <div className="text-2xl sm:text-4xl font-black text-white mb-2 tabular-nums">RM {monthlyRevenue.toFixed(2)}</div>
+              <p className="text-xs text-white/40">{payingCustomers} paying {payingCustomers === 1 ? 'customer' : 'customers'}.</p>
+            </div>
             <div className="glass-card p-6 flex flex-col justify-between">
               <h4 className="text-xs font-bold uppercase tracking-widest text-white/40 mb-4 flex items-center">
                 Total Usage
@@ -137,7 +218,7 @@ export const RevenueCostsPanel: React.FC = () => {
             <div className="glass-card p-6 flex flex-col justify-between">
               <h4 className="text-xs font-bold uppercase tracking-widest text-white/40 mb-4 flex items-center">
                 Cost Efficiency
-                <TooltipHelp text="Calculation: (Active Subscribers × RM10) ÷ (Est. Monthly Cost). Shows how sustainable the current operation is." />
+                <TooltipHelp text={`Settled revenue over the last ${REVENUE_WINDOW_DAYS} days ÷ estimated monthly cost. Taken from successful transactions, not an assumed price per head.`} />
               </h4>
               <div className="text-2xl sm:text-4xl font-black text-green-400 mb-2">
                 {stats.monthlyRevenue > 0 ? Math.round((stats.monthlyRevenue / (stats.estMonthlyCost || 1)) * 100) : 0}%
@@ -220,42 +301,48 @@ export const RevenueCostsPanel: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="glass-card p-4 sm:p-8 flex flex-col justify-between border-primary/10">
-              <div>
-                <h3 className="text-lg font-bold mb-2 tracking-tight flex items-center gap-2">
-                  <TrendingUp className="text-primary" size={20} />
-                  Tier Profitability Analysis
+              <div className="glass-card p-4 sm:p-10">
+                <h3 className="text-xl font-bold tracking-tight mb-1 flex items-center">
+                  Revenue by product
+                  <TooltipHelp text={`Successful transactions over the last ${REVENUE_WINDOW_DAYS} days, grouped by what was bought.`} />
                 </h3>
-                <p className="text-xs text-white/40 mb-8">Maintenance cost vs revenue per user tier (Calculated in MYR)</p>
-                
-                <div className="space-y-6">
-                  {/* Pro Tier */}
-                  <div className="p-5 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-between">
-                    <div>
-                      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-1 italic">Pro Membership</div>
-                      <div className="text-xl font-bold text-white">RM 10.00 / head</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-1 italic">Est. Profit</div>
-                      <div className={`text-xl font-bold ${stats.monthlyRevenue > stats.estMonthlyCost ? 'text-green-400' : 'text-red-400'}`}>
-                        +RM {(10 - (stats.estMonthlyCost / Math.max(stats.totalUsers, 1))).toFixed(2)}
-                      </div>
-                    </div>
-                  </div>
+                <p className="text-xs text-white/40 mb-8">What people actually paid for, last {REVENUE_WINDOW_DAYS} days (MYR)</p>
 
-                  {/* Free Tier */}
-                  <div className="p-5 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-between">
-                    <div>
-                      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-1 italic">Free Learner</div>
-                      <div className="text-xl font-bold text-white">RM 0.00 / head</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-1 italic">Est. Burn</div>
-                      <div className="text-xl font-bold text-red-500/80">
-                        -RM {(stats.estMonthlyCost / Math.max(stats.totalUsers, 1)).toFixed(2)}
+                {byProduct.length === 0 ? (
+                  <p className="text-sm text-white/40 py-8 text-center border-2 border-dashed border-white/5 rounded-2xl">
+                    No settled payments in the last {REVENUE_WINDOW_DAYS} days.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {byProduct.map(product => (
+                      <div key={product.id}>
+                        <div className="flex justify-between gap-3 text-sm">
+                          <span className="font-bold text-white truncate">{product.name}</span>
+                          <span className="text-white/60 tabular-nums whitespace-nowrap">
+                            RM {product.revenue.toFixed(2)} · {product.orders} {product.orders === 1 ? 'order' : 'orders'}
+                          </span>
+                        </div>
+                        <div className="my-2 h-1.5 rounded bg-white/10 overflow-hidden">
+                          <div
+                            className="h-full rounded bg-primary"
+                            style={{ width: `${monthlyRevenue ? (product.revenue / monthlyRevenue) * 100 : 0}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+
+                    <div className="pt-4 mt-2 border-t border-white/10 grid grid-cols-2 gap-4">
+                      <div>
+                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-1 italic">Paying customers</div>
+                        <div className="text-xl font-bold text-white tabular-nums">{payingCustomers}</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-1 italic">Average per customer</div>
+                        <div className="text-xl font-bold text-white tabular-nums">RM {revenuePerCustomer.toFixed(2)}</div>
                       </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
 
               <div className="mt-8 pt-8 border-t border-white/5 grid grid-cols-2 gap-4">
@@ -266,7 +353,7 @@ export const RevenueCostsPanel: React.FC = () => {
                 <div className="text-right">
                   <div className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1">Sustainability Threshold</div>
                   <div className="text-lg font-bold text-primary">
-                    {Math.ceil((stats.estMonthlyCost / 10))} Subscribers
+                    {revenuePerCustomer > 0 ? `${Math.ceil(stats.estMonthlyCost / revenuePerCustomer)} customers` : 'No sales yet'}
                   </div>
                 </div>
               </div>

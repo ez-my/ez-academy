@@ -216,7 +216,7 @@ export const AdminPage: React.FC = () => {
 
       {activeTab === 'dashboard' && <AdminDashboard onOpenTab={setActiveTab} />}
       {activeTab === 'users' && <UsersPanel />}
-      {activeTab === 'maintenance' && <RevenueCostsPanel />}
+      {activeTab === 'maintenance' && <RevenueCostsPanel onOpenTab={setActiveTab} />}
       {activeTab === 'payments' && <PaymentsPanel />}
       {activeTab === 'rewards' && <RewardCodesPanel />}
       {activeTab === 'affiliates' && <AffiliateClaims />}
