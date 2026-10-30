@@ -169,7 +169,17 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // 9. Collection Group Queries
+    // 9. Published prices — written only by the server through the Admin SDK, which
+    // bypasses these rules. Clients read prices through /api/pricing instead, so no
+    // client access is granted here.
+    match /pricing/{docId} {
+      allow read, write: if false;
+    }
+    match /pricing_versions/{version} {
+      allow read, write: if false;
+    }
+
+    // 10. Collection Group Queries
     match /{path=**}/sessions/{sessionId} {
       allow list: if isAdmin();
     }

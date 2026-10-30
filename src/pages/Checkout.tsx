@@ -1,5 +1,6 @@
 import {savedReferral,saveReferral} from '../lib/affiliate';
 import { PACKAGES } from '../packages';
+import { usePublishedPackages } from '../lib/publishedPrices';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
@@ -32,7 +33,6 @@ interface PlanOption {
   creditsGrant?:number;
 }
 
-const PLANS: PlanOption[] = Object.values(PACKAGES);
 
 type PaymentMethodType = 'fpx' | 'bank_transfer' | 'duitnow_qr';
 
@@ -103,6 +103,8 @@ export function Checkout() {
   const requestedPlan=searchParams.get('plan')||'plus';
   const [referralCode,setReferralCode]=useState(savedReferral);
   const planId=({basic:'lite',pro:'plus',pro_plus:'max',credits:'boost_plus'} as Record<string,string>)[requestedPlan]||requestedPlan;
+  // The price shown on the checkout screen must match what the server will bill.
+  const PLANS: PlanOption[] = Object.values(usePublishedPackages());
   const selectedPlan = PLANS.find(p => p.id === planId) || PLANS.find(p => p.id === 'plus')!;
 
   useEffect(() => {

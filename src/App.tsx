@@ -43,7 +43,6 @@ const ContentPage = lazyWithPreload(() => import('./pages/marketing/ContentPage'
 const LegalInfo = lazyWithPreload(() => import('./pages/marketing/LegalInfo').then(m => ({ default: m.LegalInfo })));
 const PaymentGate = lazyWithPreload(() => import('./pages/PaymentGate'));
 const AdminPage = lazyWithPreload(() => import('./pages/AdminPage').then(m => ({ default: m.AdminPage })));
-const AdminDashboard = lazyWithPreload(() => import('./pages/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const ProfilePage = lazyWithPreload(() => import('./pages/ProfilePage').then(m => ({ default: m.ProfilePage })));
 const PricingPage = lazyWithPreload(() => import('./pages/PricingPage').then(m => ({ default: m.PricingPage })));
 const MUETPage = lazyWithPreload(() => import('./pages/MUETPage').then(m => ({ default: m.MUETPage })));
@@ -295,11 +294,13 @@ const ProtectedApp = ({
         <Route path="/listenez" element={<ModuleGuard slug="listenez" modules={modules} isAdmin={isAdmin} onNavigate={navigate}><>{skillProfile('listen')?.plan === 'free' && <GeneralFeedbackPanel skill="listen"/>}<ListenEZ profile={skillProfile('listen')!} /></></ModuleGuard>} />
         <Route path="/support" element={<SupportPage/>} />
         <Route path="/history" element={<History />} />
+        {/* One admin workspace. /admin/monitor was the second entry point; it now
+            redirects, carrying its ?tab= through so old links still land correctly. */}
         <Route path="/admin" element={
-          isAdmin ? <AdminDashboard /> : <Navigate to="/app" replace />
+          isAdmin ? <AdminPage /> : <Navigate to="/app" replace />
         } />
         <Route path="/admin/monitor" element={
-          isAdmin ? <AdminPage /> : <Navigate to="/app" replace />
+          <Navigate to={`/app/admin${window.location.search}`} replace />
         } />
         <Route path="/profile" element={<ProfilePage profile={profile} onLogout={handleLogout} />} />
         <Route path="/pricing" element={<PricingPage profile={profile} />} />
