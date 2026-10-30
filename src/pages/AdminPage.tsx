@@ -2,7 +2,7 @@ import './admin.css';
 import React, { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import {
-  Activity, BookOpen, CreditCard, DollarSign, Edit2, Layout, LogOut,
+  Activity, BookOpen, Coins, CreditCard, DollarSign, Edit2, Layout, LogOut,
   ShieldAlert, Tag, Target, TrendingUp, Users,
 } from 'lucide-react';
 import { auth } from '../lib/firebase';
@@ -19,6 +19,7 @@ import { PaymentsPanel } from './admin/PaymentsPanel';
 import { QuestionBankPanel } from './admin/QuestionBankPanel';
 import { SiteEditorPanel } from './admin/SiteEditorPanel';
 import { RevenueCostsPanel } from './admin/RevenueCostsPanel';
+import { PricingPanel } from './admin/PricingPanel';
 
 // Twelve flat tabs became five sections. The tab ids are deliberately unchanged so
 // every existing ?tab= link still lands in the right place.
@@ -27,6 +28,7 @@ const SECTIONS = [
     id: 'money', label: 'Money', icon: DollarSign,
     tabs: [
       { id: 'maintenance', label: 'Revenue & costs', icon: TrendingUp },
+      { id: 'pricing', label: 'Pricing', icon: Coins },
       { id: 'payments', label: 'Payments', icon: CreditCard },
       { id: 'rewards', label: 'Reward codes', icon: Tag },
       { id: 'affiliates', label: 'Affiliate claims', icon: DollarSign },
@@ -216,7 +218,8 @@ export const AdminPage: React.FC = () => {
 
       {activeTab === 'dashboard' && <AdminDashboard onOpenTab={setActiveTab} />}
       {activeTab === 'users' && <UsersPanel />}
-      {activeTab === 'maintenance' && <RevenueCostsPanel />}
+      {activeTab === 'maintenance' && <RevenueCostsPanel onOpenTab={setActiveTab} />}
+      {activeTab === 'pricing' && <PricingPanel />}
       {activeTab === 'payments' && <PaymentsPanel />}
       {activeTab === 'rewards' && <RewardCodesPanel />}
       {activeTab === 'affiliates' && <AffiliateClaims />}
