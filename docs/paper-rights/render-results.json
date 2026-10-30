@@ -1,0 +1,71 @@
+{
+  "scope": "Isolated real production component with built app CSS, not authenticated end-to-end routes; no production deployment",
+  "results": [
+    {
+      "skill": "Reading",
+      "viewport": [
+        1440,
+        900
+      ],
+      "noOverflow": true,
+      "mediaOrDownloadLinks": 0,
+      "consoleErrors": [],
+      "screenshot": "/Users/shahril/Projects/ez-academy/docs/paper-rights/screenshots/reading-1440.png"
+    },
+    {
+      "skill": "Reading",
+      "viewport": [
+        390,
+        844
+      ],
+      "noOverflow": true,
+      "mediaOrDownloadLinks": 0,
+      "consoleErrors": [],
+      "screenshot": "/Users/shahril/Projects/ez-academy/docs/paper-rights/screenshots/reading-390.png"
+    },
+    {
+      "skill": "Reading",
+      "viewport": [
+        320,
+        740
+      ],
+      "noOverflow": true,
+      "mediaOrDownloadLinks": 0,
+      "consoleErrors": [],
+      "screenshot": "/Users/shahril/Projects/ez-academy/docs/paper-rights/screenshots/reading-320.png"
+    },
+    {
+      "skill": "Listening",
+      "viewport": [
+        1440,
+        900
+      ],
+      "noOverflow": true,
+      "mediaOrDownloadLinks": 0,
+      "consoleErrors": [],
+      "screenshot": "/Users/shahril/Projects/ez-academy/docs/paper-rights/screenshots/listening-1440.png"
+    },
+    {
+      "skill": "Listening",
+      "viewport": [
+        390,
+        844
+      ],
+      "noOverflow": true,
+      "mediaOrDownloadLinks": 0,
+      "consoleErrors": [],
+      "screenshot": "/Users/shahril/Projects/ez-academy/docs/paper-rights/screenshots/listening-390.png"
+    },
+    {
+      "skill": "Listening",
+      "viewport": [
+        320,
+        740
+      ],
+      "noOverflow": true,
+      "mediaOrDownloadLinks": 0,
+      "consoleErrors": [],
+      "screenshot": "/Users/shahril/Projects/ez-academy/docs/paper-rights/screenshots/listening-320.png"
+    }
+  ]
+}

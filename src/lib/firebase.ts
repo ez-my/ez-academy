@@ -1,4 +1,6 @@
 import { withoutRecordingData } from './recordingPrivacy';
+import { persistSessionOnce } from './sessionPersistence';
+import { runTransaction } from 'firebase/firestore';
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, User } from 'firebase/auth';
 import { initializeFirestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, onSnapshot, serverTimestamp, getDocFromServer, Timestamp, orderBy, limit, increment, setLogLevel } from 'firebase/firestore';
@@ -235,78 +237,31 @@ export async function updateSiteConfig(config: Partial<SiteConfig>): Promise<voi
   }
 }
 
-export const saveSession = async (userId: string, session: PracticeSession): Promise<void> => {
-  // Funnel: practice_completed (dynamic import avoids a firebase<->analytics cycle).
-  try { const { trackEvent } = await import('./analytics'); trackEvent('practice_completed', { skill: (session as any).type || (session as any).skill, score: session.score ?? undefined }); } catch {}
+export const saveSession = async (userId: string, session: PracticeSession): Promise<PracticeSession> => {
+  if (auth.currentUser?.uid !== userId || session.userId !== userId) throw new Error('Please sign in to sync your result.');
+  const { timestamp, ...rest } = withoutRecordingData(session);
+  // JSON removes optional undefined values; recording data is never sent.
+  const payload = { ...JSON.parse(JSON.stringify(rest)), timestamp: timestamp ? Timestamp.fromMillis(Number(timestamp)) : serverTimestamp() };
+  let effective: any;
   try {
-    const { timestamp, ...rest } = withoutRecordingData(session);
-    const sessionRef = doc(db, 'users', userId, 'sessions', session.id);
-    
-    // Save the session
-    await setDoc(sessionRef, {
-      ...rest,
-      timestamp: timestamp ? (typeof timestamp === 'number' ? Timestamp.fromMillis(timestamp) : timestamp) : serverTimestamp()
-    });
-
-    // Update user stats and rewards
-    const userRef = doc(db, 'users', userId);
-    const userSnap = await getDoc(userRef);
-    
-    if (userSnap.exists()) {
-      const userData = userSnap.data();
-      const earnedPoints = session.score ? Math.round(session.score / 10) : 5; // e.g., 85 score -> 9 points
-      
-      let creditReward = 0;
-      let rewardMessage = '';
-      
-      // Reward logic for achievers (score >= 80) who are subscribers
-      if (session.score && session.score >= 80) {
-        const isSubscriber = userData.plan && userData.plan !== 'free';
-        if (isSubscriber) {
-          creditReward = 1; // Reward 1 credit as rebate so we are not at a loss
-          rewardMessage = 'Achiever Bonus: +1 Credit earned!';
-        }
-      }
-
-      // Calculate Streak
-      const today = new Date().toISOString().split('T')[0];
-      const lastActiveDate = userData.usage?.date;
-      let newStreak = userData.streak || 0;
-      
-      if (lastActiveDate !== today) {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = yesterday.toISOString().split('T')[0];
-        
-        if (lastActiveDate === yesterdayStr) {
-          newStreak += 1;
-        } else {
-          newStreak = 1; // Reset streak
-        }
-      }
-
-      // Prepare updates
-      const updates: any = {
-        points: increment(earnedPoints),
-        streak: newStreak,
-        'usage.date': today,
-        updatedAt: serverTimestamp()
-      };
-      
-      // Paid credits are maintained by the trusted payment server.
-      creditReward = 0; rewardMessage = '';
-      
-      await updateDoc(userRef, updates);
-      
-      if (rewardMessage && typeof window !== 'undefined') {
-        // Optional: show a small toast or log (the user will see updated credits)
-        console.log(rewardMessage);
-      }
-    }
-  } catch (error) {
-    handleFirestoreError(error, OperationType.WRITE, `users/${userId}/sessions/${session.id}`);
-    throw new Error("Your result could not be synced. Please check your connection and try saving again.");
+    effective = await persistSessionOnce(work => runTransaction(db, work),
+      doc(db, 'users', userId, 'sessions', session.id), doc(db, 'users', userId), payload,
+      user => {
+        const today = new Date().toISOString().split('T')[0];
+        const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+        const lastActiveDate = user.usage?.date;
+        return {
+          points: increment(typeof session.score === 'number' ? Math.round(session.score / 10) : 5),
+          streak: lastActiveDate === today ? (user.streak || 0) : lastActiveDate === yesterday.toISOString().split('T')[0] ? (user.streak || 0) + 1 : 1,
+          'usage.date': today, updatedAt: serverTimestamp(),
+        };
+      });
+  } catch {
+    throw new Error('Your result is not synced. Your answer is kept on this device; please retry when online.');
   }
+  // Analytics is advisory and can never turn an acknowledged save into a failure.
+  void import('./analytics').then(({ trackEvent }) => trackEvent('practice_completed', { skill: session.type, score: session.score ?? undefined })).catch(() => {});
+  return { ...effective, timestamp: typeof effective.timestamp?.toMillis === 'function' ? effective.timestamp.toMillis() : effective.timestamp } as PracticeSession;
 };
 
 export const getSessions = async (userId: string): Promise<PracticeSession[]> => {

@@ -54,6 +54,8 @@ export interface ActivityLog {
 }
 
 export interface PracticeSession {
+  resultVersion?: string; // immutable autosave version; absent on legacy records
+  resultOrder?: number; // Lamport order, UUID breaks concurrent ties
   muetReport?: import('./types/muet').MUETExaminerReport;
   listeningResult?: ListeningResult;
   readingResult?: ListeningResult;
@@ -62,12 +64,12 @@ export interface PracticeSession {
   type: 'SpeakEZ' | 'WriteEZ' | 'ReadEZ' | 'ListenEZ';
   timestamp: number;
   duration: number; // seconds
-  score: number; // 0-100
+  score: number | null; // null means completed but not scored
   feedback: string; // Markdown
   transcript?: string;
   testSetId?: string;
   answers?: Record<string, string>;
-  metrics: {
+  metrics?: {
     fluency: number;
     grammar: number;
     vocabulary: number;

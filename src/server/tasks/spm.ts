@@ -1,4 +1,5 @@
 import { PracticeSession } from "../../types";
+import { normalizeSpeakingBankQuestion } from '../../lib/speakingTaskCompatibility';
 import { withRetry } from "../retry";
 import { analyzePhonemesAndPatterns } from "../../lib/phonemeAnalyzer";
 import { getGenAI } from "../providerContext";
@@ -796,7 +797,13 @@ export async function generateSPMSpeakingTask(part: 1 | 2 | 3 | 'Full', theme?: 
         },
       });
 
-      return safeJsonParse(result.text || "{}");
+      const parsed = safeJsonParse(result.text || "{}");
+      const requestedPart = part === 'Full' ? 1 : part;
+      const normalized = normalizeSpeakingBankQuestion(parsed, requestedPart);
+      if (!normalized || (requestedPart === 1 && (!Array.isArray(parsed.questions) || !parsed.questions.some((q: unknown) => typeof q === 'string' && q.trim())))) {
+        throw new Error('The generated speaking task was incomplete.');
+      }
+      return { ...normalized, part: requestedPart };
     });
   } catch (e: any) {
     console.warn("Question generation unavailable; using sample practice questions:", e?.message || e);
@@ -851,6 +858,9 @@ export async function analyzeSPMSpeaking(
   transcript: string,
   config?: NLPConfig
 ): Promise<any> {
+  if (!transcript.trim() || !/\p{L}/u.test(transcript) || /^\s*\(?no response captured\)?\s*$/i.test(transcript)) {
+    throw new Error('No answer was captured. Your answer was not scored. Please record or confirm your transcript.');
+  }
   const model = resolveModel(config);
   
   const systemInstruction = `
@@ -861,7 +871,7 @@ export async function analyzeSPMSpeaking(
     A transcript cannot establish pronunciation, accent, speaking pace, pauses, or vocal clarity. Do not claim to have measured those qualities.
     
     CRITICAL SCORING MANDATE:
-    1. TRANSCRIPT VALIDITY: If the transcript is empty, only contains punctuation, only contains "(No response captured)", or is extremely short (under 10 meaningful words), YOU MUST ASSIGN A SCORE OF 0 FOR ALL BANDS.
+    1. TRANSCRIPT VALIDITY: Assess the language actually provided in the context of this part. Do not impose a minimum word count or automatically give zero to a short relevant answer. If there is too little evidence for a criterion, state that limitation; do not invent performance evidence.
     2. IDENTITY CHECK: The transcript provided ONLY contains what the student said. Do NOT score based on your own generated questions. If the student repeats the question back without answering, score low (1-2). If they say nothing relevant, score 0.
     3. NO HALLUCINATION: Do not imagine that the student said something they didn't. If the transcript is "${transcript || 'EMPTY'}", and it's empty, they get 0.
     
@@ -982,6 +992,8 @@ export async function analyzeSPMSpeaking(
   result.score = Math.round((result.marks.total / 24) * 100);
 
   if (isNaN(result.score)) result.score = 0;
+  // The learner-confirmed transcript is the audit record, never a model rewrite.
+  result.transcript = transcript;
   return result;
 }
 

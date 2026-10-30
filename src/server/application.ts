@@ -1,14 +1,18 @@
+import {registerAffiliateRoutes} from './affiliateRoutes';
+import {registerRewardRoutes} from './rewardRoutes';
 import {registerDashboardRoutes} from './dashboardRoutes';
 import {registerDailyReportRoutes} from './dailyReportRoutes';
 import {registerMUETBankRoutes} from './muetBankRoutes';
 import {registerPracticeRoutes} from './practiceRoutes';
 import {registerMarketingRoutes} from './marketingRoutes';
+import {registerPricingRoutes} from './pricingRoutes';
 import {registerOperationsRoutes} from './operationsRoutes';
 import {reserveMonitoredCall} from './operations';
 import { WARMUP_VOICE } from '../speakingWarmup';
 import {registerAchievementRoutes} from './achievementRoutes';
 import { aiAllowance, aiCallUnits, reservePackageCall } from './packageBudget';
 import express from 'express';
+import cors from 'cors';
 import { createHash } from 'node:crypto';
 import OpenAI from 'openai';
 import { getAuth, type DecodedIdToken } from 'firebase-admin/auth';
@@ -24,6 +28,27 @@ export function createApplication() {
   const { database: adminDb } = initializeExistingFirebase();
   const app = express();
   app.set('trust proxy', 1);
+
+  // CORS — allow only our own domains
+  const allowedOrigins = [
+    'https://ez-academy.my',
+    'https://app.ez-academy.my',
+    'https://www.ez-academy.my',
+  ];
+  app.use(cors({
+    origin: (origin, callback) => {
+      // CORS limits which browsers can read cross-origin responses; it does
+      // not replace token checks or server-side authorization.
+      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(null, false);
+    },
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-EZ-Request-ID'],
+  }));
+
+  // Request quotas are enforced durably for paid operations in Firestore.
+  // An in-process IP limiter would bucket different users together behind
+  // Netlify's adapter, so add any global IP limits at the edge instead.
 
   // Domain Normalization
   app.use((req, res, next) => {
@@ -56,6 +81,7 @@ export function createApplication() {
   registerAchievementRoutes(app,adminDb);
   registerOperationsRoutes(app,adminDb);
   registerMarketingRoutes(app,adminDb);
+  registerPricingRoutes(app,adminDb);
 
   app.get('/api/migration/access', async (req, res) => {
     const token = req.get('authorization')?.match(/^Bearer (.+)$/i)?.[1];
@@ -85,6 +111,8 @@ export function createApplication() {
     } catch { return res.status(401).json({ error: 'Sign in required' }); }
   });
 
+  registerAffiliateRoutes(app, adminDb);
+  registerRewardRoutes(app, adminDb);
   registerMUETBankRoutes(app, adminDb);
   registerPracticeRoutes(app, adminDb);
   registerListeningRoutes(app, adminDb);
@@ -181,6 +209,7 @@ export function createApplication() {
 
   // API Route for Leaderboard
   app.get("/api/leaderboard", async (req, res) => {
+    res.set('Cache-Control', 'no-store');
     try {
       console.log("[Leaderboard] Fetching top users...");
       

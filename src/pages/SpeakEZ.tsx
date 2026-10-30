@@ -1,3 +1,5 @@
+import { usePracticeProgress, usePracticeDraft } from '../hooks/usePracticeProgress';
+import { ProgressSaveStatus } from '../components/ProgressSaveStatus';
 import {startPractice} from '../lib/practice';
 import { primeExaminerAudio } from '../lib/examinerPlayback';
 import { WARMUP_INTRO, parseWarmupHistory, selectWarmupQuestions } from '../speakingWarmup';
@@ -162,11 +164,13 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
     }
   };
   
-  const [view, setView] = useState<ViewState>('selection');
+  const progress = usePracticeProgress(profile.uid, 'SpeakEZ');
+  const [view, setView] = useState<ViewState>(progress.attempt?.draft?.task ? 'review' : 'selection');
   const [showSuccess, setShowSuccess] = useState(false);
-  const [selectedPart, setSelectedPart] = useState<1 | 2 | 3 | 'Full' | null>(null);
-  const [currentFullPart, setCurrentFullPart] = useState<1 | 2 | 3>(1);
-  const [task, setTask] = useState<SPMSpeakingTask | null>(null);
+  const [selectedPart, setSelectedPart] = useState<1 | 2 | 3 | 'Full' | null>(progress.attempt?.draft?.selectedPart || null);
+  const [currentFullPart, setCurrentFullPart] = useState<1 | 2 | 3>(progress.attempt?.draft?.currentFullPart || 1);
+  const [task, setTask] = useState<SPMSpeakingTask | null>(progress.attempt?.draft?.task || null);
+  const activePart = selectedPart === 'Full' ? currentFullPart : selectedPart;
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
 
@@ -202,7 +206,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
   const [teacherAudioByLine, setTeacherAudioByLine] = useState<Record<string, string>>(TEACHER_AUDIO_BY_LINE);
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [micStatus, setMicStatus] = useState<'untested' | 'checking' | 'ready' | 'blocked'>('untested');
-  const [reviewTranscript, setReviewTranscript] = useState('');
+  const [reviewTranscript, setReviewTranscript] = useState(progress.attempt?.draft?.transcript || '');
   const [answerDraft, setAnswerDraft] = useState<string | null>(null);
   const [previousAttempt, setPreviousAttempt] = useState<{ score: number; transcript: string } | null>(null);
   const [savedPractices, setSavedPractices] = useState<SavedPractice[]>([]);
@@ -473,7 +477,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
     });
   };
 
-  const { isRecording, isPaused, duration, audioBlob, transcript, error: recordingError, transcriptionError, transcriptionAvailable, startRecording, pauseRecording, resumeRecording, stopRecording, reset, clearTranscript, loadRecording } = useAudioRecorder();
+  const { isRecording, isPaused, isTranscribing, duration, audioBlob, transcript, error: recordingError, transcriptionError, transcriptionAvailable, startRecording, pauseRecording, resumeRecording, stopRecording, reset, clearTranscript, loadRecording } = useAudioRecorder();
   
   useEffect(() => {
     if (recordingError) {
@@ -658,14 +662,8 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
         let finalIntro = "";
         if (bankTask) {
           const newTask = {
+            ...bankTask,
             part: 2,
-            topic: bankTask.topic,
-            introduction: bankTask.introduction,
-            promptCard: {
-              topic: bankTask.theme,
-              prompts: bankTask.prompts,
-              prepTip: bankTask.prepTip
-            },
             dbId: bankTask.id
           } as any;
           setTask(newTask);
@@ -693,15 +691,8 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
         let finalIntro = "";
         if (bankTask) {
           const newTask = {
+            ...bankTask,
             part: 3,
-            topic: bankTask.topic,
-            introduction: bankTask.introduction,
-            discussion: {
-              situation: bankTask.topic,
-              points: bankTask.prompts,
-              decisionQuestion: bankTask.decisionQuestion,
-              hotQuestion: bankTask.hotQuestion
-            },
             dbId: bankTask.id
           } as any;
           setTask(newTask);
@@ -939,16 +930,35 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
 
   useEffect(() => {
     const isPart1 = selectedPart === 1 || (selectedPart === 'Full' && currentFullPart === 1);
-    if (!isRecording && audioBlob && (view === 'recording' || (isPart1 && view === 'task'))) {
+    if (!isRecording && !isTranscribing && audioBlob && (view === 'recording' || (isPart1 && view === 'task'))) {
       const capturedText = isPart1
         ? messages.filter(message => message.role === 'user').map(message => message.text).join('\n').trim()
         : transcript.trim();
       setReviewTranscript(capturedText);
       setView('review');
     }
-  }, [isRecording, audioBlob]);
+  }, [isRecording, isTranscribing, audioBlob, transcript]);
 
+  const draftOwner = useRef(profile.uid);
+  useEffect(() => {
+    if (draftOwner.current !== profile.uid) {
+      draftOwner.current = profile.uid; stopRecording(); reset(); setFeedback(null); setMessages([]);
+      setReviewTranscript(progress.attempt?.draft?.transcript || ''); setTask(progress.attempt?.draft?.task || null);
+      setSelectedPart(progress.attempt?.draft?.selectedPart || null); setCurrentFullPart(progress.attempt?.draft?.currentFullPart || 1);
+      setView(progress.attempt?.draft?.task ? 'review' : 'selection');
+    }
+  }, [profile.uid]);
+  usePracticeDraft(progress, draftOwner.current === profile.uid ? { task, transcript: reviewTranscript, selectedPart, currentFullPart } : progress.attempt?.draft);
+  const finishPractice = async (analysis?: any, answer = reviewTranscript.trim() || analysis?.transcript || '') => {
+    if (!task || answer.replace(/[^a-zA-Z]/g, '').length < 10) { setError('Add your spoken answer before finishing. No score has been assigned.'); return false; }
+    const normalize = (value: string) => value.toLowerCase().replace(/[^a-z\s]/g, '').replace(/\s+/g, ' ').trim();
+    if (messages.filter(m => m.role === 'ai').some(m => normalize(m.text).length > 12 && normalize(m.text).includes(normalize(answer)))) { setError('The recording captured the examiner, not your answer.'); return false; }
+    return progress.complete({ transcript: answer, duration: Math.round(duration), score: analysis?.score ?? null, metrics: analysis?.metrics, feedback: analysis?.feedback || '' });
+  };
+
+  const assessmentInFlight = useRef(false);
   const handleAnalyze = async () => {
+    if (assessmentInFlight.current) return;
     if ((profile.plan || 'free') === 'free') {window.dispatchEvent(new CustomEvent('ez-general-feedback',{detail:{skill:'speak'}}));return;}
     if (isOfflineMode || !isOnline) {
       setError('Feedback needs an internet connection. Save this practice on your device and return when you are online.');
@@ -991,6 +1001,13 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
         return;
       }
 
+      if (progress.attempt && !progress.attempt.acceptsAnswer(finalTranscript)) {
+        setError('Sync the previous answer first before requesting feedback on an edited answer.'); return;
+      }
+      assessmentInFlight.current = true;
+      const completed = await finishPractice(undefined, finalTranscript);
+      if (!completed && progress.attempt?.status !== 'not-synced') return;
+      if (auth.currentUser?.uid !== profile.uid) return;
       setFeedback(null);
       setError(null);
       setView('feedback');
@@ -1001,6 +1018,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
         finalTranscript,
         { useDeepFeedback: analysisType === 'deep', aiEngine: profile.aiEngine }
       );
+      if (auth.currentUser?.uid !== profile.uid) return;
       analysis.isDeep = analysisType === 'deep';
 
       // Charge only after feedback has been produced; failed model requests remain free.
@@ -1012,12 +1030,17 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
       }
 
       setFeedback(analysis);
-      if (activeSavedPracticeId) {
-        persistSavedPractices(savedPractices.filter(item => item.id !== activeSavedPracticeId));
-        void audioStorage.deleteAudio(activeSavedPracticeId);
-        setActiveSavedPracticeId(null);
+      const synced = await finishPractice(analysis, finalTranscript);
+      if (!synced) setError('Feedback is ready but not synced. Retry sync to save it without another AI call.');
+      if (activeSavedPracticeId && synced) {
+        // Optional device cleanup must not invalidate an acknowledged cloud result.
+        try {
+          persistSavedPractices(savedPractices.filter(item => item.id !== activeSavedPracticeId));
+          setActiveSavedPracticeId(null);
+          void audioStorage.deleteAudio(activeSavedPracticeId).catch(() => {});
+        } catch { /* Keep the device copy if browser storage is unavailable. */ }
       }
-      setShowSuccess(true);
+      setShowSuccess(synced && progress.attempt?.status !== 'draft');
       setTimeout(() => setShowSuccess(false), 2000);
 
       // Track completion for rotation
@@ -1025,25 +1048,15 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
         await markQuestionAsCompleted(profile.uid, (task as any).dbId, analysis.score);
       }
       
-      // Award points automatically when analysis is generated
-      if (profile.uid && analysis.score) {
-        try {
-          const updateData: any = { points: increment(Math.max(5, Math.round(analysis.score / 10))) };
-          if (analysis.userEvaluation) {
-            updateData.xp = increment(analysis.userEvaluation.xp || 0);
-            updateData.coins = increment(analysis.userEvaluation.coins || 0);
-          }
-          await updateDoc(doc(db, 'users', profile.uid), updateData);
-        } catch (e: any) {
-          console.warn("Failed to update gamification stats:", e?.message || e);
-        }
-      }
+      // Completion rewards are applied once, atomically with the session.
+
     } catch (err: any) {
       console.warn('Analysis notice:', err?.message || err);
       const friendlyMsg = getFriendlyErrorMessage(err);
       setError(friendlyMsg);
       toast.error(friendlyMsg);
     } finally {
+      assessmentInFlight.current = false;
       setIsAnalyzing(false);
     }
   };
@@ -1067,29 +1080,12 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
   };
 
   const handleSave = async () => {
-    if (!audioBlob || !feedback || !auth.currentUser) return;
-    const id = Date.now().toString();
-    try {
-      await audioStorage.saveAudio(id, audioBlob);
-      await saveSession(auth.currentUser.uid, {
-        id,
-        userId: auth.currentUser.uid,
-        type: 'SpeakEZ',
-        timestamp: Date.now(),
-        duration: Math.round(duration),
-        score: feedback.score,
-        metrics: feedback.metrics,
-        feedback: feedback.feedback,
-        transcript: feedback.transcript
-      });
-      toast.success('Session saved to history!');
-    } catch (err: any) {
-      console.error('Failed to save session:', err);
-      toast.error(getFriendlyFirebaseError(err));
-    }
+    // Device recording storage cannot block cloud text/result persistence.
+    await finishPractice(feedback);
   };
 
   const resetToSelection = () => {
+    if (progress.attempt?.newAttempt() === false) { setError('Retry syncing this completion before starting another task.'); return; }
     practiceSessionRef.current += 1;
     startingPhaseRef.current = false;
     cancelExaminerSpeech();
@@ -1109,6 +1105,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
   };
 
   const handleRetry = () => {
+    if (progress.attempt?.newAttempt() === false) { setError('Retry syncing this completion before starting another attempt.'); return; }
     if (feedback && typeof feedback.score === 'number') {
       setPreviousAttempt({ score: feedback.score, transcript: reviewTranscript });
     }
@@ -1605,7 +1602,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
               <div className="space-y-6">
                 <div className="space-y-2">
                   <p className="text-[10px] uppercase font-black tracking-widest text-white/20 italic">Topic Situation</p>
-                  <h3 className="text-xl md:text-2xl font-black italic text-white leading-tight">{task?.topic}</h3>
+                  <h3 className="text-xl md:text-2xl font-black italic text-white leading-tight">{task?.promptCard?.topic || task?.topic}</h3>
                 </div>
 
                 {task?.promptCard && (
@@ -1996,12 +1993,12 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
               </div>
               
               <div className="space-y-6 italic">
-                {selectedPart !== 3 && (
+                {activePart !== 3 && (
                   <p className="text-xl md:text-3xl font-black italic text-white leading-tight uppercase tracking-tighter italic">"{task?.topic || task?.promptCard?.topic}"</p>
                 )}
                 
                 <div>
-                  {selectedPart === 2 && (
+                  {activePart === 2 && (
                     <div className="grid grid-cols-1 gap-3">
                       {task?.promptCard?.prompts?.map((p, i) => (
                         <div key={i} className="text-sm md:text-base font-bold text-white/60 flex items-center gap-4 bg-white/5 p-4 md:p-5 rounded-2xl border border-white/5 italic">
@@ -2012,7 +2009,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
                     </div>
                   )}
 
-                  {selectedPart === 3 && task?.discussion && (
+                  {activePart === 3 && task?.discussion && (
                     <div className="w-full flex flex-col items-center justify-center gap-4 md:gap-6">
                       {/* Mind Map / Central Topic - compact in later steps */}
                       <div className={`relative w-full flex flex-col items-center gap-3 transition-all duration-500`}>
@@ -2108,6 +2105,8 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
               />
               <p className="text-sm text-white/55">A transcript cannot measure pronunciation, accent, or vocal delivery.</p>
             </div>
+            <ProgressSaveStatus progress={progress} />
+            <button type="button" onClick={() => finishPractice()} disabled={progress.attempt?.status === 'saving'} className="btn-secondary min-h-12 w-full">Finish practice</button>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button type="button" onClick={handleRetry} className="min-h-13 rounded-xl border border-white/20 bg-white/5 px-5 text-base font-semibold text-white hover:bg-white/10 flex items-center justify-center gap-2"><RefreshCw size={18} /> Try this task again</button>
               <button type="button" onClick={() => void savePracticeForLater()} className="min-h-13 rounded-xl border border-white/20 bg-white/5 px-5 text-base font-semibold text-white hover:bg-white/10 flex items-center justify-center gap-2"><Save size={18} /> Save on this device</button>
@@ -2133,6 +2132,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
             className="mx-auto max-w-4xl space-y-5 px-1 pb-24"
             aria-label="Speaking feedback"
           >
+            <ProgressSaveStatus progress={progress} />
             <header className="rounded-3xl border border-white/15 bg-white/5 p-5 sm:p-8">
               <p className="text-sm font-semibold text-primary">Step 3 of 3 · Improve</p>
               <h2 className="mt-2 text-2xl sm:text-3xl font-bold text-white">
@@ -2202,6 +2202,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
                   <button type="button" onClick={() => void handleSave()} className="min-h-14 rounded-xl border border-white/20 bg-white/10 px-4 font-semibold text-white flex items-center justify-center gap-2"><Save size={18} /> Save result</button>
                   <button type="button" onClick={() => {
                     if (selectedPart === 'Full' && currentFullPart < 3) {
+                      if (progress.attempt?.newAttempt() === false) { setError('Retry syncing this part before continuing.'); return; }
                       setCurrentFullPart(prev => (prev + 1) as 1 | 2 | 3);
                       setView('intro');
                       setFeedback(null);

@@ -102,18 +102,18 @@ test('persistent request budget handles concurrent duplicates and keeps profiles
   assert.equal(await reserveAIRequest(database, 'missing', randomUUID(), 'task', env), 'no_profile');
 });
 
-test('Netlify listening audio preserves public source and seeking without an arbitrary URL proxy', async () => {
+test('authorized synthetic Netlify audio preserves seeking without an arbitrary URL proxy', async () => {
   const test = TRIAL_LISTENING_TESTS[0];
   const proxy = createNetlifyListeningAudio((async (url, options) => {
     assert.ok(String(url).includes(test.audioFileId));
     assert.equal((options?.headers as any).Range, `bytes=200-${200 + AUDIO_RESPONSE_BYTES - 1}`);
     return new Response('audio', { status: 206, headers: { 'content-type': 'audio/mpeg', 'content-length': '5', 'content-range': 'bytes 200-204/70000000', 'cross-origin-resource-policy': 'same-site' } });
-  }) as typeof fetch);
+  }) as typeof fetch, () => true);
   const response = await proxy(new Request('https://preview.example/api/listening/audio/' + test.id, { headers: { Range: 'bytes=200-' } }));
   assert.equal(response.status, 206); assert.equal(await response.text(), 'audio');
   assert.equal(response.headers.get('content-range'), 'bytes 200-204/70000000');
   assert.equal(response.headers.get('cross-origin-resource-policy'), null);
-  const oversized = createNetlifyListeningAudio((async () => new Response('x', { headers: { 'content-type': 'audio/mpeg', 'content-length': '70000000' } })) as typeof fetch);
+  const oversized = createNetlifyListeningAudio((async () => new Response('x', { headers: { 'content-type': 'audio/mpeg', 'content-length': '70000000' } })) as typeof fetch, () => true);
   assert.equal((await oversized(new Request('https://preview.example/api/listening/audio/' + test.id))).status, 502);
   assert.equal((await listeningAudio(new Request('https://preview.example/api/listening/audio/' + test.id, { headers: { Range: 'bytes=invalid' } }))).status, 416);
   assert.equal((await listeningAudio(new Request('https://preview.example/api/listening/audio/unknown'))).status, 404);

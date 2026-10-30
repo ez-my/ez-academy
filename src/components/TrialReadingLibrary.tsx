@@ -6,8 +6,10 @@ import {TRIAL_READING_TESTS,READING_PARTS,readingChoices,parseReadingDraft,type 
 import {ReadingAnswerCheck} from './ReadingAnswerCheck';
 import {ReadingPageText} from './ReadingPageText';
 import {TRIAL_READING_KEYS} from '../data/trialReadingKeys';
-const loaders=import.meta.glob<ReadingPaper>('../data/readingPapers/*.json',{import:'default'});
-async function loadReadingPaper(id:string){const fn=loaders[`../data/readingPapers/${id}.json`];if(!fn)throw Error('Paper unavailable.');return fn();}
+import {isAuthorizedTrialAsset,mayDisplayTrialPaper} from '../lib/trialPaperRights';
+import {TrialPaperRightsNotice} from './TrialPaperRightsNotice';
+import {authorizedReadingPaperLoaders} from '../lib/authorizedReadingPaperLoaders';
+async function loadReadingPaper(id:string){if(!mayDisplayTrialPaper(id,'reading'))throw Error('Paper unavailable.');const fn=authorizedReadingPaperLoaders[id];if(!fn)throw Error('Paper unavailable.');return fn();}
 const button='min-h-11 rounded-xl border border-white/15 px-3 py-2 text-sm font-semibold hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary';
 function PageZoom({page,onClose}:{page:ReadingPage;onClose:()=>void}){
  const [zoom,setZoom]=useState(140),closeRef=useRef<HTMLButtonElement>(null);
@@ -68,8 +70,9 @@ export function TrialReadingLibrary({uid,onOtherPractice}:{uid:string;onOtherPra
  const progress=useTrialProgress(uid,'read');
  if(progress.loading)return <p role="status">Loading progress…</p>;
  if(progress.error)return <p role="alert">{progress.error} Reload to try again.</p>;
+ if(test&&!isAuthorizedTrialAsset(test,'reading'))return <TrialPaperRightsNotice skill="Reading"/>;
  if(test)return <ReadingWorkspace key={`${uid}:${test.id}`} test={test} uid={uid} completed={progress.parts(test.id)} blocked={progress.blocked} onBack={()=>setTest(null)}/>;
- const filtered=TRIAL_READING_TESTS.filter(t=>(!year||t.year===year)&&t.label.toLowerCase().includes(query.trim().toLowerCase()));
+ const filtered=TRIAL_READING_TESTS.filter(t=>isAuthorizedTrialAsset(t,'reading')&&(!year||t.year===year)&&t.label.toLowerCase().includes(query.trim().toLowerCase()));
  return <div className="min-w-0 space-y-4"><header><h1 className="flex items-center gap-2 text-xl font-bold sm:text-2xl"><BookOpen size={22} className="text-primary"/>ReadEZ</h1><p className="mt-2 text-sm text-white/65">Choose a trial paper. Read, answer, then check each part.</p></header>
   <label className="relative block"><Search size={18} className="absolute left-3 top-3 text-white/40"/><input type="search" aria-label="Find a reading test" placeholder="Find a state or school" value={query} onChange={e=>setQuery(e.target.value)} className="min-h-11 w-full min-w-0 rounded-xl border border-white/15 bg-white/5 py-2 pl-10 pr-3 text-base"/></label>
   <div role="group" aria-label="Choose reading test year" className="flex flex-wrap gap-2">{[null,2026,2025,2024].map(y=><button type="button" key={y||'all'} aria-pressed={year===y} className={`${button} ${year===y?'border-primary bg-primary text-black':''}`} onClick={()=>setYear(y)}>{y||'All years'}</button>)}</div>

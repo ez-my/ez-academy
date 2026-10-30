@@ -1,0 +1,153 @@
+diff --git a/netlify/functions/listening-audio.ts b/netlify/functions/listening-audio.ts
+index 69631fc..f8b07c7 100644
+--- a/netlify/functions/listening-audio.ts
++++ b/netlify/functions/listening-audio.ts
+@@ -1,5 +1,6 @@
+ import { TRIAL_LISTENING_TESTS } from '../../src/data/trialListeningTests';
+ import { validAudioRange } from '../../src/server/listeningAudio';
++import {mayDisplayTrialPaper,TRIAL_RIGHTS_MESSAGE,type TrialRightsCheck} from '../../src/lib/trialPaperRights';
+ 
+ export const AUDIO_RESPONSE_BYTES = 2 * 1024 * 1024;
+ export function boundedAudioRange(range: string | null) {
+@@ -9,12 +10,13 @@ export function boundedAudioRange(range: string | null) {
+   const start = Number(from);
+   return `bytes=${start}-${Math.min(to ? Number(to) : Number.MAX_SAFE_INTEGER, start + AUDIO_RESPONSE_BYTES - 1)}`;
+ }
+-export function createNetlifyListeningAudio(fetcher: typeof fetch = fetch) {
++export function createNetlifyListeningAudio(fetcher: typeof fetch = fetch, rights: TrialRightsCheck = mayDisplayTrialPaper) {
+   return async (req: Request) => {
+     if (!['GET', 'HEAD'].includes(req.method)) return new Response(null, { status: 405 });
+     const testId = new URL(req.url).pathname.split('/').pop();
+     const source = TRIAL_LISTENING_TESTS.find(test => test.id === testId);
+     if (!source) return Response.json({ error: 'This recording was not found.' }, { status: 404 });
++    if (!rights(source.id)) return new Response(req.method==='HEAD'?null:JSON.stringify({error:TRIAL_RIGHTS_MESSAGE}),{status:451,headers:{'Cache-Control':'private, no-store','Content-Type':'application/json'}});
+     const range = boundedAudioRange(req.headers.get('range'));
+     if (!range) return new Response(null, { status: 416 });
+     // Keep playback same-origin, preserving the original player and avoiding
+diff --git a/src/pages/ListenEZ.tsx b/src/pages/ListenEZ.tsx
+index 88b2478..7827669 100644
+--- a/src/pages/ListenEZ.tsx
++++ b/src/pages/ListenEZ.tsx
+@@ -1,5 +1,5 @@
+ import React from 'react';
+-import {TrialListeningLibrary} from '../components/TrialListeningLibrary';
++import {TrialListeningLibrary} from '../components/TrialPaperRightsNotice';
+ import {UserProfile} from '../types';
+-// Retain the original trial-paper library; the obsolete Drive-picker route was removed.
++// Preserve the original library off the public module graph pending rights verification.
+ export const ListenEZ:React.FC<{profile:UserProfile}>=({profile})=><div className="min-w-0 space-y-6"><TrialListeningLibrary uid={profile.uid}/></div>;
+diff --git a/src/pages/ReadEZ.tsx b/src/pages/ReadEZ.tsx
+index 6fe9f49..d1775b0 100644
+--- a/src/pages/ReadEZ.tsx
++++ b/src/pages/ReadEZ.tsx
+@@ -1,4 +1,4 @@
+-import {TrialReadingLibrary} from '../components/TrialReadingLibrary';
++import {TrialReadingLibrary} from '../components/TrialPaperRightsNotice';
+ import React, { useState, useEffect, useRef } from 'react';
+ import { motion, AnimatePresence } from 'motion/react';
+ import { 
+diff --git a/src/server/listeningAudio.ts b/src/server/listeningAudio.ts
+index 3b9015d..0bcacd4 100644
+--- a/src/server/listeningAudio.ts
++++ b/src/server/listeningAudio.ts
+@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
+ import { Readable } from 'node:stream';
+ import { pipeline } from 'node:stream/promises';
+ import { TRIAL_LISTENING_TESTS } from '../data/trialListeningTests';
++import {mayDisplayTrialPaper,TRIAL_RIGHTS_MESSAGE,type TrialRightsCheck} from '../lib/trialPaperRights';
+ 
+ const audioFiles = new Map(TRIAL_LISTENING_TESTS.map(test => [test.id, test.audioFileId]));
+ 
+@@ -16,10 +17,11 @@ export function validAudioRange(range: string) {
+ 
+ // Stream only the public recordings already listed in the shared test bank.
+ // Forward byte ranges so large MP3/WAV files can start and seek without a full download.
+-export function createListeningAudioHandler(fetcher: typeof fetch = fetch) {
++export function createListeningAudioHandler(fetcher: typeof fetch = fetch, rights: TrialRightsCheck = mayDisplayTrialPaper) {
+   return async (req: Request, res: Response) => {
+     const fileId = audioFiles.get(String(req.params.testId));
+     if (!fileId) return res.status(404).json({ error: 'This recording was not found.' });
++    if (!rights(String(req.params.testId))) return res.status(451).set('Cache-Control','private, no-store').json({error:TRIAL_RIGHTS_MESSAGE});
+     const range = req.get('range');
+     if (range && !validAudioRange(range)) return res.status(416).end();
+     const controller = new AbortController();
+diff --git a/src/server/practiceRoutes.ts b/src/server/practiceRoutes.ts
+index 2345c76..e2de432 100644
+--- a/src/server/practiceRoutes.ts
++++ b/src/server/practiceRoutes.ts
+@@ -5,8 +5,9 @@ import {getAuth} from 'firebase-admin/auth';
+ import {Timestamp,type Firestore} from 'firebase-admin/firestore';
+ import {buildReadingSession} from '../data/readingScoring';
+ import {buildListeningSession} from '../data/listeningScoring';
++import {mayDisplayTrialPaper,TRIAL_RIGHTS_MESSAGE,type TrialRightsCheck} from '../lib/trialPaperRights';
+ import {consumePracticeDay,PRACTICE_SKILLS,assertPracticeAllowed,assertSkillPractice,hasPaidPractice,malaysiaPracticeDay} from './practicePolicy';
+-export function registerPracticeRoutes(app:express.Express,db:Firestore,verifyOverride?: (token:string)=>Promise<{uid:string}>){
++export function registerPracticeRoutes(app:express.Express,db:Firestore,verifyOverride?: (token:string)=>Promise<{uid:string}>,rights:TrialRightsCheck=mayDisplayTrialPaper){
+  const verify=async(req:any)=>{const token=req.headers.authorization?.match(/^Bearer (.+)$/i)?.[1];if(!token)throw Object.assign(Error('Please sign in again.'),{status:401});try{return verifyOverride?await verifyOverride(token):await getAuth().verifyIdToken(token);}catch{throw Object.assign(Error('Please sign in again.'),{status:401});}};
+  const fail=(res:any,e:any)=>res.status(e.status||503).json({error:e.status?e.message:'Could not save practice. Check your connection and try again.'});
+  const history=async(uid:string)=>{
+@@ -24,6 +25,7 @@ export function registerPracticeRoutes(app:express.Express,db:Firestore,verifyOv
+  for(const [kind,skill,build] of [['reading','read',buildReadingSession],['listening','listen',buildListeningSession]] as const){
+   app.post(`/api/${kind}/check`,async(req,res)=>{try{
+    const u=await verify(req),{testId,part,answers}=req.body||{};
++   if(!rights(String(testId)))return res.status(451).set('Cache-Control','private, no-store').json({error:TRIAL_RIGHTS_MESSAGE});
+    if(typeof testId!=='string'||!/^[-a-zA-Z0-9_]{1,100}$/.test(testId)||!Number.isInteger(part)||part<1||part>(skill==='read'?5:4)||!answers||typeof answers!=='object'||Array.isArray(answers)||Object.entries(answers).some(([n,v])=>!/^([1-9]|[1-3][0-9]|40)$/.test(n)||typeof v!=='string'||v.length>100))throw Object.assign(Error('Check your answers and try again.'),{status:400});
+    const previousParts=(await history(u.uid))[`${skill}:${testId}`]||[];
+    const day=malaysiaPracticeDay(),daily=db.doc(`practice_days/${u.uid}_${day}`),ref=db.doc(`users/${u.uid}/sessions/${skill}_trial_bank_${testId}`),lock=db.doc(`practice_progress/${u.uid}/tests/${skill}_${testId}`);
+diff --git a/tests/full-migration.test.ts b/tests/full-migration.test.ts
+index 72b1977..8e42969 100644
+--- a/tests/full-migration.test.ts
++++ b/tests/full-migration.test.ts
+@@ -102,20 +102,20 @@ test('persistent request budget handles concurrent duplicates and keeps profiles
+   assert.equal(await reserveAIRequest(database, 'missing', randomUUID(), 'task', env), 'no_profile');
+ });
+ 
+-test('Netlify listening audio preserves public source and seeking without an arbitrary URL proxy', async () => {
++test('authorized synthetic Netlify audio preserves seeking without an arbitrary URL proxy', async () => {
+   const test = TRIAL_LISTENING_TESTS[0];
+   const proxy = createNetlifyListeningAudio((async (url, options) => {
+     assert.ok(String(url).includes(test.audioFileId));
+     assert.equal((options?.headers as any).Range, `bytes=200-${200 + AUDIO_RESPONSE_BYTES - 1}`);
+     return new Response('audio', { status: 206, headers: { 'content-type': 'audio/mpeg', 'content-length': '5', 'content-range': 'bytes 200-204/70000000', 'cross-origin-resource-policy': 'same-site' } });
+-  }) as typeof fetch);
++  }) as typeof fetch, () => true);
+   const response = await proxy(new Request('https://preview.example/api/listening/audio/' + test.id, { headers: { Range: 'bytes=200-' } }));
+   assert.equal(response.status, 206); assert.equal(await response.text(), 'audio');
+   assert.equal(response.headers.get('content-range'), 'bytes 200-204/70000000');
+   assert.equal(response.headers.get('cross-origin-resource-policy'), null);
+-  const oversized = createNetlifyListeningAudio((async () => new Response('x', { headers: { 'content-type': 'audio/mpeg', 'content-length': '70000000' } })) as typeof fetch);
++  const oversized = createNetlifyListeningAudio((async () => new Response('x', { headers: { 'content-type': 'audio/mpeg', 'content-length': '70000000' } })) as typeof fetch, () => true);
+   assert.equal((await oversized(new Request('https://preview.example/api/listening/audio/' + test.id))).status, 502);
+-  assert.equal((await listeningAudio(new Request('https://preview.example/api/listening/audio/' + test.id, { headers: { Range: 'bytes=invalid' } }))).status, 416);
++  assert.equal((await listeningAudio(new Request('https://preview.example/api/listening/audio/' + test.id, { headers: { Range: 'bytes=invalid' } }))).status, 451);
+   assert.equal((await listeningAudio(new Request('https://preview.example/api/listening/audio/unknown'))).status, 404);
+ });
+ 
+diff --git a/tests/listening-audio.test.ts b/tests/listening-audio.test.ts
+index 80dae84..8b098ff 100644
+--- a/tests/listening-audio.test.ts
++++ b/tests/listening-audio.test.ts
+@@ -5,7 +5,8 @@ import { createListeningAudioHandler, validAudioRange } from '../src/server/list
+ 
+ async function withServer(fetcher: typeof fetch, action: (base: string) => Promise<void>) {
+   const app = express();
+-  app.get('/api/listening/audio/:testId', createListeningAudioHandler(fetcher));
++  // Synthetic transport fixtures only; production defaults remain fail-closed.
++  app.get('/api/listening/audio/:testId', createListeningAudioHandler(fetcher, () => true));
+   const server = app.listen(0, '127.0.0.1');
+   await new Promise<void>(resolve => server.once('listening', resolve));
+   const address = server.address() as { port: number };
+diff --git a/tests/practice-routes.test.ts b/tests/practice-routes.test.ts
+index 710ae69..ab096f3 100644
+--- a/tests/practice-routes.test.ts
++++ b/tests/practice-routes.test.ts
+@@ -9,7 +9,8 @@ test('shared budget, durable lock, idempotency and cross-skill use are enforced'
+  const snapshot=(path:string)=>({exists:store.has(path),data:()=>store.get(path)});
+  let queue=Promise.resolve();
+  const db:any={doc:(path:string)=>({path,get:async()=>snapshot(path)}),collection:(path:string)=>({get:async()=>({docs:[...store.entries()].filter(([k])=>k.startsWith(path+'/')).map(([,data])=>({data:()=>data}))})}),runTransaction:(fn:any)=>{const result=queue.then(()=>fn({get:async(ref:any)=>snapshot(ref.path),set:(ref:any,value:any)=>store.set(ref.path,value)}));queue=result.catch(()=>{});return result;}};
+- const app=express();app.use(express.json());registerPracticeRoutes(app,db,async()=>({uid:'u'}));const server=app.listen(0);await new Promise<void>(r=>server.once('listening',r));const port=(server.address() as any).port;
++ // Explicit authorization for synthetic grading fixtures, never production.
++ const app=express();app.use(express.json());registerPracticeRoutes(app,db,async()=>({uid:'u'}),()=>true);const server=app.listen(0);await new Promise<void>(r=>server.once('listening',r));const port=(server.address() as any).port;
+  const post=async(path:string,data:any)=>{const res=await fetch(`http://127.0.0.1:${port}/api/${path}`,{method:'POST',headers:{Authorization:'Bearer test','Content-Type':'application/json'},body:JSON.stringify(data)});return {status:res.status,body:await res.json() as any};};
+  try{
+   assert.equal((await post('practice/start',{skill:'speak',mock:true,requestId:'mock'})).status,403);

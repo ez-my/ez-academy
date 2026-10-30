@@ -1,7 +1,10 @@
+import {prepareCommission} from './affiliates';
 import { PACKAGES, PACKAGE_VERSION } from '../packages';
 import {PACKAGES as V3_PACKAGES} from '../legacyPackagesV3';
 import {PACKAGES as V2_PACKAGES} from '../legacyPackagesV2';
 import {DAILY_PRACTICE_LIMITS} from '../data/practiceLimits';
+import {priceFor, priceListForOrder, type PriceList} from '../pricing';
+import {loadPriceState} from './pricingStore';
 import {currentPurchase,millis} from '../data/subscriptionAccess';
 import type { Request, Response } from "express";
 import axios from "axios";
@@ -66,9 +69,15 @@ export const LEGACY_PLANS: Record<string, ServerPlanConfig> = {
 };
 
 export const SERVER_PLANS: Record<string, ServerPlanConfig> = PACKAGES;
-export function orderPlan(order: any) {
+export function orderPlan(order: any, byVersion?: ReadonlyMap<number, PriceList>) {
+  // packageVersion selects the ENTITLEMENT catalogue and must keep doing only that:
+  // code below branches on it to choose the purchase ledger format.
   const catalog = order.packageVersion === PACKAGE_VERSION ? SERVER_PLANS : order.packageVersion === 3 ? V3_PACKAGES : order.packageVersion === 2 ? V2_PACKAGES : !order.packageVersion ? LEGACY_PLANS : {};
-  return Object.hasOwn(catalog, order.planId) ? catalog[order.planId] : undefined;
+  const plan = Object.hasOwn(catalog, order.planId) ? catalog[order.planId] : undefined;
+  if (!plan || !byVersion) return plan;
+  // The price, and only the price, comes from the list this order was placed under.
+  const priceList = priceListForOrder(order, byVersion);
+  return priceList ? { ...plan, ...priceFor(order.planId, plan, priceList) } : plan;
 }
 
 
@@ -140,11 +149,14 @@ export async function applySuccessfulEntitlement(
     source: 'callback' | 'reconciliation' | 'manual_approval'; adminId?: string; adminNote?: string; externalRefNo?: string }
 ): Promise<{ success: boolean; alreadyProcessed: boolean; plan: string; creditsAdded: number; message: string }> {
   const txRef = firestore.collection('transactions').doc(txId);
+  // Resolved before the transaction opens: a transaction cannot await an unrelated read,
+  // and orderPlan has to stay synchronous for the callers that run inside filters.
+  const { byVersion } = await loadPriceState(firestore);
   return firestore.runTransaction(async t => {
     const txDoc = await t.get(txRef);
     if (!txDoc.exists) throw new Error('Payment order not found.');
     const order = normalizedPaymentOrder(txDoc.data()!);
-    const plan = orderPlan(order);
+    const plan = orderPlan(order, byVersion);
     if (!plan || !order.userId || order.amountInCents !== plan.amountInCents || order.currency !== 'MYR')
       throw new Error('The saved order is not valid.');
     const manual = verification.source === 'manual_approval';
@@ -173,6 +185,8 @@ export async function applySuccessfulEntitlement(
       crypto.createHash('sha256').update(verification.transactionId!).digest('hex')) : null;
     const invoice = invoiceRef ? await t.get(invoiceRef) : null;
     if (invoice?.exists && invoice.data()?.orderId !== txId) throw new Error('This bank payment has already been used.');
+    const writeCommission = await prepareCommission(firestore, t, txId, order);
+    writeCommission();
     const now = new Date();
     if(order.packageVersion===PACKAGE_VERSION||order.packageVersion===3||(packageData.purchases||[]).length){
       const pack:ServerPlanConfig=plan;

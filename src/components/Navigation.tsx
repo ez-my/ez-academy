@@ -20,6 +20,7 @@ import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { AppModule } from '../types';
 import { cn } from '../lib/utils';
+import { OfficialSocialLinks } from './social/OfficialSocialLinks';
 
 // Helper to render lucide icon from string
 const LucideIcon = ({ name, size = 20, className = "" }: { name: string, size?: number, className?: string }) => {
@@ -186,6 +187,10 @@ export const Navigation: React.FC<NavigationProps> = ({
           })}
         </nav>
 
+        <div className="px-3 xl:px-6 py-3 border-t border-white/5">
+          <p className="hidden xl:block mb-1 text-[10px] font-semibold uppercase tracking-widest text-white/40">Follow EZ Academy</p>
+          <div className="flex xl:justify-start justify-center"><OfficialSocialLinks variant="sidebar" /></div>
+        </div>
         <div className="p-6 border-t border-white/5 pb-20 lg:pb-6 space-y-4">
           <div className="xl:flex items-center gap-3">
              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-primary/40 to-blue-500/40 border border-white/10 flex items-center justify-center text-xs font-bold shrink-0">

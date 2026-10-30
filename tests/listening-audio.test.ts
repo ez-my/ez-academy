@@ -5,7 +5,8 @@ import { createListeningAudioHandler, validAudioRange } from '../src/server/list
 
 async function withServer(fetcher: typeof fetch, action: (base: string) => Promise<void>) {
   const app = express();
-  app.get('/api/listening/audio/:testId', createListeningAudioHandler(fetcher));
+  // Synthetic transport fixtures only; production defaults remain fail-closed.
+  app.get('/api/listening/audio/:testId', createListeningAudioHandler(fetcher, () => true));
   const server = app.listen(0, '127.0.0.1');
   await new Promise<void>(resolve => server.once('listening', resolve));
   const address = server.address() as { port: number };

@@ -1,4 +1,7 @@
+import {resolveReferral,ReferralError} from './affiliates';
 import { PACKAGE_VERSION } from '../packages';
+import { priceFor } from '../pricing';
+import { loadPriceState } from './pricingStore';
 import type { Express } from 'express';
 import { getAuth, type DecodedIdToken } from 'firebase-admin/auth';
 import { FieldValue, Timestamp, type Firestore, type DocumentSnapshot } from 'firebase-admin/firestore';
@@ -66,10 +69,14 @@ export function registerPaymentRoutes(app: Express, adminDb: Firestore, override
         return res.status(503).json({ success: false, message: 'Online payment setup is incomplete. Please contact us.' });
       }
       if (!['fpx', 'duitnow_qr'].includes(channel)) return res.status(400).json({success:false, message:'Choose a payment method.'});
-      const planConfig = typeof planId === 'string' && Object.hasOwn(SERVER_PLANS, planId) ? SERVER_PLANS[planId] : undefined;
-      if (!planConfig) {
+      const basePlan = typeof planId === 'string' && Object.hasOwn(SERVER_PLANS, planId) ? SERVER_PLANS[planId] : undefined;
+      if (!basePlan) {
         return res.status(400).json({ success: false, message: `Invalid plan selected: ${planId}` });
       }
+      // The amount charged is the published price, resolved here on the server. The
+      // version is recorded on the order so a later publish cannot change what is owed.
+      const { active: activePrices } = await loadPriceState(adminDb);
+      const planConfig = { ...basePlan, ...priceFor(basePlan.id, basePlan, activePrices) };
 
       if (channel === 'duitnow_qr' && !TOYYIBPAY_DUITNOW_QR_ENABLED) {
         return res.status(400).json({ 
@@ -92,13 +99,16 @@ export function registerPaymentRoutes(app: Express, adminDb: Firestore, override
       const txRef = adminDb.collection('transactions').doc();
       const txId = txRef.id;
 
+      const referral = await resolveReferral(adminDb, decodedUser.uid, req.body.referralCode);
       await txRef.set({
+        ...referral,
         id: txId,
         userId,
         userEmail,
         userName,
         planId: planConfig.id,
         packageVersion: PACKAGE_VERSION,
+        ...(activePrices ? { priceVersion: activePrices.version } : {}),
         planName: planConfig.name,
         amount: planConfig.price,
         amountInCents: planConfig.amountInCents,
@@ -164,6 +174,7 @@ export function registerPaymentRoutes(app: Express, adminDb: Firestore, override
         return res.status(400).json({ success: false, message: `Payment gateway error: ${msg}` });
       }
     } catch (err: any) {
+      if (err instanceof ReferralError) return res.status(400).json({success:false,message:err.message});
       // Axios errors contain the submitted API key and payer details.
       console.error('[Payment Checkout Error]', err?.code || err?.response?.status || 'Gateway unavailable');
       res.status(500).json({ success: false, message: "Failed to initiate payment. Please try again." });
@@ -302,16 +313,20 @@ export function registerPaymentRoutes(app: Express, adminDb: Firestore, override
       }
 
       const { planId } = req.body;
-      const planConfig = typeof planId === 'string' && Object.hasOwn(SERVER_PLANS, planId) ? SERVER_PLANS[planId] : undefined;
-      if (!planConfig) {
+      const baseTransferPlan = typeof planId === 'string' && Object.hasOwn(SERVER_PLANS, planId) ? SERVER_PLANS[planId] : undefined;
+      if (!baseTransferPlan) {
         return res.status(400).json({ success: false, message: "Invalid plan selected." });
       }
+      const { active: activeTransferPrices } = await loadPriceState(adminDb);
+      const planConfig = { ...baseTransferPlan, ...priceFor(baseTransferPlan.id, baseTransferPlan, activeTransferPrices) };
 
       const orderRef = `EZ-BT-${Date.now().toString().slice(-6)}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
       const txDocRef = adminDb.collection('transactions').doc();
       const txId = txDocRef.id;
 
+      const referral = await resolveReferral(adminDb, decodedUser.uid, req.body.referralCode);
       await txDocRef.set({
+        ...referral,
         id: txId,
         orderReference: orderRef,
         userId: decodedUser.uid,
@@ -319,6 +334,7 @@ export function registerPaymentRoutes(app: Express, adminDb: Firestore, override
         userName: decodedUser.name || "EZ Academy Student",
         planId: planConfig.id,
         packageVersion: PACKAGE_VERSION,
+        ...(activeTransferPrices ? { priceVersion: activeTransferPrices.version } : {}),
         planName: planConfig.name,
         amount: planConfig.price,
         amountInCents: planConfig.amountInCents,
@@ -354,6 +370,7 @@ export function registerPaymentRoutes(app: Express, adminDb: Firestore, override
         }
       });
     } catch (err: any) {
+      if (err instanceof ReferralError) return res.status(400).json({success:false,message:err.message});
       console.error("[Manual Initiate Error]:", err);
       res.status(500).json({ success: false, message: "Failed to create bank transfer order." });
     }

@@ -84,8 +84,10 @@ service cloud.firestore {
 
     // 2. Users & Profile Data
     match /users/{userId} {
-      allow get: if true;
-      allow list: if true;
+      // Full profile documents contain private fields. The public leaderboard
+      // is served separately by the API with a restricted field allowlist.
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
       
       allow create: if isOwner(userId) && isValidId(userId) && isValidUser(incoming())
         && incoming().uid == request.auth.uid && incoming().get('plan', 'free') == 'free'
@@ -117,6 +119,15 @@ service cloud.firestore {
         allow delete: if isAdmin();
       }
     }
+
+    // Affiliate balances, codes and payout details are server-owned.
+    match /affiliate_accounts/{id} { allow read, write: if false; }
+    match /affiliate_codes/{id} { allow read, write: if false; }
+    match /affiliate_commissions/{id} { allow read, write: if false; }
+    match /affiliate_claims/{id} { allow read, write: if false; }
+    match /reward_codes/{id} { allow read, write: if false; }
+    match /reward_redemptions/{code}/users/{id} { allow read, write: if false; }
+    match /reward_user_history/{id}/items/{code} { allow read, write: if false; }
 
     // 3. Global Question Bank
     match /questions/{questionId} {
@@ -158,7 +169,17 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // 9. Collection Group Queries
+    // 9. Published prices — written only by the server through the Admin SDK, which
+    // bypasses these rules. Clients read prices through /api/pricing instead, so no
+    // client access is granted here.
+    match /pricing/{docId} {
+      allow read, write: if false;
+    }
+    match /pricing_versions/{version} {
+      allow read, write: if false;
+    }
+
+    // 10. Collection Group Queries
     match /{path=**}/sessions/{sessionId} {
       allow list: if isAdmin();
     }

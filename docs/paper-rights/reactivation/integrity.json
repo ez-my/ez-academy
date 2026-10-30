@@ -1,0 +1,413 @@
+{
+  "localOriginalFiles": 66,
+  "unchanged": true,
+  "originals": [
+    {
+      "file": "src/data/listeningLayout.ts",
+      "before": "99eab71d88291142a065759afcd34869996c545594926c5e9b6da1974fab588a",
+      "after": "99eab71d88291142a065759afcd34869996c545594926c5e9b6da1974fab588a",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/johor-2025.json",
+      "before": "e85f2dbca6249e0ade0ce7859ddcf14917095654afe55dc6b00fa834d7440d2b",
+      "after": "e85f2dbca6249e0ade0ce7859ddcf14917095654afe55dc6b00fa834d7440d2b",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/johor-batu-pahat-2024.json",
+      "before": "cf28850083ba9441710248e6f2016f468c4da3b2e550165327963d101f7654f3",
+      "after": "cf28850083ba9441710248e6f2016f468c4da3b2e550165327963d101f7654f3",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/johor-batu-pahat-2026.json",
+      "before": "8e0a52838e9ca4c09e6ab515166bebe2e2bd6fc6796cd98adf13d5f7f88a19ba",
+      "after": "8e0a52838e9ca4c09e6ab515166bebe2e2bd6fc6796cd98adf13d5f7f88a19ba",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/johor-kluang-set-a-2024.json",
+      "before": "ac4c8dbe805674c967fcd2af914e8d8d387284a7febe4d175c7d576dd9c5799f",
+      "after": "ac4c8dbe805674c967fcd2af914e8d8d387284a7febe4d175c7d576dd9c5799f",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/johor-kluang-set-b-2024.json",
+      "before": "53abd2e0a2070342867a7808388331aa16613dc3b64e1af6faa4baec84e266de",
+      "after": "53abd2e0a2070342867a7808388331aa16613dc3b64e1af6faa4baec84e266de",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/johor-muar-2024.json",
+      "before": "69cbbb54dc17a236fbdc110efbc2850f2a22f62967fbf864ff554862176238d9",
+      "after": "69cbbb54dc17a236fbdc110efbc2850f2a22f62967fbf864ff554862176238d9",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/johor-pontian-2024.json",
+      "before": "110d7f60abce3c9ec6275bdca128dcbf7b834aa2f2404ee9d3f46ce3bc450f22",
+      "after": "110d7f60abce3c9ec6275bdca128dcbf7b834aa2f2404ee9d3f46ce3bc450f22",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/johor-segamat-set-1-2024.json",
+      "before": "5666497b3400cb05047848e4fd6553ccd38bd021ebc4c38a3774d41d67b189d0",
+      "after": "5666497b3400cb05047848e4fd6553ccd38bd021ebc4c38a3774d41d67b189d0",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/johor-segamat-set-2-2024.json",
+      "before": "dbbdc1445eeeb5b532f599c97b2c9199b0bbc516d63025250350482910075087",
+      "after": "dbbdc1445eeeb5b532f599c97b2c9199b0bbc516d63025250350482910075087",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/kedah-2024.json",
+      "before": "dbd3946a119c72fccbca4dd043f089021672e4f54f9362b07573a89cd899c73e",
+      "after": "dbd3946a119c72fccbca4dd043f089021672e4f54f9362b07573a89cd899c73e",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/kedah-2025.json",
+      "before": "30bf733fbcad568f3960550000c321e3d42742f53e28b05294b98e8784d2509a",
+      "after": "30bf733fbcad568f3960550000c321e3d42742f53e28b05294b98e8784d2509a",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/kedah-2026.json",
+      "before": "affd111dbfdca305b12815307020148453f86e2dacc11e9f2285bc79b585d746",
+      "after": "affd111dbfdca305b12815307020148453f86e2dacc11e9f2285bc79b585d746",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/kelantan-2024.json",
+      "before": "9a7f1337c0acaec2210687801c97fe559e25a9140eff1d0aa6cfdb5ad2f7124b",
+      "after": "9a7f1337c0acaec2210687801c97fe559e25a9140eff1d0aa6cfdb5ad2f7124b",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/kelantan-2025.json",
+      "before": "fba69ee86fa14e7697457856b1042216ec508015b374f41bbf21711775e0971d",
+      "after": "fba69ee86fa14e7697457856b1042216ec508015b374f41bbf21711775e0971d",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/kelantan-2026.json",
+      "before": "d85023aca409ba10fad82e3c40a70e4c7aaaf706699b2eb85c01aece3469cf2d",
+      "after": "d85023aca409ba10fad82e3c40a70e4c7aaaf706699b2eb85c01aece3469cf2d",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/kuala-lumpur-2026.json",
+      "before": "f9ca2b2c62cd5dcd4ecb67ec9ef7174dc23fc5ffaeb99f53a8c8f54cd2addaf7",
+      "after": "f9ca2b2c62cd5dcd4ecb67ec9ef7174dc23fc5ffaeb99f53a8c8f54cd2addaf7",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/melaka-2024.json",
+      "before": "7f3714df32410d72521706a99f0bbb716b7a2935d2dd498890eab4a834f2a000",
+      "after": "7f3714df32410d72521706a99f0bbb716b7a2935d2dd498890eab4a834f2a000",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/melaka-2025.json",
+      "before": "9da111d6ba770fd1e0b6280e67235170bf76d8879c28b66d67c921c1c0c1093d",
+      "after": "9da111d6ba770fd1e0b6280e67235170bf76d8879c28b66d67c921c1c0c1093d",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/melaka-2026.json",
+      "before": "a1587918764d3fdd0670f23e99001e45db515ca711f18b77b0ea93288e1cca24",
+      "after": "a1587918764d3fdd0670f23e99001e45db515ca711f18b77b0ea93288e1cca24",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/n9-2024.json",
+      "before": "85699133b44776297f9d166df39f9df7b26a17d2a250414bc917d45e286e3e40",
+      "after": "85699133b44776297f9d166df39f9df7b26a17d2a250414bc917d45e286e3e40",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/negeri-sembilan-2025.json",
+      "before": "034561fc16759fd5601c2cf3340e1a3ded4126b15ceb728ccf982640e3ca7168",
+      "after": "034561fc16759fd5601c2cf3340e1a3ded4126b15ceb728ccf982640e3ca7168",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/negeri-sembilan-2026.json",
+      "before": "fb7f53ea6ec2f21187e7f9222bf1cf613c0ae67ee4568f3e9f9d9257528d4f0f",
+      "after": "fb7f53ea6ec2f21187e7f9222bf1cf613c0ae67ee4568f3e9f9d9257528d4f0f",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/pahang-2024.json",
+      "before": "d05e2f3b50fb82ede36113d630df56457e3cf92d7ab241b196b9350a6dd75ba7",
+      "after": "d05e2f3b50fb82ede36113d630df56457e3cf92d7ab241b196b9350a6dd75ba7",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/pahang-2025.json",
+      "before": "7750d058e43852024b30b2c002d2dc9dd03d6f5b8e470046f7dc321b6c631b7b",
+      "after": "7750d058e43852024b30b2c002d2dc9dd03d6f5b8e470046f7dc321b6c631b7b",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/pahang-2026.json",
+      "before": "17588c002aba01b5574e2ec5fc63daf5b59e47f844d342c1ff68e5951a7dabc6",
+      "after": "17588c002aba01b5574e2ec5fc63daf5b59e47f844d342c1ff68e5951a7dabc6",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/penang-2024.json",
+      "before": "7b9c3f8d4ab1ff91b3c051f6392a01dd5bbafd7ed26b62abd5b5ac1228d14528",
+      "after": "7b9c3f8d4ab1ff91b3c051f6392a01dd5bbafd7ed26b62abd5b5ac1228d14528",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/penang-sabk-2026.json",
+      "before": "5a31c8885f7456afab8fc86123dc6af65e48443c82415a055f0f7af74db3b931",
+      "after": "5a31c8885f7456afab8fc86123dc6af65e48443c82415a055f0f7af74db3b931",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/penang-spu-2025.json",
+      "before": "c9127821df8d6f8d71c1c91afd2ae174adc990512a250286d32431684faadbb8",
+      "after": "c9127821df8d6f8d71c1c91afd2ae174adc990512a250286d32431684faadbb8",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/perak-2024.json",
+      "before": "6870b1fcefb64451ef693a5f0843fae381099540179e4fbf7160b2c70b2a7ba7",
+      "after": "6870b1fcefb64451ef693a5f0843fae381099540179e4fbf7160b2c70b2a7ba7",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/perak-2025.json",
+      "before": "e14952434fc5560e7841ec66d6c3794ba1650d53fd62005a5c0225d709c43108",
+      "after": "e14952434fc5560e7841ec66d6c3794ba1650d53fd62005a5c0225d709c43108",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/perak-2026.json",
+      "before": "33d5c1a31887ddd9e9971ef967c2759f5fbbb44b0fba4f2c5880285e9ee59ab4",
+      "after": "33d5c1a31887ddd9e9971ef967c2759f5fbbb44b0fba4f2c5880285e9ee59ab4",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/perlis-2024.json",
+      "before": "5eb14587ebfd9f4d1f9a19492a652945725caf409cd49eefcf3508a410ee07f9",
+      "after": "5eb14587ebfd9f4d1f9a19492a652945725caf409cd49eefcf3508a410ee07f9",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/perlis-2025.json",
+      "before": "9b50da3dd08a3ac1868dd6adda6c48774c35a5dd14096cd3720511c4c9bb3964",
+      "after": "9b50da3dd08a3ac1868dd6adda6c48774c35a5dd14096cd3720511c4c9bb3964",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/perlis-2026.json",
+      "before": "a28774505bb956a58d1ed43955649b5e46d4a7933b8cbbedc8318ed9d8799df4",
+      "after": "a28774505bb956a58d1ed43955649b5e46d4a7933b8cbbedc8318ed9d8799df4",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/putrajaya-2025.json",
+      "before": "ec0e041dc69c265a8d63b9bea99e06809df5dfd918ed9c911a33c0cb7c246df6",
+      "after": "ec0e041dc69c265a8d63b9bea99e06809df5dfd918ed9c911a33c0cb7c246df6",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/putrajaya-2026.json",
+      "before": "e873359ad5a4e718824abed02d4e4e1138e9b1ad4d739935bdfb352a34bf4f89",
+      "after": "e873359ad5a4e718824abed02d4e4e1138e9b1ad4d739935bdfb352a34bf4f89",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/sabah-lahad-datu-2026.json",
+      "before": "f6833672671f5eb6c152e160fe51408564d4b092c94803753067e50c906bf84c",
+      "after": "f6833672671f5eb6c152e160fe51408564d4b092c94803753067e50c906bf84c",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/sabk-set-1-2025.json",
+      "before": "07ac04bb61714430ceae6a6974774f4d24e110bb636c793b8d9879f8f716568f",
+      "after": "07ac04bb61714430ceae6a6974774f4d24e110bb636c793b8d9879f8f716568f",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/sabk-set-2-2025.json",
+      "before": "ca8d5fc4fdd4fdae673cf705ed2dce3bb93f1b19a9eaa5e4be5102c65426495a",
+      "after": "ca8d5fc4fdd4fdae673cf705ed2dce3bb93f1b19a9eaa5e4be5102c65426495a",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/sarawak-2026.json",
+      "before": "8ea23af721028c2bd9e3f2bc45607a4bdaf66a056521d7e1c0e398654447c6a9",
+      "after": "8ea23af721028c2bd9e3f2bc45607a4bdaf66a056521d7e1c0e398654447c6a9",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/sarawak-lubok-antu-2024.json",
+      "before": "f67910cc97e579dfcaefc82d92e5bd33ca2d237101eafa69eb3f8d0046a3ccb2",
+      "after": "f67910cc97e579dfcaefc82d92e5bd33ca2d237101eafa69eb3f8d0046a3ccb2",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/sbp-2026.json",
+      "before": "2e68f48fe91c5a36db546f17da54dd8604443c2f20fb602a35d550594b931832",
+      "after": "2e68f48fe91c5a36db546f17da54dd8604443c2f20fb602a35d550594b931832",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/selangor-2025.json",
+      "before": "63dbba746765fca2cd0e9214a1759480850d6063f520c0d24448d24c579caed5",
+      "after": "63dbba746765fca2cd0e9214a1759480850d6063f520c0d24448d24c579caed5",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/selangor-set-1-2024.json",
+      "before": "4a7f8ee3f736f300767e25366fe700b70fd53e1988fac7ac478836cf1572f3ef",
+      "after": "4a7f8ee3f736f300767e25366fe700b70fd53e1988fac7ac478836cf1572f3ef",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/selangor-set-1-2026.json",
+      "before": "2c38dc7ec8d4a73acb283ad0913086fc4d6e616252274597b6d8a0f4f9522a92",
+      "after": "2c38dc7ec8d4a73acb283ad0913086fc4d6e616252274597b6d8a0f4f9522a92",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/selangor-set-2-2024.json",
+      "before": "e16b003e267df9f6a4d53c534a8ab30066eef7fa3c75af0affcda58d1d94dfce",
+      "after": "e16b003e267df9f6a4d53c534a8ab30066eef7fa3c75af0affcda58d1d94dfce",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/selangor-set-2-2026.json",
+      "before": "bf1b6e35bf683f769fbad4489927013ddb4a7a8f5b0338917af025e585824c9f",
+      "after": "bf1b6e35bf683f769fbad4489927013ddb4a7a8f5b0338917af025e585824c9f",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/smka-and-sabk-2024.json",
+      "before": "5c9d302def0507ad7a55ff36027d78388a2835ab663e6eb936cc9c3d95e16b95",
+      "after": "5c9d302def0507ad7a55ff36027d78388a2835ab663e6eb936cc9c3d95e16b95",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/terengganu-2024.json",
+      "before": "5c43090a8245c702dd81f4115864fb5db133780c31c523444555390b79cf0c67",
+      "after": "5c43090a8245c702dd81f4115864fb5db133780c31c523444555390b79cf0c67",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/terengganu-2025.json",
+      "before": "36427d982f3162edc32ad98bd23577a525d40c0c5cf78b9e27a69fbe1ee886a8",
+      "after": "36427d982f3162edc32ad98bd23577a525d40c0c5cf78b9e27a69fbe1ee886a8",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingPapers/terengganu-2026.json",
+      "before": "132dc2eae177f687099715b08650c09178c17545bdfc61a992eef35bd3d00b7f",
+      "after": "132dc2eae177f687099715b08650c09178c17545bdfc61a992eef35bd3d00b7f",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/readingTextLayout.ts",
+      "before": "c4dc0f5a27152433d7ff65b9d5432136689dec12bb6db9ee23d409d4bd3b590a",
+      "after": "c4dc0f5a27152433d7ff65b9d5432136689dec12bb6db9ee23d409d4bd3b590a",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/trialListening2024.ts",
+      "before": "479029f7512aee1c8d00903bfc5f29bb18f1d668f7c8bb5e2706b7bb298fd583",
+      "after": "479029f7512aee1c8d00903bfc5f29bb18f1d668f7c8bb5e2706b7bb298fd583",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/trialListening2025.ts",
+      "before": "f76765e8b5b3d4412d3e723133e8c6479cbe5768c030afcd43469a0e35f3c881",
+      "after": "f76765e8b5b3d4412d3e723133e8c6479cbe5768c030afcd43469a0e35f3c881",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/trialListeningKeys.ts",
+      "before": "d8d27a231fbe6d92b6c6a99a68263748062740fc6a8c2d176d482b9fb406823e",
+      "after": "d8d27a231fbe6d92b6c6a99a68263748062740fc6a8c2d176d482b9fb406823e",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/trialListeningKeys2024.ts",
+      "before": "a010b208cf374dd2ed346e020d328f67e8d42eff9509ac5c895c71b2cc1f7438",
+      "after": "a010b208cf374dd2ed346e020d328f67e8d42eff9509ac5c895c71b2cc1f7438",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/trialListeningParts.ts",
+      "before": "66e06f85875d354746f3cc181737a567762efcc33be20fbd1df5029bbf9d5a14",
+      "after": "66e06f85875d354746f3cc181737a567762efcc33be20fbd1df5029bbf9d5a14",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/trialListeningParts2024.ts",
+      "before": "2f9c69b5bd52791dad8b21cc5bf3aae91a61aa3d0d45489d754e5fff993c9a5c",
+      "after": "2f9c69b5bd52791dad8b21cc5bf3aae91a61aa3d0d45489d754e5fff993c9a5c",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/trialListeningParts2025.ts",
+      "before": "65adcded332a20f87be974e65e647d4b70ca8e0346bcd5f1182f5a853fdc09f1",
+      "after": "65adcded332a20f87be974e65e647d4b70ca8e0346bcd5f1182f5a853fdc09f1",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/trialListeningScans.ts",
+      "before": "230297079bfc3ed8d0af4fc627068eb4406c9c598f714fb8b30058b91f801058",
+      "after": "230297079bfc3ed8d0af4fc627068eb4406c9c598f714fb8b30058b91f801058",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/trialListeningTests.ts",
+      "before": "d7133375e6f4998e85b1213acbee8151aea46d6a852fd6288f949c898f7f668f",
+      "after": "d7133375e6f4998e85b1213acbee8151aea46d6a852fd6288f949c898f7f668f",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/trialReading2024.ts",
+      "before": "b5a7b2f9379e1cb1c64516f509dbc5570a12c67e4159394895a5732210b1cfb1",
+      "after": "b5a7b2f9379e1cb1c64516f509dbc5570a12c67e4159394895a5732210b1cfb1",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/trialReadingKeys.ts",
+      "before": "51cda93b431ba2e8df8aea44c9a85cfcddc9e82b231ab63be5c82291ea690eb1",
+      "after": "51cda93b431ba2e8df8aea44c9a85cfcddc9e82b231ab63be5c82291ea690eb1",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/trialReadingKeys2024.ts",
+      "before": "76d9e67e89d5a35dfa072cb8b05dd8692de713dc1fa8669a5dd93961d5332dc0",
+      "after": "76d9e67e89d5a35dfa072cb8b05dd8692de713dc1fa8669a5dd93961d5332dc0",
+      "unchanged": true
+    },
+    {
+      "file": "src/data/trialReadingTests.ts",
+      "before": "c32d745c2b0bcc0896f8d20541214f5d71fa94dc7236c98c85128b11b86c3772",
+      "after": "c32d745c2b0bcc0896f8d20541214f5d71fa94dc7236c98c85128b11b86c3772",
+      "unchanged": true
+    }
+  ],
+  "authorizedFamilies": {
+    "reading": 51,
+    "listening": 40
+  },
+  "sourceIdReferences": 216,
+  "uniqueSourceIds": 212,
+  "readingPageInstances": 675,
+  "uniquePageImages": 675,
+  "uniqueFigures": 24,
+  "emittedReadingImageAssets": 699,
+  "remoteOriginals": "Not downloaded or rehashed in this task; prior audit evidence retained unchanged; no external writes."
+}

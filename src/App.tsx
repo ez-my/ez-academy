@@ -26,9 +26,9 @@ const MarketingEZEnglish = lazy(() => import('./pages/marketing/EZEnglish').then
 const MarketingPrograms = lazy(() => import('./pages/marketing/Programs').then(m => ({ default: m.MarketingPrograms })));
 const MarketingResources = lazy(() => import('./pages/marketing/Resources').then(m => ({ default: m.MarketingResources })));
 const ContentPage = lazy(() => import('./pages/marketing/ContentPage').then(m => ({ default: m.ContentPage })));
+const LegalInfo = lazy(() => import('./pages/marketing/LegalInfo').then(m => ({ default: m.LegalInfo })));
 const PaymentGate = lazy(() => import('./pages/PaymentGate'));
 const AdminPage = lazy(() => import('./pages/AdminPage').then(m => ({ default: m.AdminPage })));
-const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const ProfilePage = lazy(() => import('./pages/ProfilePage').then(m => ({ default: m.ProfilePage })));
 const PricingPage = lazy(() => import('./pages/PricingPage').then(m => ({ default: m.PricingPage })));
 const MUETPage = lazy(() => import('./pages/MUETPage').then(m => ({ default: m.MUETPage })));
@@ -167,11 +167,13 @@ const ProtectedApp = ({
         <Route path="/listenez" element={<ModuleGuard slug="listenez" modules={modules} isAdmin={isAdmin} onNavigate={navigate}><>{skillProfile('listen')?.plan === 'free' && <GeneralFeedbackPanel skill="listen"/>}<ListenEZ profile={skillProfile('listen')!} /></></ModuleGuard>} />
         <Route path="/support" element={<SupportPage/>} />
         <Route path="/history" element={<History />} />
+        {/* One admin workspace. /admin/monitor was the second entry point; it now
+            redirects, carrying its ?tab= through so old links still land correctly. */}
         <Route path="/admin" element={
-          isAdmin ? <AdminDashboard /> : <Navigate to="/app" replace />
+          isAdmin ? <AdminPage /> : <Navigate to="/app" replace />
         } />
         <Route path="/admin/monitor" element={
-          isAdmin ? <AdminPage /> : <Navigate to="/app" replace />
+          <Navigate to={`/app/admin${window.location.search}`} replace />
         } />
         <Route path="/profile" element={<ProfilePage profile={profile} onLogout={handleLogout} />} />
         <Route path="/pricing" element={<PricingPage profile={profile} />} />
@@ -348,6 +350,8 @@ export default function App() {
         <Route path="/ecosystem" element={<MarketingEcosystem />} />
         <Route path="/programs" element={<MarketingPrograms />} />
         <Route path="/resources" element={<MarketingResources />} />
+        <Route path="/privacy" element={<LegalInfo kind="privacy" />} />
+        <Route path="/terms" element={<LegalInfo kind="terms" />} />
         <Route path="/section/:slug" element={<ContentPage />} />
       </Route>
 

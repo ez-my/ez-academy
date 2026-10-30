@@ -1,3 +1,4 @@
+import {mayDisplayTrialPaper,TRIAL_RIGHTS_MESSAGE} from '../lib/trialPaperRights';
 import type { Request, Response } from 'express';
 import {gradeListeningPart,buildListeningSession} from '../data/listeningScoring';
 export {gradeListeningPart,samePartAnswers,buildListeningSession} from '../data/listeningScoring';
@@ -13,6 +14,7 @@ export function createListeningCheckHandler(deps:Dependencies) {
     try {if(!token) throw Error(); uid=(await deps.verifyToken(token)).uid; if(!uid) throw Error();}
     catch {return res.status(401).json({error:'Please sign in again to check your answers.'});}
     const {testId,part,answers,attemptId}=req.body || {};
+    if(!mayDisplayTrialPaper(testId,'listening'))return res.status(451).set('Cache-Control','private, no-store').json({error:TRIAL_RIGHTS_MESSAGE});
     if(typeof testId!=='string' || !Number.isInteger(part) || part<1 || part>4 ||
       typeof attemptId!=='string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(attemptId) ||
       !answers || typeof answers!=='object' || Array.isArray(answers) || Object.entries(answers).some(([n,v])=>!/^(?:[1-9]|[12]\d|30)$/.test(n)||typeof v!=='string'||v.length>100)) {

@@ -9,7 +9,7 @@ import {randomUUID} from 'node:crypto';
 import {MUET_EXTRA_TOPICS} from '../data/muetExtraTopics';
 import {MUET_TOPICS} from '../data/muetTopicsBank';
 import {topicFingerprint,validateMUETTopic,unseenTopics} from './muetBankPolicy';
-import {consumePracticeDay,malaysiaPracticeDay,hasPaidPractice,assertPracticeAllowed,assertSkillPractice} from './practicePolicy';
+import {consumePracticeWithReward,malaysiaPracticeDay,hasPaidPractice,assertPracticeAllowed} from './practicePolicy';
 const SEED_TOPICS=[...MUET_REVIEWED_TOPICS,...MUET_EXTRA_TOPICS];
 const revision='muet-speaking-v3';
 const error=(message:string,status:number)=>Object.assign(Error(message),{status});
@@ -44,8 +44,8 @@ export function registerMUETBankRoutes(app:Express,db:Firestore,overrides?:{veri
   const result=await db.runTransaction(async t=>{const [a,b,p,l,d,r,question]=await Promise.all([t.get(db.doc(`muet_progress/${user.uid}/completed/${topicId}:Part1`)),t.get(db.doc(`muet_progress/${user.uid}/completed/${topicId}:Part2`)),t.get(db.doc(`users/${user.uid}`)),t.get(db.doc(`package_entitlements/${user.uid}`)),t.get(daily),t.get(receipt),t.get(db.doc(`muet_speaking_bank/${topicId}`))]);
    if(!question.exists)throw error('Choose a question from the bank.',400);
    if((mode==='Part1'&&a.exists)||(mode==='Part2'&&b.exists)||(mode==='Mock'&&(a.exists||b.exists)))throw error('You have completed this question. Choose a new question.',409);
-   const used=Number(d.data()?.used||0);if(r.exists){if(r.data()?.topicId!==topicId||r.data()?.mode!==mode||r.data()?.day&&r.data()?.day!==day)throw error('Use a new request for this question.',409);return {used};}const paid=hasPaidPractice(p.data()||{},l.data()||{},'speak');assertSkillPractice(p.data()||{},l.data()||{},d.data()||{},'speak',mode==='Mock');
-   const updated=consumePracticeDay(p.data()||{},l.data()||{},d.data()||{},day,'speak',mode==='Mock');const next=updated.used;t.set(daily,updated);t.set(receipt,{topicId,mode,day,createdAt:Date.now()});return {used:next};
+   const used=Number(d.data()?.used||0);if(r.exists){if(r.data()?.topicId!==topicId||r.data()?.mode!==mode||r.data()?.day&&r.data()?.day!==day)throw error('Use a new request for this question.',409);return {used};}
+   const {updated,rewardCreditUsed}=consumePracticeWithReward(p.data()||{},l.data()||{},d.data()||{},day,'speak',mode==='Mock');const next=updated.used;t.set(daily,updated);if(rewardCreditUsed)t.set(db.doc(`package_entitlements/${user.uid}`),{rewardPracticeCredits:Number(l.data()?.rewardPracticeCredits||0)-1},{merge:true});t.set(receipt,{topicId,mode,day,createdAt:Date.now(),rewardCreditUsed});return {used:next};
   });res.json(result);
  }catch(e){fail(res,e);}});
  app.post('/api/muet/complete',async(req,res)=>{try{

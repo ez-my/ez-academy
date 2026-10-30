@@ -1,0 +1,68 @@
+✔ task boundary rejects generic prompts, identity overrides and invalid enums (0.954167ms)
+✔ provider preserves JSON, text and audio contracts with server-owned models (4.065625ms)
+✔ parallel student requests never share provider context (1.252167ms)
+✔ authenticated task route executes original rubric and rejects untrusted callers before spending (45.808917ms)
+✔ persistent request budget handles concurrent duplicates and keeps profiles unchanged (0.957042ms)
+✔ authorized synthetic Netlify audio preserves seeking without an arbitrary URL proxy (1.93325ms)
+✔ SPM writing rubrics request the exact level and check symbols consumed by the original UI (1.800083ms)
+✔ single byte ranges support playback and seeking, malformed/multiple ranges are rejected (0.951083ms)
+✔ native MP3 player gets a streamed partial response with byte headers (117.065666ms)
+✔ WAV audio and HEAD metadata are supported without converting or downloading the whole file (33.443625ms)
+✔ unknown test and malformed range cannot fetch arbitrary external files (11.209167ms)
+[Listening audio] Source unavailable 200 text/html
+[Listening audio] Source unavailable 403 text/html
+[Listening audio] Source unavailable 429 text/html
+✔ Google login/error HTML is never served as an audio file (17.582917ms)
+✔ upstream range errors preserve total size for the native player (6.197792ms)
+[Listening audio] Connection failed Network failed
+✔ network failures show a retryable audio error (6.930959ms)
+✔ 38 matched schemes contain all 30 answers; Johor Set 1 uses its actual key and Set 3 cannot use it (4.693792ms)
+✔ all four parts use their own question ranges and complete answers are required (0.509917ms)
+✔ spelling and plurals are exact; case/outer spaces and documented alternatives are supported (0.201083ms)
+✔ saved totals are weighted by actual checked questions and repeat checks reuse one attempt (0.957208ms)
+✔ changed answers invalidate a previously checked part; old injected marks are never trusted (0.290416ms)
+✔ authenticated checks save real marks only to token owner, duplicate requests produce one record (209.70175ms)
+✔ invalid/unanswered requests and missing key never save a score (28.213ms)
+✔ failed durable save cannot claim a saved result (6.120458ms)
+✔ each listed trial has distinct question and audio sources (1.386667ms)
+✔ four parts cover all 30 questions exactly once (0.906667ms)
+✔ saved drafts stay separate by learner and test, independent of course (0.434417ms)
+✔ damaged and oversized drafts cannot enter answer state (0.548708ms)
+✔ readable papers contain each original part and remain matched to the catalog (8.177334ms)
+✔ external source IDs reject URL injection (0.177875ms)
+✔ every readable paper has complete organised questions and matching choices (15.912792ms)
+✔ all years are complete, uniquely named, and preserve original matching letters (0.232709ms)
+✔ ALL catalog tests have complete organised listening content, including scanned papers (5.307667ms)
+✔ 2024 schemes grade every matched paper and do not invent a Negeri Sembilan key (3.802875ms)
+✔ held trial recordings fail closed without contacting Drive (GET, HEAD and ranges) (55.505708ms)
+✔ all 40 authorized recordings work with the default Express and Netlify policy, including HEAD and ranges (110.633875ms)
+✔ practice pages lazily restore the authorized original trial libraries (1.088292ms)
+✔ current inventoried trial families are authorized; unknown and future IDs remain held; originals stay byte-identical (95.247167ms)
+✔ Listening readable view preserves marked original text instead of stripping confidentiality labels (12.717416ms)
+✔ publication checks authorization and original hashes before building (93.750417ms)
+✔ trial libraries enforce family authorization and do not wildcard-import future reading papers (0.542708ms)
+✔ production build restores lazy trial libraries and every original scan byte-for-byte (763.89425ms)
+✔ all current trial families reach production grading defaults; missing Listening keys stay unscored (71.631667ms)
+✔ unknown and cross-skill trial grading is denied before database access, grading or practice consumption (4.278584ms)
+✔ shared budget, durable lock, idempotency and cross-skill use are enforced (99.942708ms)
+✔ v3 paid daily limits and Lite full-test lock are enforced atomically on the server (54.289417ms)
+✔ request IDs cannot be reused across skills or upgraded to a mock (6.328042ms)
+✔ v4 shared bundle plus two Free practices is atomic across skills and idempotent (9.683042ms)
+✔ 51 distinct sourced Reading tests cover three years and all 40 questions (751.885333ms)
+✔ all 51 papers can be marked part by part and finish at 40/40 (20.895916ms)
+✔ mixed-length parts use question totals rather than an average of percentages (0.286959ms)
+✔ changed earlier answers remove stale marks until that part is checked again (0.247125ms)
+✔ missing answers and unknown parts cannot save a fabricated score (0.376ms)
+✔ word marking accepts supported spellings and hyphens while respecting lower-case instructions (0.1675ms)
+✔ known scheme errors and replacement questions use the reviewed keys (21.984625ms)
+✔ shared pages and formerly unreadable choice pages are retained in the proper parts (64.289209ms)
+✔ 2024 mismatched schemes and official Melaka corrections are handled (45.4715ms)
+✔ new 2024 copies keep every MCQ option and the Penang shared cloze page (213.201083ms)
+ℹ tests 56
+ℹ suites 0
+ℹ pass 56
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3234.968875

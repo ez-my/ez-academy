@@ -1,0 +1,843 @@
+
+> ez-academy-app@0.0.0 build
+> npm run build:netlify && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs
+
+
+> ez-academy-app@0.0.0 build:netlify
+> npm run build:photo-tools && vite build --outDir dist-web && node scripts/build-netlify-server.mjs && node scripts/check-netlify-runtime.mjs
+
+
+> ez-academy-app@0.0.0 build:photo-tools
+> node scripts/build-photo-tools.mjs
+
+vite v6.4.4 building for production...
+transforming...
+✓ 3903 modules transformed.
+rendering chunks...
+[plugin vite:reporter] 
+(!) /Users/shahril/Projects/ez-academy/src/lib/analytics.ts is dynamically imported by /Users/shahril/Projects/ez-academy/src/lib/firebase.ts but also statically imported by /Users/shahril/Projects/ez-academy/src/components/paywall/PaywallGate.tsx, /Users/shahril/Projects/ez-academy/src/lib/practice.ts, /Users/shahril/Projects/ez-academy/src/main.tsx, /Users/shahril/Projects/ez-academy/src/pages/Auth.tsx, /Users/shahril/Projects/ez-academy/src/pages/Checkout.tsx, dynamic import will not move module into another chunk.
+
+computing gzip size...
+dist-web/index.html                                       1.36 kB │ gzip:   0.63 kB
+dist-web/assets/reading-7bc598180cdbfb42199f.webp         3.72 kB
+dist-web/assets/reading-7e3f3957f4711bbee29e.webp         5.54 kB
+dist-web/assets/reading-d13e39ba83bc69a10688.webp         6.27 kB
+dist-web/assets/reading-94cbe69b1c723059953d.webp         8.81 kB
+dist-web/assets/reading-00105f7c688b536a5dff.webp        19.65 kB
+dist-web/assets/reading-1929615bfc7beeb3ce92.webp        19.72 kB
+dist-web/assets/reading-806608ca5eeabe2d9679.webp        20.28 kB
+dist-web/assets/reading-274c3d14c9843a013cd3.webp        20.64 kB
+dist-web/assets/reading-57bd63ec728e221ed5c1.webp        22.20 kB
+dist-web/assets/reading-3a221c9305be32af4596.webp        23.12 kB
+dist-web/assets/reading-fa521bf77e6144ba2920.webp        26.97 kB
+dist-web/assets/reading-f014c7ffd21d374aa2ae.webp        27.20 kB
+dist-web/assets/reading-9c341c5cdcfa81392b86.webp        27.52 kB
+dist-web/assets/reading-dab3a9e4a31a262d3dfc.webp        27.64 kB
+dist-web/assets/reading-b2ba6194b4352f3cbc76.webp        27.64 kB
+dist-web/assets/reading-22dae2a9b10b54e2d856.webp        27.89 kB
+dist-web/assets/reading-c39fbf596295cbefed1c.webp        27.93 kB
+dist-web/assets/reading-0b92c68e4e72e05a07cd.webp        28.54 kB
+dist-web/assets/reading-c4d9eee9f464b7db894d.webp        29.32 kB
+dist-web/assets/reading-a3606b0e81cab6d56593.webp        29.62 kB
+dist-web/assets/reading-de50fa1b7c5a3ae4f02d.webp        31.41 kB
+dist-web/assets/reading-4c4403e5571225c29cc5.webp        32.43 kB
+dist-web/assets/reading-5260491720efdbb02551.webp        33.71 kB
+dist-web/assets/reading-a62c90a2ac2775bda24e.webp        34.35 kB
+dist-web/assets/reading-61f041fd11e9dd9028a6.webp        36.01 kB
+dist-web/assets/reading-b16fcd2d9ca64963d484.webp        37.93 kB
+dist-web/assets/reading-610157f6930561a50fd0.webp        38.05 kB
+dist-web/assets/reading-2e2867ccb92f7bfe2d24.webp        38.15 kB
+dist-web/assets/reading-6490eb2046fd6fba98df.webp        39.02 kB
+dist-web/assets/reading-16a6f5f7b976d0c68fad.webp        39.19 kB
+dist-web/assets/reading-84d4f9f91477f4b85d5d.webp        39.53 kB
+dist-web/assets/reading-cdb790f4f1bba39f9752.webp        39.60 kB
+dist-web/assets/reading-404dbdd5536cb6939b51.webp        39.88 kB
+dist-web/assets/reading-f29bdaff9975bbebd68d.webp        39.99 kB
+dist-web/assets/reading-b08d1f59ea7e04e102a1.webp        40.56 kB
+dist-web/assets/reading-2e426a49d6ae0f0df8d5.webp        41.04 kB
+dist-web/assets/reading-bae09ea85793dcbff854.webp        41.21 kB
+dist-web/assets/reading-6fd91ce6a114941ecf3f.webp        41.32 kB
+dist-web/assets/reading-b7cd4c5b3cf4d31d2c9a.webp        41.45 kB
+dist-web/assets/reading-fe554ef3e59b939904b8.webp        42.40 kB
+dist-web/assets/reading-3de97debf1b00d398db3.webp        42.47 kB
+dist-web/assets/reading-7b201c297b836e7a8a8e.webp        42.56 kB
+dist-web/assets/reading-bedad38518e287a70b28.webp        43.05 kB
+dist-web/assets/reading-9f17663c52a319b6d922.webp        43.15 kB
+dist-web/assets/reading-a41215843a566cdc68d9.webp        45.41 kB
+dist-web/assets/reading-a08420150b24c4eccc49.webp        46.12 kB
+dist-web/assets/reading-dea2f1a7857efd700e67.webp        46.71 kB
+dist-web/assets/reading-3dcf38d2f5d0d3e7234c.webp        46.76 kB
+dist-web/assets/reading-346b7edfe2c9c45ee9f7.webp        47.62 kB
+dist-web/assets/reading-b47d2a06561f2c119435.webp        47.84 kB
+dist-web/assets/reading-0e9fce743db2a7e71752.webp        48.40 kB
+dist-web/assets/reading-8f7f619e6dd95a206469.webp        48.85 kB
+dist-web/assets/reading-0131068c276d1fc206eb.webp        49.20 kB
+dist-web/assets/reading-c281143628c11516b95a.webp        49.34 kB
+dist-web/assets/reading-fdf8868ac40bb7b42ae8.webp        50.22 kB
+dist-web/assets/reading-6fed9460ebf09c53e744.webp        50.26 kB
+dist-web/assets/reading-3a47bb8c22da4bddfa09.webp        50.79 kB
+dist-web/assets/reading-ee100aabb1fc42d8753e.webp        50.93 kB
+dist-web/assets/reading-a08b316e311625898929.webp        51.29 kB
+dist-web/assets/reading-cb430c31e5e4285cc4dd.webp        51.29 kB
+dist-web/assets/reading-ac26c25866c0127beea9.webp        51.43 kB
+dist-web/assets/reading-779340b16d0c038a2b08.webp        51.46 kB
+dist-web/assets/reading-04410765a1f610ab9a08.webp        51.62 kB
+dist-web/assets/reading-6fe3a6f6ea56c3a6dfee.webp        52.60 kB
+dist-web/assets/reading-bd396865bf28f004f35d.webp        53.21 kB
+dist-web/assets/reading-a7c7db33fb2ba06bbb00.webp        53.76 kB
+dist-web/assets/reading-4a0ed6e72428cb611464.webp        54.20 kB
+dist-web/assets/reading-05d2928b0da7ae708077.webp        55.06 kB
+dist-web/assets/reading-3a5e31f43d38e5792ab2.webp        55.13 kB
+dist-web/assets/reading-64f911b4c829c6c703b0.webp        55.22 kB
+dist-web/assets/reading-9b800a300d29b1800c49.webp        55.68 kB
+dist-web/assets/reading-571897f9ef517260e980.webp        55.92 kB
+dist-web/assets/reading-3a33067a878729c9a346.webp        56.81 kB
+dist-web/assets/reading-1b82f5e50636eff6ddb7.webp        57.23 kB
+dist-web/assets/reading-4a92bcebc02629589a9c.webp        58.08 kB
+dist-web/assets/reading-3f7799810ee62a1db945.webp        58.32 kB
+dist-web/assets/reading-f2cd2286a71b2f131efb.webp        58.42 kB
+dist-web/assets/reading-e0bb6def29caff6f24fb.webp        59.12 kB
+dist-web/assets/reading-c715977b29c351848dd4.webp        59.28 kB
+dist-web/assets/reading-79f56c0a8ac414418442.webp        59.79 kB
+dist-web/assets/reading-7a1d4f974b339ab647a0.webp        60.45 kB
+dist-web/assets/reading-de4d7130e7c6142e9826.webp        60.63 kB
+dist-web/assets/reading-a6d2061ee785f9d26af1.webp        61.01 kB
+dist-web/assets/reading-0faeb9fdafe5fa7ebe1f.webp        61.44 kB
+dist-web/assets/reading-d7a81ec03ff4d038be32.webp        61.97 kB
+dist-web/assets/reading-7be311951a85a4208792.webp        62.07 kB
+dist-web/assets/reading-9bf62593b7414dfa9bd2.webp        62.48 kB
+dist-web/assets/reading-1d7fb0187aa6ad426fe7.webp        62.74 kB
+dist-web/assets/reading-08a29f1f1909ccc0f367.webp        63.21 kB
+dist-web/assets/reading-91615895388d73a34a0e.webp        63.38 kB
+dist-web/assets/reading-6e7fc6f086b36eab6a0b.webp        63.57 kB
+dist-web/assets/reading-e00a5b1000af24d7dfbb.webp        64.12 kB
+dist-web/assets/reading-1ac4ae039d4a44ec8dc2.webp        64.19 kB
+dist-web/assets/reading-735047a411156387b0ef.webp        64.24 kB
+dist-web/assets/reading-d12c12d001389645dd6e.webp        64.91 kB
+dist-web/assets/reading-a9aea71afc67dcd4817b.webp        65.16 kB
+dist-web/assets/reading-540c519590e80eddf410.webp        65.18 kB
+dist-web/assets/reading-a6d6e2e2cf4cbf303cf3.webp        65.29 kB
+dist-web/assets/reading-3a08b2a9cf20dec43071.webp        66.32 kB
+dist-web/assets/reading-34d8f58d23f2d0753171.webp        67.35 kB
+dist-web/assets/reading-6bc4b1fa6ead1fee29bc.webp        67.44 kB
+dist-web/assets/reading-f4d6c7e83215d1bc4701.webp        68.13 kB
+dist-web/assets/reading-f9112207f64a033ee310.webp        68.23 kB
+dist-web/assets/reading-fda9e13927cb3671a875.webp        68.28 kB
+dist-web/assets/reading-d262fff538fc8581f666.webp        68.46 kB
+dist-web/assets/reading-4f5248f08b19629c20b4.webp        69.06 kB
+dist-web/assets/reading-6a9744ef585cf26cd755.webp        69.22 kB
+dist-web/assets/reading-598e2c63bda706615bdf.webp        69.33 kB
+dist-web/assets/reading-83d82ae328134ff56860.webp        69.44 kB
+dist-web/assets/reading-68819fe91b2814b405df.webp        69.69 kB
+dist-web/assets/reading-3185fcfb77c413092d02.webp        69.86 kB
+dist-web/assets/reading-66ebc41d7e14635c4b35.webp        70.58 kB
+dist-web/assets/reading-eaa163bb052f91829fbf.webp        70.69 kB
+dist-web/assets/reading-5979e0a73e3ece18e76d.webp        70.98 kB
+dist-web/assets/reading-1c56b9fe50cddbff1859.webp        71.33 kB
+dist-web/assets/reading-714b3eadafd5e952dd58.webp        71.44 kB
+dist-web/assets/reading-71f003c05a6b4c9825a9.webp        71.49 kB
+dist-web/assets/reading-8841b0776ce608c28f05.webp        71.97 kB
+dist-web/assets/reading-46d861f89860f50b7a76.webp        72.26 kB
+dist-web/assets/reading-079600078f8ce55e5be2.webp        72.48 kB
+dist-web/assets/reading-7a63a33d53453a4f304e.webp        72.79 kB
+dist-web/assets/reading-922097ab0fe080f2937e.webp        73.65 kB
+dist-web/assets/reading-ee3b5746614cab4cf0fc.webp        73.84 kB
+dist-web/assets/reading-ad6da2d0328997468494.webp        74.35 kB
+dist-web/assets/reading-5ddf86143212217f5db2.webp        74.81 kB
+dist-web/assets/reading-7e22dd35c5cac846ff29.webp        75.01 kB
+dist-web/assets/reading-4847349de8ee8e37b1a2.webp        75.33 kB
+dist-web/assets/reading-5b7322bc8756bc3ae394.webp        75.66 kB
+dist-web/assets/reading-9bb36fe879b5b047b7e5.webp        75.67 kB
+dist-web/assets/reading-b806a51f1b23ada4dd2f.webp        75.77 kB
+dist-web/assets/reading-521d8433278871cb1390.webp        75.83 kB
+dist-web/assets/reading-b50af1f4d5094b91f5a1.webp        76.00 kB
+dist-web/assets/reading-8efe5a5f95330b2fedb1.webp        76.44 kB
+dist-web/assets/reading-f8b53a12cb4dd6337c36.webp        76.85 kB
+dist-web/assets/reading-423526da490ab578d24b.webp        77.15 kB
+dist-web/assets/reading-2948c5be4a39d35cebac.webp        77.40 kB
+dist-web/assets/reading-c3f85c9e3e37ecf6b1d7.webp        77.43 kB
+dist-web/assets/reading-d1a1b59d9ae3d3c61f19.webp        77.77 kB
+dist-web/assets/reading-98c0e138ecad787abcae.webp        78.27 kB
+dist-web/assets/reading-2325d5294f486723c680.webp        78.32 kB
+dist-web/assets/reading-2d28f25fe73198a3c84c.webp        78.62 kB
+dist-web/assets/reading-d8dcf94bda7bc93f4592.webp        78.72 kB
+dist-web/assets/reading-7eff89ea6319f3f59fc2.webp        79.58 kB
+dist-web/assets/reading-7ecc2147899066725ab4.webp        79.75 kB
+dist-web/assets/reading-814046f5f740bb6683f6.webp        79.88 kB
+dist-web/assets/reading-08fa5d40e29cf6ebda0e.webp        80.01 kB
+dist-web/assets/reading-5b6276612b4f3773e9e0.webp        80.12 kB
+dist-web/assets/reading-0a16172350a46b953efb.webp        80.37 kB
+dist-web/assets/reading-674b52ebed60603c4e2d.webp        80.96 kB
+dist-web/assets/reading-70879dea464574393fab.webp        81.32 kB
+dist-web/assets/reading-a6deec9b3286b804e536.webp        81.44 kB
+dist-web/assets/reading-ebc74e4891df0c0ebd36.webp        81.95 kB
+dist-web/assets/reading-06252b807ee1f4eada5b.webp        81.99 kB
+dist-web/assets/reading-009be4d7bf86edd6821a.webp        82.20 kB
+dist-web/assets/reading-f4dc3df70dbcfdbd1772.webp        82.54 kB
+dist-web/assets/reading-480da3fdbfff4e7ab132.webp        82.65 kB
+dist-web/assets/reading-4f29883cf4a8d717173a.webp        82.67 kB
+dist-web/assets/reading-487bc99dc7cb83ec6fcd.webp        82.84 kB
+dist-web/assets/reading-e1b69a917305ab269186.webp        83.10 kB
+dist-web/assets/reading-8143f0f4338f3d576440.webp        83.39 kB
+dist-web/assets/reading-9ecfee5b0cdea50cd934.webp        83.51 kB
+dist-web/assets/reading-cff505b901d61e476a4b.webp        83.72 kB
+dist-web/assets/reading-f933bb5c34b026befaa6.webp        83.93 kB
+dist-web/assets/reading-e1402ac03751ed5c6541.webp        84.20 kB
+dist-web/assets/reading-84e4b6a225148c6443f3.webp        84.31 kB
+dist-web/assets/reading-02a57c49acedcdbc9f85.webp        84.91 kB
+dist-web/assets/reading-4571f3151b0d6113c35a.webp        85.19 kB
+dist-web/assets/reading-6f1b3eed6fff901ec74b.webp        85.35 kB
+dist-web/assets/reading-bef181c14088c3429f0a.webp        85.53 kB
+dist-web/assets/reading-af6c74bc469c5fe981a6.webp        85.57 kB
+dist-web/assets/reading-b8ad95125b31668a457a.webp        85.60 kB
+dist-web/assets/reading-9d4ee10920600752a649.webp        86.22 kB
+dist-web/assets/reading-d1f91a534fdf2d28a349.webp        86.47 kB
+dist-web/assets/reading-ea111509797340fdfc83.webp        86.62 kB
+dist-web/assets/reading-23296167bea73b8c01d0.webp        87.02 kB
+dist-web/assets/reading-1ac4f795cf1577482cbc.webp        87.03 kB
+dist-web/assets/reading-9b5b5fac4a2f63c94037.webp        87.80 kB
+dist-web/assets/reading-7892feb31506ec1600e3.webp        88.12 kB
+dist-web/assets/reading-27860ed67b6a69527d23.webp        88.27 kB
+dist-web/assets/reading-b22cfaed778cd5c90068.webp        88.30 kB
+dist-web/assets/reading-a9999641e59cbaefe355.webp        88.50 kB
+dist-web/assets/reading-9e3a23ca5fced135b45d.webp        88.74 kB
+dist-web/assets/reading-f8b854d44733f5d0063c.webp        88.86 kB
+dist-web/assets/reading-6868fab8e032c73083b4.webp        89.00 kB
+dist-web/assets/reading-f3fd67749d18267aca21.webp        89.04 kB
+dist-web/assets/reading-02e7a9c36ce6559b3e0a.webp        89.46 kB
+dist-web/assets/reading-18eef97edee1cb542c1b.webp        90.12 kB
+dist-web/assets/reading-b1da20135947099145ee.webp        90.66 kB
+dist-web/assets/reading-6c9f78c81dabd1570621.webp        90.67 kB
+dist-web/assets/reading-2ba0d3f5fe40c0c59a39.webp        91.19 kB
+dist-web/assets/reading-1ee9c66bf8aba4769290.webp        91.35 kB
+dist-web/assets/reading-2cdcbc2fa78c40583518.webp        91.42 kB
+dist-web/assets/reading-24284bd7f66546e7f289.webp        91.81 kB
+dist-web/assets/reading-d600d61013e0704379fc.webp        91.88 kB
+dist-web/assets/reading-b9774b659e772626b21b.webp        91.91 kB
+dist-web/assets/reading-b1b2279d512d1f51fb26.webp        92.02 kB
+dist-web/assets/reading-0f7b855779ec18feaec0.webp        92.23 kB
+dist-web/assets/reading-4f97453f1810ccded1d3.webp        92.45 kB
+dist-web/assets/reading-783b9991de9449a35339.webp        92.58 kB
+dist-web/assets/reading-714ce33626a3861d94f4.webp        92.67 kB
+dist-web/assets/reading-d570b3ea9730dacf6696.webp        92.84 kB
+dist-web/assets/reading-392c2aabbd190ac71187.webp        93.75 kB
+dist-web/assets/reading-ff35552cd64fe8d2a8dd.webp        94.18 kB
+dist-web/assets/reading-6dd3612827ceacdc618c.webp        94.46 kB
+dist-web/assets/reading-7d7314986de53c86020d.webp        94.59 kB
+dist-web/assets/reading-78d1a1ce8a83f8046a40.webp        94.74 kB
+dist-web/assets/reading-1f728875846287edd767.webp        94.82 kB
+dist-web/assets/reading-f7ab6c0cf890e9cd835b.webp        94.86 kB
+dist-web/assets/reading-d6d57edab0cda62e01dd.webp        94.86 kB
+dist-web/assets/reading-8e20fbfe3b77e9147784.webp        94.96 kB
+dist-web/assets/reading-79979318768c58434a21.webp        94.97 kB
+dist-web/assets/reading-60c812bfc16bfea0157a.webp        95.19 kB
+dist-web/assets/reading-0b464b7f4d19bd7029aa.webp        95.31 kB
+dist-web/assets/reading-ca480caa21dd4f0d8ef7.webp        95.34 kB
+dist-web/assets/reading-3e49c2688e1cf1fb6b55.webp        95.42 kB
+dist-web/assets/reading-87fb3337d70641e60e4e.webp        95.55 kB
+dist-web/assets/reading-17a6b0650abeae76dd54.webp        96.24 kB
+dist-web/assets/reading-e6770831c6935b072a4c.webp        96.24 kB
+dist-web/assets/reading-6c3e4b7f3ba40af2a632.webp        96.34 kB
+dist-web/assets/reading-0408e5a14f711ace933b.webp        96.51 kB
+dist-web/assets/reading-251b40bd6a216f1f3706.webp        96.82 kB
+dist-web/assets/reading-13dd680f98da9a3b35ea.webp        96.82 kB
+dist-web/assets/reading-e0e85bc63f61754321ef.webp        96.86 kB
+dist-web/assets/reading-0357707794b258776874.webp        97.32 kB
+dist-web/assets/reading-528c32575c9cd0e87f59.webp        97.75 kB
+dist-web/assets/reading-6205ab26cdb7092c0360.webp        97.75 kB
+dist-web/assets/reading-3775c1fa1dd46de4fcf0.webp        97.90 kB
+dist-web/assets/reading-7bd6053963a89ba9ae77.webp        98.23 kB
+dist-web/assets/reading-48f739f7ee5e331f69ae.webp        98.26 kB
+dist-web/assets/reading-20ca1ed8bbbea49763c2.webp        98.40 kB
+dist-web/assets/reading-2c49598243ee44e074bf.webp        99.00 kB
+dist-web/assets/reading-c7085ff3c9f149b5c27c.webp        99.12 kB
+dist-web/assets/reading-d06e699bee5ab29fc17f.webp        99.25 kB
+dist-web/assets/reading-bce182fa9c6f54cf91ed.webp        99.32 kB
+dist-web/assets/reading-68d411a189a10e20392b.webp        99.60 kB
+dist-web/assets/reading-0e4c83cf3b1844dda219.webp        99.62 kB
+dist-web/assets/reading-995453107aa9d9ff81a4.webp        99.66 kB
+dist-web/assets/reading-ddae1abccb3e482326d8.webp       100.50 kB
+dist-web/assets/reading-17a7172dfdc730599571.webp       100.54 kB
+dist-web/assets/reading-f27d4adb63992b968177.webp       100.77 kB
+dist-web/assets/reading-52a05fe383258c03e5f7.webp       101.03 kB
+dist-web/assets/reading-f03e313f621c117c1aed.webp       101.10 kB
+dist-web/assets/reading-1235fbee1b41baebf1bf.webp       101.10 kB
+dist-web/assets/reading-f0e1d4ccab41732f2af1.webp       101.13 kB
+dist-web/assets/reading-1116c33150e4753b6c09.webp       101.27 kB
+dist-web/assets/reading-8df67331e4f9f1249c98.webp       101.28 kB
+dist-web/assets/reading-214a8af5cde682ed5def.webp       101.31 kB
+dist-web/assets/reading-acb1b855458b5e74e91f.webp       101.60 kB
+dist-web/assets/reading-1b971b46e6892802467d.webp       101.60 kB
+dist-web/assets/reading-076ad287f90c851b4cb4.webp       102.38 kB
+dist-web/assets/reading-69013d4a4e97743cf57c.webp       102.38 kB
+dist-web/assets/reading-218bc90533e0a2945972.webp       102.40 kB
+dist-web/assets/reading-621237618804457dfcc7.webp       102.61 kB
+dist-web/assets/reading-e3d5b790c5489d1aa552.webp       102.73 kB
+dist-web/assets/reading-80a9f974de51bd1a2844.webp       102.78 kB
+dist-web/assets/reading-c7eec14d07981a6e1e20.webp       102.92 kB
+dist-web/assets/reading-4ae78291b50c8abda47a.webp       103.42 kB
+dist-web/assets/reading-5e2afdde36b57ee86a37.webp       103.61 kB
+dist-web/assets/reading-096a120ab652637c333a.webp       103.63 kB
+dist-web/assets/reading-f83d11ea9dc56a64695e.webp       104.00 kB
+dist-web/assets/reading-eccc0fb396531f47ffe2.webp       104.09 kB
+dist-web/assets/reading-959bd0e5d7d33a9b2572.webp       104.30 kB
+dist-web/assets/reading-5a812ec2ec94fc7e5085.webp       104.80 kB
+dist-web/assets/reading-20be773a60c6c468a1ce.webp       104.99 kB
+dist-web/assets/reading-91ff6ed3bcc5fdf5057c.webp       105.18 kB
+dist-web/assets/reading-28c5cbf3d8ce78ae8b57.webp       105.42 kB
+dist-web/assets/reading-16599ae8d9543df018d6.webp       105.53 kB
+dist-web/assets/reading-8c6997ac14ff484d7ab7.webp       105.63 kB
+dist-web/assets/reading-2add0154d4c0824fbd1a.webp       105.63 kB
+dist-web/assets/reading-fe62a9562dfc6823b9ea.webp       105.64 kB
+dist-web/assets/reading-5554b5e26e4543c736ed.webp       105.76 kB
+dist-web/assets/reading-013f3b8125500c1b7fbc.webp       105.82 kB
+dist-web/assets/reading-e2ac528c99ce6b01cb4d.webp       105.87 kB
+dist-web/assets/reading-682b14c106ab6896a10f.webp       105.87 kB
+dist-web/assets/reading-c00a9c7c58e16e5d2cd9.webp       106.16 kB
+dist-web/assets/reading-55d3757baf19b5efd28b.webp       106.48 kB
+dist-web/assets/reading-621fce4bea8aace2ac37.webp       106.65 kB
+dist-web/assets/reading-2abed0093e23b2722b52.webp       106.75 kB
+dist-web/assets/reading-f27f5d111c13681f0b31.webp       106.93 kB
+dist-web/assets/reading-6ec2c6c5c401d72c36ff.webp       107.01 kB
+dist-web/assets/reading-6d3a1b231ac78c940db8.webp       107.24 kB
+dist-web/assets/reading-f5f178b4bdf17fc731ce.webp       107.27 kB
+dist-web/assets/reading-a1e84b6413b2eda5980f.webp       107.44 kB
+dist-web/assets/reading-27dac19843d7a310cc1e.webp       107.57 kB
+dist-web/assets/reading-7574eed815231628722a.webp       107.60 kB
+dist-web/assets/reading-55a20e15c2570ebc75a1.webp       107.89 kB
+dist-web/assets/reading-e24674dc43ac69ed7fde.webp       107.92 kB
+dist-web/assets/reading-2864ddfa87982f3b9909.webp       108.03 kB
+dist-web/assets/reading-18eca9036f82c4da328b.webp       108.38 kB
+dist-web/assets/reading-950c09bacf96a28497da.webp       108.63 kB
+dist-web/assets/reading-662d89588b96e070365c.webp       108.89 kB
+dist-web/assets/reading-ef65535604c87c5911b0.webp       109.28 kB
+dist-web/assets/reading-fe4056054c419af4ba51.webp       109.42 kB
+dist-web/assets/reading-83d13252739d4fdd9bc8.webp       109.47 kB
+dist-web/assets/reading-7203069a9b9e6186ec45.webp       109.51 kB
+dist-web/assets/reading-42d125298c6c2f229d99.webp       109.86 kB
+dist-web/assets/reading-111b65c5f15457fa187f.webp       109.91 kB
+dist-web/assets/reading-75a1547b7335b99de6ac.webp       110.08 kB
+dist-web/assets/reading-36ebf4d9fa0e5406387e.webp       110.40 kB
+dist-web/assets/reading-bd230a884de93ae86288.webp       110.51 kB
+dist-web/assets/reading-e383dd0faadb3874de90.webp       110.86 kB
+dist-web/assets/reading-8fdec0b5d44009594972.webp       110.91 kB
+dist-web/assets/reading-589b1a4436a9b6e5b20e.webp       111.43 kB
+dist-web/assets/reading-0e95cf75517cb46d0adb.webp       111.88 kB
+dist-web/assets/reading-3028931ce96cbb63869a.webp       112.05 kB
+dist-web/assets/reading-5757f7392d1260bab9a6.webp       112.34 kB
+dist-web/assets/reading-66b771d53cae381cca7b.webp       112.38 kB
+dist-web/assets/reading-ac0d64e5867bff27b0eb.webp       112.41 kB
+dist-web/assets/reading-5620a521b2124780b42f.webp       112.55 kB
+dist-web/assets/reading-9cbff263c24bc32b7af5.webp       112.64 kB
+dist-web/assets/reading-1c02124fc94ec3014707.webp       112.67 kB
+dist-web/assets/reading-67bb648016c9ad5c7474.webp       112.69 kB
+dist-web/assets/reading-1acab8629d580f246dd1.webp       112.90 kB
+dist-web/assets/reading-aa5044c6a021980b360d.webp       112.94 kB
+dist-web/assets/reading-04ebb028a878bbb32759.webp       113.01 kB
+dist-web/assets/reading-236bf7e5af51b0c1f28d.webp       113.05 kB
+dist-web/assets/reading-b4900240721f04b0b690.webp       113.08 kB
+dist-web/assets/reading-986f49798708090bb0c8.webp       113.44 kB
+dist-web/assets/reading-34ed6baeaa244bab68bd.webp       113.44 kB
+dist-web/assets/reading-f9285901d251d1ab09e1.webp       113.59 kB
+dist-web/assets/reading-331b4403898689288b2f.webp       113.95 kB
+dist-web/assets/reading-6540ce6da6d1055a8908.webp       114.37 kB
+dist-web/assets/reading-dfeb1320aaffe0a32ec2.webp       114.58 kB
+dist-web/assets/reading-23374604745fe4c7ace0.webp       114.69 kB
+dist-web/assets/reading-ce286a29f6b168646d7c.webp       114.75 kB
+dist-web/assets/reading-ff52c7ff8963ff4a204f.webp       114.91 kB
+dist-web/assets/reading-03ceb09f2f275f9a857e.webp       115.04 kB
+dist-web/assets/reading-8bd4efda8a3e3ab9d199.webp       115.08 kB
+dist-web/assets/reading-0aaca67a2e510bf6c634.webp       115.35 kB
+dist-web/assets/reading-9d51642243f827934b3d.webp       115.54 kB
+dist-web/assets/reading-dd646f7c1b5998c769ea.webp       115.67 kB
+dist-web/assets/reading-2e52640cfa06347166e3.webp       115.79 kB
+dist-web/assets/reading-7970df82eaa81b89e964.webp       115.84 kB
+dist-web/assets/reading-9deb563b205e00a402a2.webp       116.41 kB
+dist-web/assets/reading-4cc151641beff50f5a41.webp       116.49 kB
+dist-web/assets/reading-9dedc3c185e319109abc.webp       116.54 kB
+dist-web/assets/reading-a5e9223bbf6fe036db5e.webp       117.01 kB
+dist-web/assets/reading-d1926014663c72e9973d.webp       117.25 kB
+dist-web/assets/reading-3a30e5c21e5c93bd029c.webp       117.50 kB
+dist-web/assets/reading-709065acc014e077d785.webp       117.55 kB
+dist-web/assets/reading-392e459cb8072f0cd23e.webp       117.57 kB
+dist-web/assets/reading-10ac1a7ffc78c649a701.webp       117.75 kB
+dist-web/assets/reading-6d7117be19f24776f2c2.webp       117.78 kB
+dist-web/assets/reading-4268f5e8009d0c64c5b6.webp       117.98 kB
+dist-web/assets/reading-24e680822a883ea4feb8.webp       117.98 kB
+dist-web/assets/reading-5140dce8bff1cab6a819.webp       118.03 kB
+dist-web/assets/reading-ed1dddebbce2de650baf.webp       118.57 kB
+dist-web/assets/reading-a22fe2b9318b75d8132a.webp       118.62 kB
+dist-web/assets/reading-6e2d78b1fa81390169bc.webp       118.69 kB
+dist-web/assets/reading-3346204d5e806a5e73e0.webp       119.13 kB
+dist-web/assets/reading-d2348aa18a828584b0fb.webp       119.27 kB
+dist-web/assets/reading-025f195fe8a7ab3eeba5.webp       119.49 kB
+dist-web/assets/reading-84fe52e1ad533496803d.webp       119.61 kB
+dist-web/assets/reading-68f12ccfb7c27e2eb5f1.webp       120.22 kB
+dist-web/assets/reading-8f162be7ef4df2b339d6.webp       120.32 kB
+dist-web/assets/reading-6c6514f862845314d3e1.webp       120.67 kB
+dist-web/assets/reading-2188dd9c022371f56142.webp       120.73 kB
+dist-web/assets/reading-b622d0193707fa4ba27b.webp       121.01 kB
+dist-web/assets/reading-5b86e683888a10b0c09a.webp       121.08 kB
+dist-web/assets/reading-1e7ff0859b4734989999.webp       121.21 kB
+dist-web/assets/reading-42ff325e547731b7584d.webp       121.44 kB
+dist-web/assets/reading-db655943163013815ee9.webp       121.71 kB
+dist-web/assets/reading-840cb357194571247812.webp       121.74 kB
+dist-web/assets/reading-de32a9c0b078ffe97058.webp       122.56 kB
+dist-web/assets/reading-87bfd387cab633adb8fb.webp       123.00 kB
+dist-web/assets/reading-c3a12d605427a1169b70.webp       123.18 kB
+dist-web/assets/reading-3c3b2a75a035985b561b.webp       123.23 kB
+dist-web/assets/reading-246d7094d491f3a268f4.webp       123.38 kB
+dist-web/assets/reading-89e9009ee6608e12e8d0.webp       123.39 kB
+dist-web/assets/reading-25df9e315f8d1739a1ff.webp       123.90 kB
+dist-web/assets/reading-8bdff69597d43ef0ec69.webp       124.22 kB
+dist-web/assets/reading-353011a9a55baea9b66d.webp       124.86 kB
+dist-web/assets/reading-ec892cf54614e434d907.webp       124.86 kB
+dist-web/assets/reading-e9127c770401ec745ea0.webp       124.92 kB
+dist-web/assets/reading-021a418430df743a8c2d.webp       125.14 kB
+dist-web/assets/reading-4019b873e023fbf50450.webp       125.38 kB
+dist-web/assets/reading-09c6ec58217e3078998b.webp       125.47 kB
+dist-web/assets/reading-3d6cad11322faf788a00.webp       125.50 kB
+dist-web/assets/reading-29b29698f40f57033cbc.webp       125.59 kB
+dist-web/assets/reading-157354dd6f77baa64275.webp       125.64 kB
+dist-web/assets/reading-df02174185b1c293cbec.webp       125.83 kB
+dist-web/assets/reading-54c1b2295b17c9a91885.webp       125.96 kB
+dist-web/assets/reading-4fd003c540a4fe5962ea.webp       126.03 kB
+dist-web/assets/reading-7cd8bf97e4d00644cfa9.webp       126.32 kB
+dist-web/assets/reading-f3b41ff01bff22071633.webp       126.81 kB
+dist-web/assets/reading-9f6e1751b00f37f95818.webp       127.09 kB
+dist-web/assets/reading-8fe5ad1198626ba94279.webp       127.31 kB
+dist-web/assets/reading-9786bd065ba0cd311800.webp       127.45 kB
+dist-web/assets/reading-b9bf2952c85ea3583d2e.webp       128.55 kB
+dist-web/assets/reading-f3c0de3697e6855b6ee5.webp       128.56 kB
+dist-web/assets/reading-6385eb13f72eb2f0206c.webp       128.61 kB
+dist-web/assets/reading-88d8a98774c401d23e6f.webp       129.13 kB
+dist-web/assets/reading-d8fb8774c1a15c200517.webp       129.26 kB
+dist-web/assets/reading-a6243a9f7fb628d19ee2.webp       129.28 kB
+dist-web/assets/reading-8c6302c504a11c31bd23.webp       129.92 kB
+dist-web/assets/reading-71ad66c0e9586fec1840.webp       130.01 kB
+dist-web/assets/reading-402919484411931095c8.webp       130.48 kB
+dist-web/assets/reading-21d26ccdf4504f11e9ea.webp       131.09 kB
+dist-web/assets/reading-4f8fc279470be9839d86.webp       131.17 kB
+dist-web/assets/reading-eb65da89be9ab333a729.webp       131.93 kB
+dist-web/assets/reading-9f0eeb10967bbf55d639.webp       132.05 kB
+dist-web/assets/reading-dd968db1134eed8ab776.webp       132.11 kB
+dist-web/assets/reading-ed89e5643198552c836b.webp       132.74 kB
+dist-web/assets/reading-37ec995e9c6fa5caf381.webp       132.97 kB
+dist-web/assets/reading-11b24256dbc9ae0d4fa2.webp       133.30 kB
+dist-web/assets/reading-be9195f5786e6195d278.webp       133.49 kB
+dist-web/assets/reading-36b22e2eb9e88c47f434.webp       133.65 kB
+dist-web/assets/reading-688f85386eaac4f8409c.webp       133.87 kB
+dist-web/assets/reading-914d700c3d577d61e799.webp       134.09 kB
+dist-web/assets/reading-5a974a9d5fedec367772.webp       134.18 kB
+dist-web/assets/reading-b0a369850484a74d80fb.webp       134.43 kB
+dist-web/assets/reading-fd0518797a976f6bde73.webp       134.48 kB
+dist-web/assets/reading-bfc9aa60f22fa5ba19ba.webp       134.95 kB
+dist-web/assets/reading-8374e0d253b83bf01ba2.webp       135.12 kB
+dist-web/assets/reading-cf642427679b748fad82.webp       135.29 kB
+dist-web/assets/reading-4264a1f8a078f68b0157.webp       135.53 kB
+dist-web/assets/reading-feef5533422907390143.webp       136.43 kB
+dist-web/assets/reading-8c301bcf6b504d0a9723.webp       136.54 kB
+dist-web/assets/reading-b8e0a63481a393729423.webp       136.86 kB
+dist-web/assets/reading-2b2c2873fdb3a60aa6da.webp       136.87 kB
+dist-web/assets/reading-0fe603e92b0f44c0c38c.webp       137.14 kB
+dist-web/assets/reading-fab854d3a865264dae9f.webp       137.24 kB
+dist-web/assets/reading-e26c9fd7ef598a51308a.webp       137.33 kB
+dist-web/assets/reading-359411f1cec182852be5.webp       137.67 kB
+dist-web/assets/reading-915f45e90076884cc854.webp       137.92 kB
+dist-web/assets/reading-82a443c3b40f08d79e09.webp       137.99 kB
+dist-web/assets/reading-7379f0e0e4867547109b.webp       138.01 kB
+dist-web/assets/reading-941d8b47b8b9fdc7ba68.webp       138.15 kB
+dist-web/assets/reading-289471105005672f42bc.webp       138.23 kB
+dist-web/assets/reading-5cf264c22ac97ef12984.webp       138.32 kB
+dist-web/assets/reading-d4be36566487d9b7cfc6.webp       138.72 kB
+dist-web/assets/reading-97e981787ab2d8e916d1.webp       138.77 kB
+dist-web/assets/reading-ce75aefbf61547b49706.webp       139.02 kB
+dist-web/assets/reading-b91d5883c45ab2a7b6d4.webp       139.07 kB
+dist-web/assets/reading-d213c9bde6d96b080410.webp       139.19 kB
+dist-web/assets/reading-ca2a129e2a69d739150a.webp       139.19 kB
+dist-web/assets/reading-b823ecc14cc49970428c.webp       139.31 kB
+dist-web/assets/reading-bed42a4f171be2b03161.webp       139.39 kB
+dist-web/assets/reading-ee364fc50a0acc5ebd72.webp       140.11 kB
+dist-web/assets/reading-35721d6f62b760c0c0e9.webp       140.88 kB
+dist-web/assets/reading-c505729ac8083f4fd137.webp       140.99 kB
+dist-web/assets/reading-14dc544897ed0b625fb4.webp       141.03 kB
+dist-web/assets/reading-59337214cb42cfaf4fba.webp       141.17 kB
+dist-web/assets/reading-faa60640d6757295bf4a.webp       141.22 kB
+dist-web/assets/reading-7cc91723a01d42e4aacf.webp       141.25 kB
+dist-web/assets/reading-e78345a7674f7c117704.webp       141.45 kB
+dist-web/assets/reading-2b6a4417ee35cecdb5de.webp       141.72 kB
+dist-web/assets/reading-930273fd3c75d5bc3888.webp       141.79 kB
+dist-web/assets/reading-6466bf780947f19a46d9.webp       141.80 kB
+dist-web/assets/reading-7c0eea2dd7830ffb6088.webp       141.91 kB
+dist-web/assets/reading-05c2db2834778d061d55.webp       142.17 kB
+dist-web/assets/reading-acfba2ae2e7251e550c9.webp       142.73 kB
+dist-web/assets/reading-e91bcaa37b9a991eed54.webp       143.00 kB
+dist-web/assets/reading-6c4f5d595aa70565aae8.webp       143.01 kB
+dist-web/assets/reading-2b056cea6587cfd9b394.webp       143.04 kB
+dist-web/assets/reading-8d8c2f6fe7e8bf1c4d7d.webp       143.04 kB
+dist-web/assets/reading-f114399eb6aaf90f8df5.webp       143.09 kB
+dist-web/assets/reading-2f619e19eba0e31efc2e.webp       143.14 kB
+dist-web/assets/reading-0b5b42c95bd8639d5165.webp       143.86 kB
+dist-web/assets/reading-472975b0bf6d566d9013.webp       143.99 kB
+dist-web/assets/reading-c3d0dc602d76b1442fe8.webp       144.73 kB
+dist-web/assets/reading-bb35aeb29c49c7fa079a.webp       144.85 kB
+dist-web/assets/reading-01d424afc1565a0a00c8.webp       144.88 kB
+dist-web/assets/reading-01d99ff37152cd16eb25.webp       144.93 kB
+dist-web/assets/reading-bf07def3ad1a5bcb15e5.webp       145.07 kB
+dist-web/assets/reading-742d59589d3e30ec867f.webp       145.21 kB
+dist-web/assets/reading-3cea60039a7bd0d368fc.webp       145.56 kB
+dist-web/assets/reading-06d27d2690968ae5830a.webp       145.89 kB
+dist-web/assets/reading-7d7c63c5de4b52ea1736.webp       146.13 kB
+dist-web/assets/reading-358ebc3f809f3a60afa9.webp       146.43 kB
+dist-web/assets/reading-1048c061f2bbd24037a8.webp       146.84 kB
+dist-web/assets/reading-060bda5e3230622097eb.webp       147.07 kB
+dist-web/assets/reading-09afbb6a394973db1332.webp       147.24 kB
+dist-web/assets/reading-b85dbf298af93455e3fb.webp       147.42 kB
+dist-web/assets/reading-401cca074b027547bafc.webp       147.42 kB
+dist-web/assets/reading-97991206cfb668515262.webp       147.47 kB
+dist-web/assets/reading-0765399fe7eded2e2b78.webp       147.49 kB
+dist-web/assets/reading-0c95966fb947be5809f9.webp       147.76 kB
+dist-web/assets/reading-ebbc461cf358abe6a90f.webp       147.88 kB
+dist-web/assets/reading-fece753a389f928a01ab.webp       147.93 kB
+dist-web/assets/reading-14c5f480ddaec30125a7.webp       147.98 kB
+dist-web/assets/reading-2fb09a0414f84bcf95f4.webp       148.10 kB
+dist-web/assets/reading-693fc41c2e3d9269a404.webp       148.69 kB
+dist-web/assets/reading-c446c3e02ff37a8bd868.webp       149.17 kB
+dist-web/assets/reading-26446b0fa2829ce7d77e.webp       149.29 kB
+dist-web/assets/reading-5f1c85797c2a5f4900d7.webp       149.42 kB
+dist-web/assets/reading-9df89b22bd070dd3d70d.webp       149.92 kB
+dist-web/assets/reading-6b1061be2d2a8811088f.webp       150.33 kB
+dist-web/assets/reading-ceecf8e754555e55ed5a.webp       150.82 kB
+dist-web/assets/reading-f91bc0b6a7a7f4b233d0.webp       151.04 kB
+dist-web/assets/reading-5c4fddf6fc1f4959e806.webp       151.45 kB
+dist-web/assets/reading-180162a3d42157112991.webp       151.59 kB
+dist-web/assets/reading-d24a7e259ce1565d6658.webp       152.33 kB
+dist-web/assets/reading-3a58cd35fc9b621fa0fe.webp       152.36 kB
+dist-web/assets/reading-55e1a5c0d7b1a13a7044.webp       152.42 kB
+dist-web/assets/reading-fc51b47c6790d09c2ac0.webp       152.56 kB
+dist-web/assets/reading-5a5b751fae81e8dbc78b.webp       152.73 kB
+dist-web/assets/reading-81bcc9050cc8c131a0c5.webp       152.89 kB
+dist-web/assets/reading-1a403b268a43855a94c4.webp       153.13 kB
+dist-web/assets/reading-a0a57ffa7beb9ed32ac2.webp       153.28 kB
+dist-web/assets/reading-e55578945147197b42f2.webp       153.48 kB
+dist-web/assets/reading-fd18166a6ac36a028e61.webp       153.53 kB
+dist-web/assets/reading-b668441f577337be71dc.webp       153.58 kB
+dist-web/assets/reading-05fbf76ecff7afddb42c.webp       153.64 kB
+dist-web/assets/reading-2e35f7e7bd0bddb45567.webp       153.77 kB
+dist-web/assets/reading-089e3db3c81efc8f3b59.webp       154.08 kB
+dist-web/assets/reading-23c0517b2c3b5dbf92f3.webp       154.25 kB
+dist-web/assets/reading-893eba8fb15d0feeb9ef.webp       154.44 kB
+dist-web/assets/reading-0494003592270ffbf286.webp       154.80 kB
+dist-web/assets/reading-e05844a5b1b59258004f.webp       154.87 kB
+dist-web/assets/reading-b7621dc454cbd8a6248e.webp       154.99 kB
+dist-web/assets/reading-01627c214b72dfdddd3a.webp       155.04 kB
+dist-web/assets/reading-cc3ce3d8c7de1172f2e2.webp       155.12 kB
+dist-web/assets/reading-570e52f42c50b081f9da.webp       155.17 kB
+dist-web/assets/reading-579b0469e88e0bb2b6b8.webp       155.24 kB
+dist-web/assets/reading-b444994937ca88fcb1df.webp       155.85 kB
+dist-web/assets/reading-03fa263a4d7a10cb0338.webp       156.27 kB
+dist-web/assets/reading-775078a0eb0963495060.webp       156.27 kB
+dist-web/assets/reading-30a4c7abb0f1b5906de4.webp       156.55 kB
+dist-web/assets/reading-8f04932f1184fb80aa98.webp       156.90 kB
+dist-web/assets/reading-fd70133063e4ed143f9b.webp       157.10 kB
+dist-web/assets/reading-9fa61987d6fa38d414a9.webp       157.93 kB
+dist-web/assets/reading-72906cd8e21fbe32481a.webp       158.11 kB
+dist-web/assets/reading-846c8396bbdd798fb8e1.webp       158.64 kB
+dist-web/assets/reading-62ae04958462aee110f8.webp       159.03 kB
+dist-web/assets/reading-18da38dfae15b9ef4ccc.webp       159.09 kB
+dist-web/assets/reading-2e13cc337da642999220.webp       159.64 kB
+dist-web/assets/reading-82066975542c5e2149c8.webp       159.84 kB
+dist-web/assets/reading-3162a424e9a4a887f3a6.webp       159.99 kB
+dist-web/assets/reading-5feb5e2902606e6a6c04.webp       160.19 kB
+dist-web/assets/reading-8305fca878ec0aabae99.webp       160.54 kB
+dist-web/assets/reading-d576ab155fe4ee1db3e7.webp       160.62 kB
+dist-web/assets/reading-b2cf5e6e4cebc098048f.webp       161.08 kB
+dist-web/assets/reading-e62a3376d28987bbe7e3.webp       161.13 kB
+dist-web/assets/reading-2a564a9af417ab6cd9c1.webp       161.49 kB
+dist-web/assets/reading-89912bbdb26d18b24f54.webp       161.99 kB
+dist-web/assets/reading-066642f51005ab92abea.webp       162.11 kB
+dist-web/assets/reading-8de5edda041422b94c40.webp       162.14 kB
+dist-web/assets/reading-cb89a8debcfca650b876.webp       162.58 kB
+dist-web/assets/reading-9be5eefa6a9b4935bec8.webp       162.67 kB
+dist-web/assets/reading-b4a3327965eab1cb8da3.webp       162.96 kB
+dist-web/assets/reading-2f0f36bb2515d6733fb0.webp       164.64 kB
+dist-web/assets/reading-434be3c85efc8ced6b7a.webp       164.89 kB
+dist-web/assets/reading-4187de282912dece540c.webp       165.78 kB
+dist-web/assets/reading-3f5eeaf995934c01c6cb.webp       166.21 kB
+dist-web/assets/reading-acebb32cae66a6e3df60.webp       166.34 kB
+dist-web/assets/reading-a4dbeac5b90748e7125a.webp       166.50 kB
+dist-web/assets/reading-2e4bd42e381dcc97e1dd.webp       166.83 kB
+dist-web/assets/reading-b44e8987998897bd1751.webp       167.14 kB
+dist-web/assets/reading-304ae6bbd2417dae7aa9.webp       167.28 kB
+dist-web/assets/reading-72396346dadc51d2f52b.webp       168.75 kB
+dist-web/assets/reading-f5e697b8fbb803cea13f.webp       169.24 kB
+dist-web/assets/reading-e89057cc8f8a049f535c.webp       169.65 kB
+dist-web/assets/reading-b762404fcf4095108266.webp       169.97 kB
+dist-web/assets/reading-4fe00caec7b71f37e2ff.webp       170.16 kB
+dist-web/assets/reading-a3f1dc3e51b9b357a7dd.webp       170.90 kB
+dist-web/assets/reading-d8c0f3b2d8c8bf9c7ec3.webp       170.96 kB
+dist-web/assets/reading-7393083759135f8c948d.webp       171.39 kB
+dist-web/assets/reading-60a27d28bc8bb8111ad3.webp       171.42 kB
+dist-web/assets/reading-1a19d67b11fc03ecc81e.webp       171.54 kB
+dist-web/assets/reading-9d3af57ee84e5b7dafd9.webp       171.54 kB
+dist-web/assets/reading-8fa69aaf6e611db11f96.webp       171.86 kB
+dist-web/assets/reading-67eb40fb68c4f1ce75b1.webp       171.94 kB
+dist-web/assets/reading-3590738141c00b09a60a.webp       172.47 kB
+dist-web/assets/reading-2de0e397f9511ceccbd0.webp       173.16 kB
+dist-web/assets/reading-10b6dd36a3ca43830839.webp       173.39 kB
+dist-web/assets/reading-d6a9eb1a1f44274f8593.webp       173.72 kB
+dist-web/assets/reading-786786d64180eb72e343.webp       174.08 kB
+dist-web/assets/reading-7ac9630d36b0309ca217.webp       174.08 kB
+dist-web/assets/reading-6705df8da3cdb09ef3d4.webp       174.10 kB
+dist-web/assets/reading-848338dcb27a01f20a0a.webp       174.60 kB
+dist-web/assets/reading-3f18e5bda7f1aa3adbd0.webp       174.68 kB
+dist-web/assets/reading-56293e7dc4830568cba6.webp       174.81 kB
+dist-web/assets/reading-47cee315d97af716120a.webp       175.28 kB
+dist-web/assets/reading-d505cab57386623c13ad.webp       176.06 kB
+dist-web/assets/reading-a4c1ca555c0b951c465b.webp       176.27 kB
+dist-web/assets/reading-3321c41638668a701bee.webp       176.27 kB
+dist-web/assets/reading-fc1e82b03319d1e42d31.webp       176.74 kB
+dist-web/assets/reading-a8e3f2c83182567a5027.webp       177.00 kB
+dist-web/assets/reading-930d5afdaabf5dcb8cae.webp       177.01 kB
+dist-web/assets/reading-9589b5ebf191a473a90c.webp       177.12 kB
+dist-web/assets/reading-bdaabcfc788118b6cf27.webp       177.33 kB
+dist-web/assets/reading-281b6ebdb7bcb8164251.webp       177.63 kB
+dist-web/assets/reading-76ca6e5dc5fb68acba8a.webp       178.70 kB
+dist-web/assets/reading-4d7992b671bcb54d0b23.webp       178.81 kB
+dist-web/assets/reading-5eead83e76939d112ff4.webp       179.20 kB
+dist-web/assets/reading-04034de44bef9569f526.webp       179.67 kB
+dist-web/assets/reading-6525f05b810452ebcc3f.webp       180.20 kB
+dist-web/assets/reading-ca9d6dfb65799befceb8.webp       180.97 kB
+dist-web/assets/reading-2c074823defc6b7f286f.webp       181.51 kB
+dist-web/assets/reading-fdfa91f96898b42e9b64.webp       181.71 kB
+dist-web/assets/reading-4f01d92e6cd4bf672e53.webp       182.41 kB
+dist-web/assets/reading-f75fa6bab75ecce0682c.webp       182.54 kB
+dist-web/assets/reading-24bf26c026d1f7e01123.webp       182.93 kB
+dist-web/assets/reading-ade65406fe0592565cd4.webp       184.23 kB
+dist-web/assets/reading-34243eed66ac3cae1631.webp       184.27 kB
+dist-web/assets/reading-251a15c4464117b7a750.webp       184.34 kB
+dist-web/assets/reading-c6439fd77952e5dc1e3c.webp       184.86 kB
+dist-web/assets/reading-e3bcea4c2bc7a93cb1d6.webp       185.21 kB
+dist-web/assets/reading-3ce495fc626b7021cedc.webp       186.24 kB
+dist-web/assets/reading-3f4c3ac625fe2ca18033.webp       186.28 kB
+dist-web/assets/reading-b867e059d8ebcfd0f55c.webp       186.62 kB
+dist-web/assets/reading-4243ff901fefd42135d3.webp       187.39 kB
+dist-web/assets/reading-831c25f25e763ac7f13b.webp       187.56 kB
+dist-web/assets/reading-e5ef3089b86bab4643df.webp       187.62 kB
+dist-web/assets/reading-128517ac15f5a129c09f.webp       187.85 kB
+dist-web/assets/reading-912dc79f23bb044d2a7f.webp       188.22 kB
+dist-web/assets/reading-82d3d688880bcc330f19.webp       188.47 kB
+dist-web/assets/reading-142ddb7044fb68542fcc.webp       189.26 kB
+dist-web/assets/reading-bf2e58d68f5f76b07403.webp       189.37 kB
+dist-web/assets/reading-6949f4a787c5f4f6b5d5.webp       189.42 kB
+dist-web/assets/reading-cefcb649868330f01084.webp       190.35 kB
+dist-web/assets/reading-eee74fbd43d68823484c.webp       190.76 kB
+dist-web/assets/reading-b733673f59989805b7ea.webp       191.28 kB
+dist-web/assets/reading-3cc993e9effeb63259bd.webp       191.72 kB
+dist-web/assets/reading-2a90e0fdf8daf6419df9.webp       192.03 kB
+dist-web/assets/reading-fe52bbc6ffcbb9d799bb.webp       192.87 kB
+dist-web/assets/reading-2494b0f1f160ff9f09be.webp       194.31 kB
+dist-web/assets/reading-396872747d8b84ac2205.webp       194.48 kB
+dist-web/assets/reading-97f58070c6935ebc0a25.webp       195.63 kB
+dist-web/assets/reading-a195d794452c7033f731.webp       196.45 kB
+dist-web/assets/reading-c72a6a5b2c29f1a74ec3.webp       197.91 kB
+dist-web/assets/reading-483004ee1732dab4fe57.webp       198.12 kB
+dist-web/assets/reading-67e7f61ec2523cefbdbc.webp       198.20 kB
+dist-web/assets/reading-712474499af2f679ab91.webp       198.23 kB
+dist-web/assets/reading-0e0bc31172bdc67f2a6a.webp       198.53 kB
+dist-web/assets/reading-c2d5be63992f02318b4b.webp       198.72 kB
+dist-web/assets/reading-afa736ffff759de06eb7.webp       199.48 kB
+dist-web/assets/reading-61ede231bf4c9bc19e97.webp       200.25 kB
+dist-web/assets/reading-e3f82a743b5e848e9c6c.webp       201.08 kB
+dist-web/assets/reading-9e5c268c3db448ffeeab.webp       202.13 kB
+dist-web/assets/reading-2230e452651ae0f1b142.webp       202.92 kB
+dist-web/assets/reading-a4cbe211c0593746ed02.webp       204.41 kB
+dist-web/assets/reading-11bbcb00eb64d80fe90d.webp       204.80 kB
+dist-web/assets/reading-86179c0da4bdda721db8.webp       205.29 kB
+dist-web/assets/reading-7977b342ccdfbc0d6aae.webp       206.71 kB
+dist-web/assets/reading-167287c0643f709e69a4.webp       206.83 kB
+dist-web/assets/reading-1be4c74c0310c97beda0.webp       206.98 kB
+dist-web/assets/reading-28680692fd6faf0fbc7c.webp       207.15 kB
+dist-web/assets/reading-35fd6ca9279a73c32d8d.webp       207.29 kB
+dist-web/assets/reading-1ee474eb8b33643b5c8e.webp       208.31 kB
+dist-web/assets/reading-98c345ab9fc4ab3964aa.webp       209.68 kB
+dist-web/assets/reading-2d46fa6f3aee15fee4a5.webp       209.82 kB
+dist-web/assets/reading-d300039efa18e95ea660.webp       214.44 kB
+dist-web/assets/reading-96879f5b2861fb9ed351.webp       214.50 kB
+dist-web/assets/reading-ae49eb13663117d55dfe.webp       214.81 kB
+dist-web/assets/reading-c9c6778bd6e7902f94c5.webp       216.03 kB
+dist-web/assets/reading-f599c06b3000f26804c2.webp       216.43 kB
+dist-web/assets/reading-f0050c5a5b0d9243ead0.webp       217.51 kB
+dist-web/assets/reading-a6d365242ff4bebfb1d7.webp       218.13 kB
+dist-web/assets/reading-755c8bd16c89b0b27327.webp       219.26 kB
+dist-web/assets/reading-14c4407fe95602806d98.webp       219.33 kB
+dist-web/assets/reading-9cd2018079debe4fad27.webp       219.51 kB
+dist-web/assets/reading-8787e5c1fc45ea972366.webp       219.64 kB
+dist-web/assets/reading-29a492d340d8d2cca726.webp       220.53 kB
+dist-web/assets/reading-7737fd24cf07740e7820.webp       222.04 kB
+dist-web/assets/reading-25e4624f4f876b4ed557.webp       222.40 kB
+dist-web/assets/reading-8d7a5432612f91a249dd.webp       223.85 kB
+dist-web/assets/reading-16714ac987ea8cc40726.webp       226.54 kB
+dist-web/assets/reading-3713852d0936026e3f13.webp       227.24 kB
+dist-web/assets/reading-bf62db7db5e718c7db20.webp       227.34 kB
+dist-web/assets/reading-08ead587246bd98947bb.webp       229.64 kB
+dist-web/assets/reading-bb74d7fcc4cf2570fb71.webp       230.09 kB
+dist-web/assets/reading-533ab2cbac23f65b262c.webp       230.59 kB
+dist-web/assets/reading-f7d9204d19b59ab782b3.webp       231.44 kB
+dist-web/assets/reading-ddf5fe4b3c251d9cf9ab.webp       233.55 kB
+dist-web/assets/reading-f71b11dd1e7b6f0f57c4.webp       235.15 kB
+dist-web/assets/reading-318b0b3869c3dd296b11.webp       235.70 kB
+dist-web/assets/reading-65d5fc7cd33da7f8de2c.webp       238.05 kB
+dist-web/assets/reading-5c57320af830dd0a8964.webp       238.15 kB
+dist-web/assets/reading-1ca38c455ef6919e1d40.webp       239.66 kB
+dist-web/assets/reading-c941d4889a4753eed0d8.webp       239.82 kB
+dist-web/assets/reading-95f39e5600e555fa9aae.webp       240.76 kB
+dist-web/assets/reading-24a111ece8399c1bc4d3.webp       241.50 kB
+dist-web/assets/reading-ac6ff03989be38656423.webp       241.80 kB
+dist-web/assets/reading-3cf4faf1ffa13d23209e.webp       242.10 kB
+dist-web/assets/reading-81e07f1a437603c8a050.webp       242.41 kB
+dist-web/assets/reading-11ef32ad4b2f13a024a6.webp       243.85 kB
+dist-web/assets/reading-a34af884791365d03523.webp       245.56 kB
+dist-web/assets/reading-261661975d30144a1879.webp       245.86 kB
+dist-web/assets/reading-2b11504445e05824df1c.webp       255.82 kB
+dist-web/assets/reading-1bbfaad411c6496a15ca.webp       258.38 kB
+dist-web/assets/reading-da435f969826afd662bf.webp       264.29 kB
+dist-web/assets/reading-8f7563446c8a076cdaa0.webp       265.91 kB
+dist-web/assets/reading-5a99c5bf5f7f49a3c37c.webp       270.56 kB
+dist-web/assets/reading-a2ede73e8ed7d3a8e823.webp       271.08 kB
+dist-web/assets/reading-029989f960d043b541a6.webp       274.01 kB
+dist-web/assets/reading-d7ed29a141c37a125ac5.webp       274.72 kB
+dist-web/assets/reading-d4c8b1171fbab980afae.webp       277.98 kB
+dist-web/assets/reading-9f428ba7de1fb8464c4b.webp       282.39 kB
+dist-web/assets/reading-635d2f12b16ac5728ea3.webp       286.29 kB
+dist-web/assets/reading-8d31cefbace370731dc4.webp       306.05 kB
+dist-web/assets/reading-1cf32df4f33eaf1be525.webp       306.94 kB
+dist-web/assets/reading-6f31712dd00892cb0704.webp       316.38 kB
+dist-web/assets/reading-53d3fe1f07a38ae9fdc6.webp       331.31 kB
+dist-web/assets/reading-9196950dbe318d11a2a6.webp       332.06 kB
+dist-web/assets/reading-d7a60b16c13b4711641c.webp       337.79 kB
+dist-web/assets/reading-08badeedfc4d22cd1c10.webp       338.01 kB
+dist-web/assets/reading-725057d23a29023647a0.webp       344.57 kB
+dist-web/assets/admin-C430uyOJ.css                        3.63 kB │ gzip:   1.20 kB
+dist-web/assets/affiliate-cBR4cQck.css                    5.38 kB │ gzip:   1.59 kB
+dist-web/assets/PricingPage-CpkUl12O.css                  9.93 kB │ gzip:   2.54 kB
+dist-web/assets/Home-DRrhau18.css                        19.12 kB │ gzip:   4.58 kB
+dist-web/assets/Dashboard-mXvOfOa2.css                   21.16 kB │ gzip:   5.23 kB
+dist-web/assets/index-DRC3AyCQ.css                      215.04 kB │ gzip:  29.89 kB
+dist-web/assets/affiliate-BicvUc-t.js                     0.31 kB │ gzip:   0.26 kB
+dist-web/assets/storage-CqAC74QK.js                       0.35 kB │ gzip:   0.24 kB
+dist-web/assets/geminiService-CSBd9T75.js                 0.54 kB │ gzip:   0.25 kB
+dist-web/assets/ListenEZ-BobSESYs.js                      0.70 kB │ gzip:   0.42 kB
+dist-web/assets/apiUtils-DU-1Ptzw.js                      0.77 kB │ gzip:   0.42 kB
+dist-web/assets/limits-DX00H98t.js                        0.85 kB │ gzip:   0.50 kB
+dist-web/assets/gemini-DADJoF_L.js                        0.94 kB │ gzip:   0.32 kB
+dist-web/assets/index-BxFTsoAQ.js                         0.95 kB │ gzip:   0.49 kB
+dist-web/assets/SuccessFeedback-B0J54dFO.js               1.06 kB │ gzip:   0.55 kB
+dist-web/assets/ContentPage-DaqMNq3I.js                   1.06 kB │ gzip:   0.61 kB
+dist-web/assets/localAudioProcessing-domK_U6H.js          1.34 kB │ gzip:   0.77 kB
+dist-web/assets/LegalInfo-D2ZNaQ17.js                     1.35 kB │ gzip:   0.65 kB
+dist-web/assets/readingBank-tU66TaTv.js                   1.36 kB │ gzip:   0.66 kB
+dist-web/assets/Onboarding-CBqfqmZ7.js                    2.01 kB │ gzip:   0.98 kB
+dist-web/assets/PaymentGate-g9UwYbAJ.js                   2.04 kB │ gzip:   1.01 kB
+dist-web/assets/aiTask-vaYVVeus.js                        2.05 kB │ gzip:   1.10 kB
+dist-web/assets/devicePhoto-MGNhtVyY.js                   2.67 kB │ gzip:   1.27 kB
+dist-web/assets/SupportPage-ZYjVzdAV.js                   2.76 kB │ gzip:   1.28 kB
+dist-web/assets/About-CsfSNlzL.js                         3.49 kB │ gzip:   1.35 kB
+dist-web/assets/Ecosystem-BI4lh336.js                     4.01 kB │ gzip:   1.71 kB
+dist-web/assets/Resources-DLuPz-4R.js                     4.23 kB │ gzip:   1.56 kB
+dist-web/assets/PaymentStatus-BqSrWtQo.js                 4.98 kB │ gzip:   1.77 kB
+dist-web/assets/useAudioRecorder-BEHiGR8n.js              5.52 kB │ gzip:   2.03 kB
+dist-web/assets/History-DLO9hrL2.js                       5.59 kB │ gzip:   1.85 kB
+dist-web/assets/Programs-DI4ccPEv.js                      5.83 kB │ gzip:   1.71 kB
+dist-web/assets/PaywallModal-COACiofP.js                  6.16 kB │ gzip:   2.28 kB
+dist-web/assets/SpeakEZEvaluator-DWBPImQi.js              7.44 kB │ gzip:   2.51 kB
+dist-web/assets/PricingPage-DmYU3nfr.js                   7.72 kB │ gzip:   2.56 kB
+dist-web/assets/questionBankService-Cm__wdWV.js           8.04 kB │ gzip:   2.83 kB
+dist-web/assets/Home-v5ivNyWZ.js                          8.93 kB │ gzip:   3.13 kB
+dist-web/assets/Shell-BSI_WLYQ.js                         9.27 kB │ gzip:   3.11 kB
+dist-web/assets/AdminDashboard-CaaxXYKi.js               10.00 kB │ gzip:   3.42 kB
+dist-web/assets/EZEnglish-jKMATxkM.js                    10.65 kB │ gzip:   2.91 kB
+dist-web/assets/Auth-efajglED.js                         12.46 kB │ gzip:   3.79 kB
+dist-web/assets/Checkout-Z6EXQDa-.js                     12.89 kB │ gzip:   4.18 kB
+dist-web/assets/sarawak-lubok-antu-2024-CLtnLcw0.js      16.21 kB │ gzip:   7.09 kB
+dist-web/assets/Dashboard-DUT-b0Cg.js                    16.70 kB │ gzip:   5.90 kB
+dist-web/assets/ReadEZ-BrtiQq3s.js                       17.19 kB │ gzip:   5.28 kB
+dist-web/assets/johor-muar-2024-Qk7c3m4V.js              17.34 kB │ gzip:   7.76 kB
+dist-web/assets/perlis-2024-ChiUECiN.js                  17.43 kB │ gzip:   7.70 kB
+dist-web/assets/johor-kluang-set-b-2024-Bo1qINgV.js      17.87 kB │ gzip:   7.53 kB
+dist-web/assets/smka-and-sabk-2024-BB7IVDCK.js           18.23 kB │ gzip:   7.80 kB
+dist-web/assets/kedah-2024-D-9C7txy.js                   18.35 kB │ gzip:   8.19 kB
+dist-web/assets/terengganu-2024-DrGCggc5.js              18.40 kB │ gzip:   8.22 kB
+dist-web/assets/perlis-2025-BiS-5s2U.js                  18.46 kB │ gzip:   8.39 kB
+dist-web/assets/johor-kluang-set-a-2024-C1r9fhiL.js      18.60 kB │ gzip:   8.10 kB
+dist-web/assets/sabk-set-2-2025-lObtykaL.js              19.32 kB │ gzip:   8.64 kB
+dist-web/assets/perak-2024-flb4EXq9.js                   19.80 kB │ gzip:   8.69 kB
+dist-web/assets/penang-2024-D72B3PhT.js                  19.85 kB │ gzip:   9.18 kB
+dist-web/assets/negeri-sembilan-2026-DJui5MeP.js         19.94 kB │ gzip:   9.06 kB
+dist-web/assets/kelantan-2026-D9XY9x12.js                19.98 kB │ gzip:   9.13 kB
+dist-web/assets/johor-segamat-set-1-2024-DN0cfiIu.js     20.01 kB │ gzip:   8.48 kB
+dist-web/assets/johor-pontian-2024-CsgOHrJb.js           20.11 kB │ gzip:   8.88 kB
+dist-web/assets/sarawak-2026-D5PiA8y_.js                 20.20 kB │ gzip:   8.75 kB
+dist-web/assets/melaka-2024-DIepVFyj.js                  20.31 kB │ gzip:   8.92 kB
+dist-web/assets/johor-batu-pahat-2026-C7ywYYNs.js        20.37 kB │ gzip:   9.01 kB
+dist-web/assets/selangor-set-2-2024-CmbUZGwK.js          20.66 kB │ gzip:   8.87 kB
+dist-web/assets/terengganu-2025-Dap_AYAE.js              20.68 kB │ gzip:   9.21 kB
+dist-web/assets/perak-2025-UPTjI63c.js                   20.92 kB │ gzip:   9.24 kB
+dist-web/assets/putrajaya-2025-CNSMErmO.js               20.98 kB │ gzip:   9.13 kB
+dist-web/assets/negeri-sembilan-2025-BnOHhuWI.js         21.06 kB │ gzip:   9.52 kB
+dist-web/assets/melaka-2025-DkmMywxW.js                  21.10 kB │ gzip:   9.12 kB
+dist-web/assets/johor-segamat-set-2-2024-BbIJof4f.js     21.11 kB │ gzip:   9.33 kB
+dist-web/assets/sbp-2026-CQvAIEQx.js                     21.14 kB │ gzip:   9.50 kB
+dist-web/assets/penang-spu-2025-DmgiGa0L.js              21.16 kB │ gzip:   9.45 kB
+dist-web/assets/pahang-2026-Bj5S-MYU.js                  21.44 kB │ gzip:   9.35 kB
+dist-web/assets/kedah-2025-DYF8JLvP.js                   21.48 kB │ gzip:   9.52 kB
+dist-web/assets/melaka-2026-BqC91wEe.js                  21.57 kB │ gzip:   9.10 kB
+dist-web/assets/kelantan-2025-SR8UvTQt.js                21.65 kB │ gzip:   9.90 kB
+dist-web/assets/selangor-set-2-2026-CiEI5MXH.js          21.78 kB │ gzip:   9.33 kB
+dist-web/assets/terengganu-2026-CSXTyJ93.js              21.84 kB │ gzip:   9.42 kB
+dist-web/assets/sabk-set-1-2025-Tu9N0P0c.js              21.96 kB │ gzip:  10.04 kB
+dist-web/assets/selangor-set-1-2024-BFikhxw6.js          22.04 kB │ gzip:   9.42 kB
+dist-web/assets/pahang-2025-D22V5YuM.js                  22.11 kB │ gzip:   9.42 kB
+dist-web/assets/johor-batu-pahat-2024-HCgDj3s8.js        22.13 kB │ gzip:   9.85 kB
+dist-web/assets/selangor-set-1-2026-BIaYkGvL.js          22.14 kB │ gzip:   9.61 kB
+dist-web/assets/kedah-2026-B2iojqln.js                   22.20 kB │ gzip:   9.71 kB
+dist-web/assets/perlis-2026-DIEDq6fe.js                  22.29 kB │ gzip:   9.47 kB
+dist-web/assets/selangor-2025-C_CALsLI.js                22.43 kB │ gzip:   9.57 kB
+dist-web/assets/sabah-lahad-datu-2026-aqEhC4_L.js        22.47 kB │ gzip:  10.05 kB
+dist-web/assets/penang-sabk-2026-B-IItctb.js             22.49 kB │ gzip:  10.11 kB
+dist-web/assets/n9-2024-BBzqc3Rn.js                      22.50 kB │ gzip:  10.38 kB
+dist-web/assets/speakingQuestionBank-5Mrt4HYh.js         22.70 kB │ gzip:   7.67 kB
+dist-web/assets/pahang-2024-Bp56KH5d.js                  22.74 kB │ gzip:  10.12 kB
+dist-web/assets/kuala-lumpur-2026-BvFaqx8R.js            22.77 kB │ gzip:  10.23 kB
+dist-web/assets/putrajaya-2026-BjHmlWyX.js               23.03 kB │ gzip:   9.57 kB
+dist-web/assets/johor-2025-DwAy7lgc.js                   23.61 kB │ gzip:  10.36 kB
+dist-web/assets/perak-2026-BEy5FR76.js                   24.30 kB │ gzip:  10.55 kB
+dist-web/assets/kelantan-2024-I2Ca50cK.js                24.65 kB │ gzip:  10.72 kB
+dist-web/assets/utils-mF5EDGNQ.js                        26.36 kB │ gzip:   8.28 kB
+dist-web/assets/StudyTools-DtpWajiU.js                   26.84 kB │ gzip:   9.74 kB
+dist-web/assets/TrialPaperRightsNotice-7cVe_VTn.js       31.57 kB │ gzip:  11.78 kB
+dist-web/assets/ProfilePage-iPRokeHl.js                  47.32 kB │ gzip:  12.88 kB
+dist-web/assets/TrialReadingLibrary-gpg7NJ5d.js          47.95 kB │ gzip:  13.44 kB
+dist-web/assets/WriteEZ-CkiQFCCH.js                      63.55 kB │ gzip:  14.71 kB
+dist-web/assets/SpeakEZ-BVfv84V4.js                      73.80 kB │ gzip:  19.49 kB
+dist-web/assets/questionBank-uv6KGLIh.js                 78.02 kB │ gzip:  21.98 kB
+dist-web/assets/speakingBank-Cp9CrLaZ.js                 80.84 kB │ gzip:  23.76 kB
+dist-web/assets/index-t0KMw0Bl.js                       117.59 kB │ gzip:  36.07 kB
+dist-web/assets/MUETPage-SoswXeny.js                    137.67 kB │ gzip:  34.32 kB
+dist-web/assets/index-Uwcde7vQ.js                       199.97 kB │ gzip:  51.24 kB
+dist-web/assets/TrialListeningLibrary-DlwWCnxy.js       267.37 kB │ gzip:  91.46 kB
+dist-web/assets/index-e-vvv-ig.js                       290.78 kB │ gzip:  90.87 kB
+dist-web/assets/AdminPage-w9ct__Ga.js                   382.93 kB │ gzip: 103.37 kB
+dist-web/assets/vendor-Da8pZv3u.js                    2,053.98 kB │ gzip: 482.30 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 16.39s
+Netlify packaged function starts with require(ESM) disabled.
+
+  dist/server.cjs      559.4kb
+  dist/server.cjs.map  966.5kb
+
+⚡ Done in 29ms

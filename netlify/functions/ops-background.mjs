@@ -9387,8 +9387,8 @@ function isUsableJWK(jwk, entry, alg, kid) {
   const { kty, key_ops: keyOps, ext, kid: jwkKid, alg: jwkAlg, use, crv } = jwk;
   return (ext === void 0 || typeof ext == "boolean") && (keyOps === void 0 || Array.isArray(keyOps) && keyOps.every((operation, index) => typeof operation == "string" && keyOps.indexOf(operation) === index) && keyOps.includes("verify")) && entry.kty.includes(kty) && (kid === void 0 || typeof kid == "string" && kid === jwkKid) && (jwkAlg === void 0 ? kty !== "AKP" : alg === jwkAlg) && (use === void 0 || use === "sig") && (!entry.crv || crv === entry.crv);
 }
-async function importWithAlgCache(cache2, jwk, entry) {
-  const cached = cache2.get(jwk) || cache2.set(jwk, {}).get(jwk), { alg } = entry;
+async function importWithAlgCache(cache3, jwk, entry) {
+  const cached = cache3.get(jwk) || cache3.set(jwk, {}).get(jwk), { alg } = entry;
   if (cached[alg] === void 0) {
     const pending = jwkToKey(entry, jwk, true).then((key) => {
       if (key.type !== "public")
@@ -9481,10 +9481,10 @@ function createRemoteJWKSet(url, options) {
     throw new TypeError('"timeoutDuration" option must be a non-negative integer');
   const timeoutDuration = typeof timeoutOption == "number" ? timeoutOption : 5e3, cooldownDuration = validateDuration(opts.cooldownDuration, 3e4, "cooldownDuration"), cacheMaxAge = validateDuration(opts.cacheMaxAge, 6e5, "cacheMaxAge"), headers = new Headers(opts.headers);
   USER_AGENT && !headers.has("User-Agent") && headers.set("User-Agent", USER_AGENT), headers.has("accept") || headers.set("accept", "application/json, application/jwk-set+json");
-  const fetchImpl = opts[customFetch], cache2 = opts[jwksCache];
+  const fetchImpl = opts[customFetch], cache3 = opts[jwksCache];
   let jwksTimestamp, pendingFetch, reloadSequence = 0, appliedSequence = 0, local;
-  if (cache2 && typeof cache2 == "object") {
-    const { uat, jwks } = cache2;
+  if (cache3 && typeof cache3 == "object") {
+    const { uat, jwks } = cache3;
     isFreshFor(uat, cacheMaxAge) && isJwkSet(jwks) && (jwksTimestamp = uat, local = createLocalJWKSet(jwks));
   }
   const reload = async () => {
@@ -9495,7 +9495,7 @@ function createRemoteJWKSet(url, options) {
           return;
         local = next;
         const updatedAt = Date.now();
-        cache2 && (cache2.uat = updatedAt, cache2.jwks = json), jwksTimestamp = updatedAt, appliedSequence = sequence;
+        cache3 && (cache3.uat = updatedAt, cache3.jwks = json), jwksTimestamp = updatedAt, appliedSequence = sequence;
       }).finally(() => {
         pendingFetch === current && (pendingFetch = void 0);
       });
@@ -13499,6 +13499,34 @@ var currentPurchase = (ledger, now, skill) => (ledger.purchases || []).filter((p
 // src/server/packageBudget.ts
 var PERIOD = 30 * 864e5;
 
+// src/server/affiliates.ts
+var import_firestore2 = __toESM(require_firestore(), 1);
+
+// src/affiliate.ts
+var COMMISSION_CENTS = { lite: 100, plus: 200, max: 300, speak: 100, write: 100, read: 100, listen: 100 };
+var affiliatePlans = Object.values(PACKAGES).filter((p) => COMMISSION_CENTS[p.id]);
+function commissionForOrder(order) {
+  const plan = PACKAGES[order.planId];
+  return order.affiliateVersion === 1 && order.packageVersion === PACKAGE_VERSION && plan && order.amountInCents === plan.amountInCents && order.currency === "MYR" ? COMMISSION_CENTS[plan.id] || 0 : 0;
+}
+
+// src/server/affiliates.ts
+async function prepareCommission(db, t, orderId, order) {
+  const cents = commissionForOrder(order);
+  if (!cents || !order.affiliateUid || order.affiliateUid === order.userId) return () => {
+  };
+  const ledgerRef = db.collection("affiliate_commissions").doc(orderId);
+  const accountRef = db.collection("affiliate_accounts").doc(order.affiliateUid);
+  const [ledger, account] = await Promise.all([t.get(ledgerRef), t.get(accountRef)]);
+  if (ledger.exists) return () => {
+  };
+  if (!account.exists || account.data()?.code !== order.referralCode) throw Error("Referral account is unavailable.");
+  return () => {
+    t.set(ledgerRef, { orderId, uid: order.affiliateUid, buyerUid: order.userId, planId: order.planId, amountCents: cents, createdAt: import_firestore2.FieldValue.serverTimestamp() });
+    t.update(accountRef, { availableCents: import_firestore2.FieldValue.increment(cents), earnedCents: import_firestore2.FieldValue.increment(cents) });
+  };
+}
+
 // src/legacyPackagesV3.ts
 var PACKAGES2 = {
   lite: { id: "lite", name: "EZ Lite", price: 5, amountInCents: 500, type: "subscription", durationDays: 30, aiUnits: 20, dailyLimit: 5, fullTests: false, description: "All 4 skills; 5 practices per skill daily, 20 AI credits, no full tests; 30 days" },
@@ -13524,9 +13552,61 @@ var PACKAGES3 = {
   credits: { id: "credits", name: "EZ Credits", price: 15, amountInCents: 1500, type: "credits", creditsGrant: 50, aiUnits: 50, description: "50 extra AI credits plus 50 practice credits; no expiry" }
 };
 
+// src/pricing.ts
+var centsToRinggit = (cents) => Math.round(cents) / 100;
+function priceFor(planId, basePlan, priceList) {
+  const override = priceList?.amountsInCents?.[planId];
+  if (typeof override !== "number" || !Number.isFinite(override)) return basePlan;
+  const amountInCents = Math.round(override);
+  return { amountInCents, price: centsToRinggit(amountInCents) };
+}
+function priceListForOrder(order, byVersion) {
+  const version = order?.priceVersion;
+  if (typeof version !== "number" || !Number.isFinite(version)) return null;
+  return byVersion.get(version) ?? null;
+}
+
+// src/server/pricingStore.ts
+var ACTIVE_DOC = "pricing/active";
+var VERSIONS = "pricing_versions";
+var EMPTY_PRICE_STATE = { active: null, byVersion: /* @__PURE__ */ new Map() };
+var CACHE_TTL_MS = 3e4;
+var cache2 = null;
+function toPriceList(data) {
+  if (!data || typeof data.version !== "number" || !data.amountsInCents) return null;
+  return {
+    version: data.version,
+    amountsInCents: data.amountsInCents,
+    publishedAt: Number(data.publishedAt) || 0,
+    publishedBy: String(data.publishedBy || "")
+  };
+}
+async function loadPriceState(db) {
+  if (cache2 && cache2.expiresAt > Date.now()) return cache2.state;
+  try {
+    const [activeSnap, versionSnaps] = await Promise.all([
+      db.doc(ACTIVE_DOC).get(),
+      db.collection(VERSIONS).get()
+    ]);
+    const byVersion = /* @__PURE__ */ new Map();
+    for (const doc of versionSnaps.docs) {
+      const list = toPriceList(doc.data());
+      if (list) byVersion.set(list.version, list);
+    }
+    const activeVersion = activeSnap.exists ? Number(activeSnap.data()?.version) : NaN;
+    const active = Number.isFinite(activeVersion) ? byVersion.get(activeVersion) ?? null : null;
+    const state = { active, byVersion };
+    cache2 = { state, expiresAt: Date.now() + CACHE_TTL_MS };
+    return state;
+  } catch (error) {
+    console.error("Could not load published prices; falling back to compiled-in prices:", error);
+    return EMPTY_PRICE_STATE;
+  }
+}
+
 // src/server/payments.ts
 var import_auth2 = __toESM(require_auth2(), 1);
-var import_firestore2 = __toESM(require_firestore(), 1);
+var import_firestore3 = __toESM(require_firestore(), 1);
 import axios from "axios";
 import querystring from "querystring";
 import crypto2 from "crypto";
@@ -13569,9 +13649,12 @@ var LEGACY_PLANS = {
   }
 };
 var SERVER_PLANS = PACKAGES;
-function orderPlan(order) {
+function orderPlan(order, byVersion) {
   const catalog = order.packageVersion === PACKAGE_VERSION ? SERVER_PLANS : order.packageVersion === 3 ? PACKAGES2 : order.packageVersion === 2 ? PACKAGES3 : !order.packageVersion ? LEGACY_PLANS : {};
-  return Object.hasOwn(catalog, order.planId) ? catalog[order.planId] : void 0;
+  const plan = Object.hasOwn(catalog, order.planId) ? catalog[order.planId] : void 0;
+  if (!plan || !byVersion) return plan;
+  const priceList = priceListForOrder(order, byVersion);
+  return priceList ? { ...plan, ...priceFor(order.planId, plan, priceList) } : plan;
 }
 function normalizedPaymentOrder(saved) {
   const order = { ...saved };
@@ -13585,11 +13668,12 @@ function normalizedPaymentOrder(saved) {
 }
 async function applySuccessfulEntitlement(firestore, txId, verification) {
   const txRef = firestore.collection("transactions").doc(txId);
+  const { byVersion } = await loadPriceState(firestore);
   return firestore.runTransaction(async (t) => {
     const txDoc = await t.get(txRef);
     if (!txDoc.exists) throw new Error("Payment order not found.");
     const order = normalizedPaymentOrder(txDoc.data());
-    const plan = orderPlan(order);
+    const plan = orderPlan(order, byVersion);
     if (!plan || !order.userId || order.amountInCents !== plan.amountInCents || order.currency !== "MYR")
       throw new Error("The saved order is not valid.");
     const manual = verification.source === "manual_approval";
@@ -13607,7 +13691,7 @@ async function applySuccessfulEntitlement(firestore, txId, verification) {
     const packageRef = firestore.collection("package_entitlements").doc(order.userId);
     const packageDoc = await t.get(packageRef);
     const packageData = packageDoc.data() || {};
-    const stamp = import_firestore2.FieldValue.serverTimestamp();
+    const stamp = import_firestore3.FieldValue.serverTimestamp();
     if (order.status === "SUCCESS") return {
       success: true,
       alreadyProcessed: true,
@@ -13621,6 +13705,8 @@ async function applySuccessfulEntitlement(firestore, txId, verification) {
     ) : null;
     const invoice = invoiceRef ? await t.get(invoiceRef) : null;
     if (invoice?.exists && invoice.data()?.orderId !== txId) throw new Error("This bank payment has already been used.");
+    const writeCommission = await prepareCommission(firestore, t, txId, order);
+    writeCommission();
     const now = /* @__PURE__ */ new Date();
     if (order.packageVersion === PACKAGE_VERSION || order.packageVersion === 3 || (packageData.purchases || []).length) {
       const pack = plan;
@@ -13629,7 +13715,7 @@ async function applySuccessfulEntitlement(firestore, txId, verification) {
       if (pack.type === "credits") {
         creditsAdded2 = pack.creditsGrant;
         ledger.topupUnits = Number(ledger.topupUnits || 0) + Number(pack.aiUnits || 0);
-        t.update(userRef, { credits: import_firestore2.FieldValue.increment(creditsAdded2), updatedAt: stamp, lastPaymentAt: stamp, lastTransactionId: txId });
+        t.update(userRef, { credits: import_firestore3.FieldValue.increment(creditsAdded2), updatedAt: stamp, lastPaymentAt: stamp, lastTransactionId: txId });
       } else {
         const skill = pack.type === "skill" ? pack.id : void 0;
         const existing = currentPurchase(packageData, startsAt, skill);
@@ -13637,7 +13723,7 @@ async function applySuccessfulEntitlement(firestore, txId, verification) {
         startsAt = Math.max(startsAt, existing?.expiresAt || 0, oldExpiry, ...(packageData.purchases || []).filter((p) => skill ? p.skill === skill : p.type === "subscription").map((p) => Number(p.expiresAt) || 0));
         expiresAt = startsAt + (pack.durationDays || 30) * 864e5;
         ledger.purchases = [...packageData.purchases || [], { id: txId, version: order.packageVersion === PACKAGE_VERSION ? PACKAGE_VERSION : 3, planId: pack.id, type: pack.type, ...skill ? { skill } : {}, startsAt, expiresAt, included: pack.aiUnits || 0, dailyLimit: pack.dailyLimit || 0, ...pack.extraFree ? { extraFree: true, dailyScope: pack.dailyScope } : {}, ...![3, PACKAGE_VERSION].includes(order.packageVersion) ? { dailyLimits: pack.type === "skill" ? DAILY_PRACTICE_LIMITS.pro : DAILY_PRACTICE_LIMITS[pack.id], legacyUnlimited: !order.packageVersion } : {}, fullTests: pack.fullTests !== false }];
-        t.update(userRef, { updatedAt: stamp, lastPaymentAt: stamp, lastTransactionId: txId, ...pack.type === "subscription" && startsAt <= now.getTime() ? { plan: pack.id, planExpiresAt: import_firestore2.Timestamp.fromMillis(expiresAt), planUpdatedAt: stamp } : {} });
+        t.update(userRef, { updatedAt: stamp, lastPaymentAt: stamp, lastTransactionId: txId, ...pack.type === "subscription" && startsAt <= now.getTime() ? { plan: pack.id, planExpiresAt: import_firestore3.Timestamp.fromMillis(expiresAt), planUpdatedAt: stamp } : {} });
       }
       t.set(packageRef, ledger);
       if (invoiceRef) t.set(invoiceRef, { orderId: txId, verifiedAt: stamp });
@@ -13650,20 +13736,20 @@ async function applySuccessfulEntitlement(firestore, txId, verification) {
     const userUpdate = { updatedAt: stamp, lastPaymentAt: stamp, lastTransactionId: txId };
     if (plan.type === "credits") {
       creditsAdded = plan.creditsGrant;
-      userUpdate.credits = import_firestore2.FieldValue.increment(creditsAdded);
+      userUpdate.credits = import_firestore3.FieldValue.increment(creditsAdded);
     } else if (plan.type === "subscription") {
       const rank = { free: 0, basic: 1, pro: 2, pro_plus: 3 };
       const expiry = user.planExpiresAt?.toDate?.();
       const currentActive = expiry ? expiry > now : activePlan !== "free";
       if (currentActive && (rank[activePlan] || 0) > rank[plan.id]) {
-        userUpdate.planExpiresAt = import_firestore2.Timestamp.fromDate(new Date(
+        userUpdate.planExpiresAt = import_firestore3.Timestamp.fromDate(new Date(
           Math.max(now.getTime(), expiry?.getTime() || now.getTime()) + plan.durationDays * 864e5 * plan.amountInCents / (packageData.version === 2 ? PACKAGES3 : LEGACY_PLANS)[activePlan].amountInCents
         ));
       } else {
         activePlan = plan.id;
         userUpdate.plan = activePlan;
         const starts = currentActive && user.plan === plan.id && expiry ? expiry.getTime() : now.getTime();
-        userUpdate.planExpiresAt = import_firestore2.Timestamp.fromDate(new Date(starts + plan.durationDays * 864e5));
+        userUpdate.planExpiresAt = import_firestore3.Timestamp.fromDate(new Date(starts + plan.durationDays * 864e5));
       }
       userUpdate.planUpdatedAt = stamp;
     }

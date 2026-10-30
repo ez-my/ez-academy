@@ -7,6 +7,8 @@ export function useAudioRecorder() {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [transcript, setTranscript] = useState('');
   const [isFinalTranscript, setIsFinalTranscript] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const recognitionStopTimerRef = useRef<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [transcriptionError, setTranscriptionError] = useState<string | null>(null);
   const [transcriptionAvailable, setTranscriptionAvailable] = useState(true);
@@ -36,6 +38,7 @@ export function useAudioRecorder() {
     recognition.lang = 'en-GB';
     recognitionRef.current = recognition;
     acceptRecognitionRef.current = true;
+    setIsTranscribing(true);
     setTranscriptionAvailable(true);
     setTranscriptionError(null);
 
@@ -67,7 +70,10 @@ export function useAudioRecorder() {
     };
     recognition.onend = () => {
       if (recognitionRef.current !== recognition) return;
+      if (recognitionStopTimerRef.current) clearTimeout(recognitionStopTimerRef.current);
+      recognitionStopTimerRef.current = null;
       recognitionRef.current = null;
+      setIsTranscribing(false);
       if (acceptRecognitionRef.current && recorderRef.current?.state === 'recording') {
         window.setTimeout(() => {
           if (acceptRecognitionRef.current && !recognitionRef.current && recorderRef.current?.state === 'recording') {
@@ -81,6 +87,7 @@ export function useAudioRecorder() {
     } catch (err) {
       recognitionRef.current = null;
       acceptRecognitionRef.current = false;
+      setIsTranscribing(false);
       setTranscriptionAvailable(false);
       setTranscriptionError('Live transcription could not start. Your audio is still being recorded.');
     }
@@ -109,6 +116,7 @@ export function useAudioRecorder() {
 
       const recorder = new MediaRecorder(destination.stream);
       recorderRef.current = recorder;
+      setAudioBlob(null);
       chunksRef.current = [];
       finalTranscriptRef.current = '';
 
@@ -168,10 +176,31 @@ export function useAudioRecorder() {
     }
   }, [startRecognition]);
 
+  const finishRecognition = useCallback(() => {
+    const recognition = recognitionRef.current;
+    if (!recognition) return;
+    if (recognitionStopTimerRef.current) clearTimeout(recognitionStopTimerRef.current);
+    // Final results may arrive after stop(), on both Pause and Finish.
+    recognitionStopTimerRef.current = window.setTimeout(() => {
+      if (recognitionRef.current !== recognition) return;
+      acceptRecognitionRef.current = false;
+      recognitionRef.current = null;
+      recognitionStopTimerRef.current = null;
+      setIsTranscribing(false);
+      if (recorderRef.current?.state === 'recording' && transcriptionAvailable && navigator.onLine) startRecognition();
+    }, 1500);
+    try { recognition.stop(); } catch(e) {
+      if (recognitionStopTimerRef.current) clearTimeout(recognitionStopTimerRef.current);
+      recognitionStopTimerRef.current = null;
+      acceptRecognitionRef.current = false;
+      recognitionRef.current = null;
+      setIsTranscribing(false);
+    }
+  }, [startRecognition, transcriptionAvailable]);
+
   const pauseRecording = useCallback(() => {
     if (mediaRecorder && isRecording && !isPaused) {
       try {
-        acceptRecognitionRef.current = false;
         if (mediaRecorder.state === 'recording') {
           mediaRecorder.pause();
         }
@@ -180,17 +209,12 @@ export function useAudioRecorder() {
           clearInterval(timerRef.current);
           timerRef.current = null;
         }
-        if (recognitionRef.current) {
-          try {
-            recognitionRef.current.stop();
-          } catch(e) {}
-          recognitionRef.current = null;
-        }
+        finishRecognition();
       } catch (err) {
         console.error("Error pausing recording:", err);
       }
     }
-  }, [mediaRecorder, isRecording, isPaused]);
+  }, [mediaRecorder, isRecording, isPaused, finishRecognition]);
 
   const resumeRecording = useCallback(() => {
     if (mediaRecorder && isRecording && isPaused) {
@@ -200,7 +224,7 @@ export function useAudioRecorder() {
         }
         setIsPaused(false);
         
-        if (transcriptionAvailable && navigator.onLine) startRecognition();
+        if (transcriptionAvailable && navigator.onLine && !recognitionRef.current) startRecognition();
 
         let lastTick = Date.now();
         timerRef.current = window.setInterval(() => {
@@ -216,7 +240,6 @@ export function useAudioRecorder() {
 
   const stopRecording = useCallback(() => {
     if (mediaRecorder && isRecording) {
-      acceptRecognitionRef.current = false;
       mediaRecorder.stop();
       setIsRecording(false);
       setIsPaused(false);
@@ -224,15 +247,15 @@ export function useAudioRecorder() {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
-      if (recognitionRef.current) {
-        try { recognitionRef.current.stop(); } catch(e) {}
-        recognitionRef.current = null;
-      }
+      finishRecognition();
     }
-  }, [mediaRecorder, isRecording]);
+  }, [mediaRecorder, isRecording, finishRecognition]);
 
   const reset = useCallback(() => {
     recordingIdRef.current += 1;
+    if (recognitionStopTimerRef.current) clearTimeout(recognitionStopTimerRef.current);
+    recognitionStopTimerRef.current = null;
+    setIsTranscribing(false);
     acceptRecognitionRef.current = false;
     if (recognitionRef.current) {
       try { recognitionRef.current.stop(); } catch(e) {}
@@ -256,6 +279,7 @@ export function useAudioRecorder() {
   }, []);
 
   useEffect(() => () => {
+    if (recognitionStopTimerRef.current) clearTimeout(recognitionStopTimerRef.current);
     acceptRecognitionRef.current = false;
     try { recognitionRef.current?.stop(); } catch(e) {}
     try { if (recorderRef.current?.state !== 'inactive') recorderRef.current?.stop(); } catch(e) {}
@@ -285,6 +309,7 @@ export function useAudioRecorder() {
     transcript,
     setTranscript,
     isFinalTranscript,
+    isTranscribing,
     error,
     transcriptionError,
     transcriptionAvailable,

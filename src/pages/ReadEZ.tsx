@@ -1,5 +1,5 @@
-import {TrialReadingLibrary} from '../components/TrialReadingLibrary';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { lazy, Suspense, useState, useEffect, useRef } from 'react';
+const TrialReadingLibrary = lazy(() => import('../components/TrialReadingLibrary').then(module => ({default:module.TrialReadingLibrary})));
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   BookOpen, 
@@ -41,6 +41,9 @@ export const ReadEZ: React.FC<ReadEZProps> = ({ profile }) => {
   const [currentPartIndex, setCurrentPartIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [showSuccess, setShowSuccess] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('');
+  const resultId = useRef(crypto.randomUUID());
+  useEffect(() => { resultId.current = crypto.randomUUID(); setSaveStatus(''); }, [profile.uid]);
   const [score, setScore] = useState<number | null>(null);
   const [duration, setDuration] = useState(0);
   const [startTime, setStartTime] = useState<number | null>(null);
@@ -102,6 +105,10 @@ export const ReadEZ: React.FC<ReadEZProps> = ({ profile }) => {
         await saveReadQuestionToBank(selectedMode, test, randomTheme, profile.uid);
       }
 
+      // A cached/downloaded paper can be attempted repeatedly; retries do not pass here.
+      resultId.current = crypto.randomUUID();
+      setSaveStatus('');
+      setDuration(0);
       setTestSet(test);
       setState('PLAYING');
       setStartTime(Date.now());
@@ -201,14 +208,11 @@ export const ReadEZ: React.FC<ReadEZProps> = ({ profile }) => {
     const finalScore = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
     setScore(finalScore);
 
-    // Mark as completed for rotation
-    if (testSet.id && !testSet.id.startsWith('blob:')) {
-      await markQuestionAsCompleted(profile.uid, testSet.id, finalScore);
-    }
-
+    setSaveStatus('Saving result…');
+    setShowSuccess(false);
     try {
       await saveSession(profile.uid, {
-        id: Date.now().toString(),
+        id: resultId.current,
         userId: profile.uid,
         type: 'ReadEZ',
         timestamp: Date.now(),
@@ -224,13 +228,17 @@ export const ReadEZ: React.FC<ReadEZProps> = ({ profile }) => {
           structure: 0
         }
       });
+      setSaveStatus('Result saved to your account.');
+      setShowSuccess(true);
+      if (testSet.id && !testSet.id.startsWith('blob:')) {
+        try { await markQuestionAsCompleted(profile.uid, testSet.id, finalScore); } catch { /* Rotation is advisory; result persistence already succeeded. */ }
+      }
       toast.success('Test results synchronized!');
     } catch (err: any) {
-      console.error("Error saving session", err);
+      setSaveStatus('Result not synced. Your answers are still here. Retry saving without starting a new test.');
       toast.error(getFriendlyFirebaseError(err));
     }
     setState('RESULT');
-    setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 2000);
   };
 
@@ -354,10 +362,11 @@ export const ReadEZ: React.FC<ReadEZProps> = ({ profile }) => {
     );
   };
 
-  if(showTrialBank)return <TrialReadingLibrary uid={profile.uid} onOtherPractice={()=>setShowTrialBank(false)}/>;
+  if(showTrialBank)return <Suspense fallback={<p role="status">Loading reading tests…</p>}><TrialReadingLibrary uid={profile.uid} onOtherPractice={()=>setShowTrialBank(false)}/></Suspense>;
 
   return (
     <div className="min-h-screen bg-obsidian text-white pt-24 pb-12 px-6">
+      {saveStatus && <p role="status" className="text-sm text-white/65">{saveStatus}{saveStatus.includes('not synced') && <button type="button" className="min-h-11 underline ml-3" onClick={() => void submitTest()}>Retry result sync</button>}</p>}
       <SuccessFeedback show={showSuccess} onComplete={() => setShowSuccess(false)} />
       <div className="max-w-4xl mx-auto space-y-12">
         <header className="text-center space-y-4">
