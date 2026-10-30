@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { PACKAGES } from '../../packages';
+import { usePublishedPackages } from '../../lib/publishedPrices';
 import { motion, AnimatePresence } from 'motion/react';
 import { Mic, PenTool, BookOpen, Headphones, Zap, Check, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -73,6 +73,8 @@ const skillConfig = {
 };
 
 export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, freeDailyLimit=false, dailyPracticeLimit=false, onClose, skill, onUpgrade, onUseCredits, onBuyCredits, customTitle, customSubtext }) => {
+  // The price offered here has to match what checkout will bill.
+  const catalogue = usePublishedPackages();
   const navigate = useNavigate();
 
   const handleBuyCredits = () => {
@@ -169,7 +171,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, freeDailyLim
                 onClick={handleBuyCredits}
                 className="w-full py-3 px-6 bg-orange-500/10 border border-orange-500/20 text-orange-400 rounded-xl font-bold uppercase tracking-widest text-[10px] hover:bg-orange-500/20 transition-colors"
               >
-                Buy {PACKAGES.boost_plus.aiUnits} AI credits + {PACKAGES.boost_plus.creditsGrant} practice credits for RM{PACKAGES.boost_plus.price}
+                Buy {catalogue.boost_plus.aiUnits} AI credits + {catalogue.boost_plus.creditsGrant} practice credits for RM{catalogue.boost_plus.price}
               </button>
               
               <div className="pt-4 space-y-2">

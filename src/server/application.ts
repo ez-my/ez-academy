@@ -5,6 +5,7 @@ import {registerDailyReportRoutes} from './dailyReportRoutes';
 import {registerMUETBankRoutes} from './muetBankRoutes';
 import {registerPracticeRoutes} from './practiceRoutes';
 import {registerMarketingRoutes} from './marketingRoutes';
+import {registerPricingRoutes} from './pricingRoutes';
 import {registerOperationsRoutes} from './operationsRoutes';
 import {reserveMonitoredCall} from './operations';
 import { WARMUP_VOICE } from '../speakingWarmup';
@@ -80,6 +81,7 @@ export function createApplication() {
   registerAchievementRoutes(app,adminDb);
   registerOperationsRoutes(app,adminDb);
   registerMarketingRoutes(app,adminDb);
+  registerPricingRoutes(app,adminDb);
 
   app.get('/api/migration/access', async (req, res) => {
     const token = req.get('authorization')?.match(/^Bearer (.+)$/i)?.[1];
