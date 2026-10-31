@@ -780,12 +780,10 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
     // AI "thinking" simulation
     setIsAiThinking(true);
     
-    // Award points for participating
-    if (userMessage.length > 5 && userMessage !== '(No response captured)') {
-      try {
-        await updateProfile(profile.uid, { points: increment(2) as any });
-      } catch(e) {}
-    }
+    // Points are not awarded here any more. The server grants them when it spends
+    // a practice from the daily allowance, and firestore.rules refuses a points
+    // change from a learner -- so this write would be rejected on every answer,
+    // silently, by the empty catch it used to sit in.
 
     try {
       // Move to next primary question
