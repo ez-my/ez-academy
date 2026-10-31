@@ -571,7 +571,7 @@ export const MUETPart2Practice: React.FC<MUETPart2PracticeProps> = ({
                         {turn.speakerName}
                       </span>
                       {turn.skillType && (
-                        <span className="text-[9px] px-2 py-0.5 rounded-full bg-white/5 text-white/50 font-bold uppercase">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-white/50 font-bold uppercase">
                           {turn.skillType}
                         </span>
                       )}
@@ -638,7 +638,7 @@ export const MUETPart2Practice: React.FC<MUETPart2PracticeProps> = ({
                         ? "bg-white/5 text-white/30 border-white/10 cursor-not-allowed"
                         : "bg-white/10 hover:bg-white/20 text-primary border-white/10"
                   )}
-                  title={isAISpeaking ? "AI is speaking, mic paused" : isRecording ? "Stop recording speech" : "Speak your turn"}
+                  aria-label={isAISpeaking ? "The examiner is speaking, your microphone is paused" : isRecording ? "Stop recording" : "Start recording"} title={isAISpeaking ? "AI is speaking, mic paused" : isRecording ? "Stop recording speech" : "Speak your turn"}
                 >
                   {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
                 </button>

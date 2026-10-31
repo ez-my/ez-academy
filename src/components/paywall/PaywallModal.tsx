@@ -100,7 +100,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, freeDailyLim
   }, [isOpen]);
 
   if (!isOpen) return null;
-  if(freeDailyLimit||dailyPracticeLimit)return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"><section role="dialog" aria-modal="true" aria-label="Daily free limit" className="w-full max-w-sm rounded-2xl border border-white/15 bg-[#141610] p-6 text-white"><h2 className="text-lg font-semibold">{freeDailyLimit?"Today's free practice is used":"Today's practice limit is used"}</h2><p className="mt-3 text-sm leading-6 text-white/70">{freeDailyLimit?'Free includes 2 practices a day across all skills. Come back tomorrow or choose a paid plan.':'Come back tomorrow. Extra credits do not increase your daily practice limit.'}</p><div className="mt-5 flex flex-wrap gap-3"><button className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-black" onClick={()=>{onClose();if(onUpgrade)onUpgrade();else navigate('/app/pricing');}}>View plans</button><button className="min-h-11 rounded-lg border border-white/20 px-4 text-sm" onClick={onClose}>Close</button></div></section></div>;
+  if(freeDailyLimit||dailyPracticeLimit)return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"><section role="dialog" aria-modal="true" aria-label="Daily free limit" className="w-full max-w-sm rounded-2xl border border-white/15 bg-[#141610] p-6 text-white"><h2 className="text-lg font-semibold">{freeDailyLimit?"Today's free practice is used":"Today's practice limit is used"}</h2><p className="mt-3 text-sm leading-6 text-white/70">{freeDailyLimit?'Free includes 2 practices a day across all skills. Come back tomorrow or choose a paid plan.':'Come back tomorrow. Extra credits do not increase your daily practice limit.'}</p><div className="mt-5 flex flex-wrap gap-3"><button className="ez-btn ez-btn-primary" onClick={()=>{onClose();if(onUpgrade)onUpgrade();else navigate('/app/pricing');}}>View plans</button><button className="ez-btn ez-btn-secondary" onClick={onClose}>Close</button></div></section></div>;
 
 
   return (
@@ -155,21 +155,21 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, freeDailyLim
             <div className="w-full space-y-3">
               <button
                 onClick={onUpgrade}
-                className="w-full py-4 px-6 bg-primary text-obsidian rounded-xl font-bold uppercase tracking-widest text-xs hover:scale-[1.02] transition-transform shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
+                className="ez-btn ez-btn-primary ez-btn-lg ez-btn-block uppercase tracking-widest text-xs shadow-lg shadow-primary/20"
               >
                 Upgrade Subscription <ArrowRight size={16} />
               </button>
               
               <button
                 onClick={onUseCredits}
-                className="w-full py-4 px-6 bg-white/5 border border-white/10 text-white rounded-xl font-bold uppercase tracking-widest text-xs hover:bg-white/10 transition-colors"
+                className="ez-btn ez-btn-secondary ez-btn-lg ez-btn-block uppercase tracking-widest text-xs"
               >
                 Use Available Credits
               </button>
 
               <button
                 onClick={handleBuyCredits}
-                className="w-full py-3 px-6 bg-orange-500/10 border border-orange-500/20 text-orange-400 rounded-xl font-bold uppercase tracking-widest text-[10px] hover:bg-orange-500/20 transition-colors"
+                className="ez-btn ez-btn-block bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500/20 uppercase tracking-widest text-[10px]"
               >
                 Buy {catalogue.boost_plus.aiUnits} AI credits + {catalogue.boost_plus.creditsGrant} practice credits for RM{catalogue.boost_plus.price}
               </button>
@@ -177,14 +177,14 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, freeDailyLim
               <div className="pt-4 space-y-2">
                 <button
                   onClick={() => { onClose(); navigate('/app'); }}
-                  className="w-full py-2 text-center text-white/50 text-xs font-medium hover:text-white transition-colors"
+                  className="ez-btn ez-btn-ghost ez-btn-block text-xs font-medium"
                 >
                   Continue with other skills
                 </button>
                 
                 <button
                   onClick={onClose}
-                  className="w-full py-2 text-center text-white/30 text-[10px] uppercase font-bold tracking-widest hover:text-white/60 transition-colors"
+                  className="ez-btn ez-btn-ghost ez-btn-block text-[10px] uppercase tracking-widest text-white/40"
                 >
                   Not now, continue tomorrow
                 </button>

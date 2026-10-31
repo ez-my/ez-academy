@@ -70,7 +70,7 @@ export const GlobalAudioPlayer: React.FC = () => {
               ))}
             </div>
             <div>
-              <p className="text-[8px] font-black uppercase text-primary tracking-widest leading-none mb-1">Now Streaming</p>
+              <p className="text-[10px] font-black uppercase text-primary tracking-widest leading-none mb-1">Now Streaming</p>
               <p className="text-[10px] font-bold text-white truncate max-w-[120px]">{config.media?.audioTitle || 'Ambient Learning'}</p>
             </div>
           </motion.div>

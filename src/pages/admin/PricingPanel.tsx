@@ -113,13 +113,13 @@ export const PricingPanel: React.FC = () => {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-white">{plan.name}</span>
-                      <span className="text-[9px] font-black uppercase tracking-widest text-white/30 border border-white/10 rounded px-1.5 py-0.5">{plan.type}</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-white/30 border border-white/10 rounded px-1.5 py-0.5">{plan.type}</span>
                     </div>
                     <p className="text-xs text-white/40 mt-1 line-clamp-1">{plan.description}</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-right">
-                      <label htmlFor={`price-${plan.id}`} className="block text-[9px] font-black uppercase tracking-widest text-white/35 mb-1">Price (RM)</label>
+                      <label htmlFor={`price-${plan.id}`} className="block text-[10px] font-black uppercase tracking-widest text-white/35 mb-1">Price (RM)</label>
                       <input
                         id={`price-${plan.id}`}
                         type="number"
@@ -135,7 +135,7 @@ export const PricingPanel: React.FC = () => {
                       />
                     </div>
                     <div className="text-right w-24">
-                      <div className="text-[9px] font-black uppercase tracking-widest text-white/35 mb-1">In code</div>
+                      <div className="text-[10px] font-black uppercase tracking-widest text-white/35 mb-1">In code</div>
                       <div className="text-sm text-white/50 tabular-nums">RM {centsToRinggit(plan.defaultAmountInCents).toFixed(2)}</div>
                     </div>
                   </div>
@@ -176,7 +176,7 @@ export const PricingPanel: React.FC = () => {
               <div key={entry.version} className="py-3 flex flex-wrap items-center justify-between gap-2 text-xs">
                 <div>
                   <span className="font-bold text-white">Version {entry.version}</span>
-                  {active?.version === entry.version && <span className="ml-2 text-[9px] font-black uppercase tracking-widest text-primary">Live</span>}
+                  {active?.version === entry.version && <span className="ml-2 text-[10px] font-black uppercase tracking-widest text-primary">Live</span>}
                   <p className="text-white/40 mt-0.5">{entry.publishedBy}</p>
                 </div>
                 <div className="text-right text-white/50">

@@ -1,4 +1,4 @@
-import {Info} from 'lucide-react';
+import { Info, Trophy } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -32,7 +32,7 @@ import { OfficialSocialLinks } from './social/OfficialSocialLinks';
 // the whole barrel eagerly instead put ~800 kB of unused icons on every page.
 const STATIC_ICONS: Record<string, React.ComponentType<any>> = {
   LayoutDashboard, Mic, PenTool, BookOpen, Headset, Headphones, GraduationCap,
-  History: HistoryIcon, User, ShieldAlert, ChevronDown, ChevronUp, LogOut, Zap, Plus, Layout,
+  History: HistoryIcon, User, ShieldAlert, ChevronDown, ChevronUp, LogOut, Zap, Plus, Layout, Trophy,
 };
 
 const LucideIcon = ({ name, size = 20, className = "" }: { name: string, size?: number, className?: string }) => {
@@ -114,13 +114,14 @@ export const Navigation: React.FC<NavigationProps> = ({
   ];
 
   const UTILITY_ITEMS = [
+    { id: 'leaderboard', label: 'Leaderboard', iconName: 'Trophy', description: 'Top learners and their schools' },
     { id: 'history', label: 'History', icon: HistoryIcon },
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'support', label: 'Help & Support', icon: Info },
   ];
 
   // Prevent dynamic modules from clashing with reserved IDs
-  const RESERVED_IDS = new Set(['dashboard', 'speakez', 'muet', 'writeez', 'readez', 'listenez', 'history', 'profile', 'admin', 'pricing', 'onboarding', 'login']);
+  const RESERVED_IDS = new Set(['dashboard', 'speakez', 'muet', 'writeez', 'readez', 'listenez', 'history', 'profile', 'admin', 'pricing', 'onboarding', 'login', 'leaderboard']);
 
   const NAV_ITEMS = [
     ...CORE_ITEMS,
@@ -224,20 +225,25 @@ export const Navigation: React.FC<NavigationProps> = ({
              </div>
           </div>
           
-          <div className="xl:flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-2xl group cursor-pointer hover:bg-primary/5 hover:border-primary/20 transition-all" onClick={() => onChange('pricing')}>
+          <button
+            type="button"
+            onClick={() => onChange('pricing')}
+            aria-label={`${credits || 0} credits. Open plans to top up`}
+            className="w-full min-h-11 xl:flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-2xl group cursor-pointer hover:bg-primary/5 hover:border-primary/20 transition-colors text-left"
+          >
             <div className="flex items-center gap-2">
               <Zap size={14} className="text-primary animate-pulse" />
               <div className="hidden xl:block">
-                <div className="text-[8px] font-black uppercase text-white/40 tracking-wider">Credits</div>
+                <div className="text-[10px] font-black uppercase text-white/40 tracking-wider">Credits</div>
                 <div className="text-xs font-black italic text-primary leading-none mt-0.5">{credits || 0} Credits</div>
               </div>
             </div>
             <Plus size={12} className="hidden xl:block text-white/20 group-hover:text-primary transition-colors" />
-          </div>
+          </button>
 
           <button 
             onClick={onLogout}
-            className="w-full flex items-center justify-center xl:justify-start gap-4 px-4 py-2 rounded-xl text-white/40 hover:text-red-400 hover:bg-red-400/5 transition-all group"
+            className="w-full min-h-11 flex items-center justify-center xl:justify-start gap-4 px-4 py-2 rounded-xl text-white/40 hover:text-red-400 hover:bg-red-400/5 transition-colors group"
           >
             <LogOut size={18} className="group-hover:translate-x-1 transition-transform" />
             <span className="hidden xl:block text-xs font-bold uppercase tracking-widest">Log out</span>
@@ -245,8 +251,7 @@ export const Navigation: React.FC<NavigationProps> = ({
         </div>
       </aside>
 
-      {/* Mobile Navigation */}
-
+      {/* The mobile bar is PersistentNavigation, rendered app-wide from App.tsx. */}
     </>
   );
 };

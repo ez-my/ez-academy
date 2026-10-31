@@ -299,7 +299,8 @@ export const ReadEZ: React.FC<ReadEZProps> = ({ profile }) => {
                          type="text" 
                          value={answers[q.id] || ''}
                          onChange={(e) => handleAnswerSelect(q.id, e.target.value)}
-                         className="w-full bg-white/5 border-b-2 border-white/20 focus:border-primary px-4 py-3 text-white outline-none rounded-t-lg transition-colors"
+                         aria-label={`Answer for question ${q.number}`}
+                         className="w-full min-h-11 bg-white/5 border-b-2 border-white/20 focus:border-primary px-4 py-3 text-white outline-none rounded-t-lg transition-colors placeholder:text-white/35"
                          placeholder="Type one word answer..."
                        />
                      ) : (

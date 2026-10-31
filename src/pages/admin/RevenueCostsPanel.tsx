@@ -389,11 +389,11 @@ export const RevenueCostsPanel: React.FC<{ onOpenTab?: (tab: string) => void }> 
               <div className="mt-8 pt-8 border-t border-white/10 flex items-center justify-between">
                 <div className="flex -space-x-3">
                   {Array.from({length: 5}).map((_, i) => (
-                    <div key={i} className="w-8 h-8 rounded-full border-2 border-obsidian bg-white/5 flex items-center justify-center text-[8px] font-bold text-white/20">
+                    <div key={i} className="w-8 h-8 rounded-full border-2 border-obsidian bg-white/5 flex items-center justify-center text-[10px] font-bold text-white/20">
                       U{i}
                     </div>
                   ))}
-                  <div className="w-8 h-8 rounded-full border-2 border-obsidian bg-primary text-obsidian flex items-center justify-center text-[8px] font-black">
+                  <div className="w-8 h-8 rounded-full border-2 border-obsidian bg-primary text-obsidian flex items-center justify-center text-[10px] font-black">
                     +{stats.totalUsers > 5 ? stats.totalUsers - 5 : 0}
                   </div>
                 </div>

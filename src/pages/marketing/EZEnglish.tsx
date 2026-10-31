@@ -155,7 +155,7 @@ export const MarketingEZEnglish = () => {
              <Link to="/login" className="inline-block px-12 py-5 bg-white text-obsidian rounded-full font-bold uppercase tracking-widest text-sm hover:scale-105 transition-transform shadow-2xl shadow-white/10">
                Access EZ English
              </Link>
-             <p className="text-white/40 text-[9px] uppercase tracking-[0.3em] font-black">
+             <p className="text-white/40 text-[10px] uppercase tracking-[0.3em] font-black">
                Free plan available — no credit card needed
              </p>
           </div>

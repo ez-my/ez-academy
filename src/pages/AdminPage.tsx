@@ -112,11 +112,11 @@ export const AdminPage: React.FC = () => {
                 <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tighter italic uppercase text-white leading-none">
                   Admin <span className="text-primary neon-text-glow">Tools</span>
                 </h2>
-                <div className="px-2 py-0.5 bg-amber-500/10 text-amber-500 rounded-full text-[8px] font-black uppercase tracking-[0.2em] border border-amber-500/20 flex items-center gap-1 italic">
+                <div className="px-2 py-0.5 bg-amber-500/10 text-amber-500 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border border-amber-500/20 flex items-center gap-1 italic">
                   <ShieldAlert size={12} className="pulse-primary" /> Root
                 </div>
               </div>
-              <p className="hidden sm:block text-white/20 uppercase tracking-[0.4em] text-[8px] font-black italic mt-1.5 underline decoration-primary/20 underline-offset-4">
+              <p className="hidden sm:block text-white/20 uppercase tracking-[0.4em] text-[10px] font-black italic mt-1.5 underline decoration-primary/20 underline-offset-4">
                 {activeSection.label}
               </p>
             </div>

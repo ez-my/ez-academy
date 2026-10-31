@@ -217,7 +217,7 @@ export const ModulesPanel: React.FC = () => {
                               mod.isActive ? 'translate-x-6' : 'translate-x-0'
                             }`} />
                           </div>
-                          <span className={`absolute -bottom-5 w-auto whitespace-nowrap text-[8px] font-black uppercase tracking-widest transition-opacity ${
+                          <span className={`absolute -bottom-5 w-auto whitespace-nowrap text-[10px] font-black uppercase tracking-widest transition-opacity ${
                             mod.isActive ? 'text-primary' : 'text-white/20'
                           }`}>
                             {mod.isActive ? 'Live' : 'Hidden'}
