@@ -3,7 +3,7 @@ import { persistSessionOnce } from './sessionPersistence';
 import { runTransaction } from 'firebase/firestore';
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, User } from 'firebase/auth';
-import { initializeFirestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, onSnapshot, serverTimestamp, getDocFromServer, Timestamp, orderBy, limit, increment, setLogLevel } from 'firebase/firestore';
+import { initializeFirestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, onSnapshot, serverTimestamp, getDocFromServer, Timestamp, orderBy, limit, setLogLevel } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { UserProfile, PracticeSession, SiteConfig, AppModule, TaskReminder, Feedback, ActivityLog } from '../types';
 
@@ -250,8 +250,11 @@ export const saveSession = async (userId: string, session: PracticeSession): Pro
         const today = new Date().toISOString().split('T')[0];
         const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
         const lastActiveDate = user.usage?.date;
+        // Points are not set here any more. The server awards them when it
+        // spends a practice from the daily allowance, which is the only moment
+        // it can prove a practice happened; the rules now refuse a points change
+        // from a signed-in learner, so writing one here would reject the save.
         return {
-          points: increment(typeof session.score === 'number' ? Math.round(session.score / 10) : 5),
           streak: lastActiveDate === today ? (user.streak || 0) : lastActiveDate === yesterday.toISOString().split('T')[0] ? (user.streak || 0) + 1 : 1,
           'usage.date': today, updatedAt: serverTimestamp(),
         };

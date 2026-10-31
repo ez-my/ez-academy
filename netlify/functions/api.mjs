@@ -27652,6 +27652,19 @@ var mayDisplayTrialPaper = (testId, kind) => {
   return kind ? allowed(kind) : allowed("reading") || allowed("listening");
 };
 
+// src/points.ts
+var POINTS_PER_PRACTICE = 10;
+var POINTS_PER_FULL_TEST = 25;
+function pointsForPractice(mock = false) {
+  return mock ? POINTS_PER_FULL_TEST : POINTS_PER_PRACTICE;
+}
+function awardPoints(current, award) {
+  const base = Number(current);
+  const safeBase = Number.isFinite(base) && base > 0 ? Math.floor(base) : 0;
+  const safeAward = Number.isFinite(award) && award > 0 ? Math.floor(award) : 0;
+  return safeBase + safeAward;
+}
+
 // src/server/practiceRoutes.ts
 function registerPracticeRoutes(app, db, verifyOverride, rights = mayDisplayTrialPaper) {
   const verify = async (req) => {
@@ -27709,6 +27722,7 @@ function registerPracticeRoutes(app, db, verifyOverride, rights = mayDisplayTria
         t.set(daily, updated);
         if (rewardCreditUsed) t.set(ledgerRef, { rewardPracticeCredits: Number(l.data()?.rewardPracticeCredits || 0) - 1 }, { merge: true });
         t.set(receipt, { skill, mock, day, createdAt: Date.now(), rewardCreditUsed });
+        t.set(profileRef, { points: awardPoints(p.data()?.points, pointsForPractice(mock)) }, { merge: true });
         return { day, used: next };
       });
       res.json(result);
@@ -27745,6 +27759,7 @@ function registerPracticeRoutes(app, db, verifyOverride, rights = mayDisplayTria
           t.set(ref, { ...session, timestamp: import_firestore5.Timestamp.fromMillis(session.timestamp) });
           t.set(lock, { skill, testId, parts: [.../* @__PURE__ */ new Set([...previousParts, ...locked.data()?.parts || [], part])] });
           t.set(daily, updated);
+          t.set(db.doc(`users/${u.uid}`), { points: awardPoints(p.data()?.points, pointsForPractice()) }, { merge: true });
           if (rewardCreditUsed) t.set(db.doc(`package_entitlements/${u.uid}`), { rewardPracticeCredits: Number(l.data()?.rewardPracticeCredits || 0) - 1 }, { merge: true });
           return session;
         });
