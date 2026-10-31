@@ -571,7 +571,7 @@ export const MUETPart2Practice: React.FC<MUETPart2PracticeProps> = ({
                         {turn.speakerName}
                       </span>
                       {turn.skillType && (
-                        <span className="text-[9px] px-2 py-0.5 rounded-full bg-white/5 text-white/50 font-bold uppercase">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-white/50 font-bold uppercase">
                           {turn.skillType}
                         </span>
                       )}

@@ -442,10 +442,10 @@ export const PaymentsPanel: React.FC = () => {
                       <td data-label="Reference" className="py-4 px-2">
                         <div className="text-[10px] text-white/40 font-mono tracking-tighter uppercase">{tx.orderReference || tx.id}</div>
                         {tx.billCode && (
-                          <div className="text-[8px] text-primary font-mono mt-0.5">BC: {tx.billCode}</div>
+                          <div className="text-[10px] text-primary font-mono mt-0.5">BC: {tx.billCode}</div>
                         )}
                         {tx.paymentMethod && (
-                          <div className="text-[8px] text-white/30 uppercase mt-0.5">{tx.paymentMethod}</div>
+                          <div className="text-[10px] text-white/30 uppercase mt-0.5">{tx.paymentMethod}</div>
                         )}
                       </td>
                       <td data-label="User / Email" className="py-4 px-2">
@@ -460,7 +460,7 @@ export const PaymentsPanel: React.FC = () => {
                       </td>
                       <td data-label="Status" className="py-4 px-2">
                         <span className={cn(
-                          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider",
+                          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider",
                           tx.status === 'SUCCESS' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
                           tx.status === 'FAILED' || tx.status === 'REJECTED' ? 'bg-red-500/10 text-red-500 border border-red-500/20' :
                           tx.status === 'PENDING_REVIEW' ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 animate-pulse' :
@@ -480,7 +480,7 @@ export const PaymentsPanel: React.FC = () => {
                           {tx.receiptUrl && (
                             <button
                               onClick={() => openPaymentReceipt(tx)}
-                              className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-white rounded-lg text-[9px] font-bold"
+                              className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-white rounded-lg text-[10px] font-bold"
                             >
                               Receipt
                             </button>
@@ -488,14 +488,14 @@ export const PaymentsPanel: React.FC = () => {
                           {!tx.archived && ((tx.paymentMethod === 'manual_bank_transfer' && tx.status === 'PENDING_REVIEW') || (tx.paymentMethod !== 'manual_bank_transfer' && !['SUCCESS','REJECTED'].includes(tx.status))) && (
                             <button 
                               onClick={() => handleApprovePayment(tx.id)}
-                              className="px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-primary hover:text-obsidian transition-all"
+                              className="px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-lg text-[10px] font-black uppercase tracking-wider hover:bg-primary hover:text-obsidian transition-all"
                             >
                               {tx.paymentMethod === 'manual_bank_transfer' ? 'Approve' : 'Check payment'}
                             </button>
                           )}
                           <button 
                             onClick={() => handleDeletePayment(tx.id, Boolean(tx.archived))} 
-                            className="px-2.5 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg text-[9px] font-bold hover:bg-red-500 hover:text-white transition-all"
+                            className="px-2.5 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg text-[10px] font-bold hover:bg-red-500 hover:text-white transition-all"
                           >
                             {tx.archived ? 'Restore' : 'Archive'}
                           </button>

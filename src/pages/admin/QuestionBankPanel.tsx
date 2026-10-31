@@ -377,7 +377,7 @@ export const QuestionBankPanel: React.FC = () => {
                 <span>{isGeneratingBank ? 'Generating...' : 'Mass Generate ReadEZ'}</span>
                 
                 {generationProgress && (
-                  <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-obsidian border border-white/10 px-2 py-1 rounded text-[8px] font-black uppercase tracking-tighter text-primary">
+                  <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-obsidian border border-white/10 px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter text-primary">
                     {generationProgress}
                   </div>
                 )}
@@ -462,7 +462,7 @@ export const QuestionBankPanel: React.FC = () => {
                           
                           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 flex-1 min-w-0 items-center">
                             <div className="md:col-span-2 space-y-1">
-                              <div className="text-[9px] font-black uppercase tracking-widest text-white/30">Type / Part</div>
+                              <div className="text-[10px] font-black uppercase tracking-widest text-white/30">Type / Part</div>
                               <div className="flex items-center gap-2">
                                 <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded border ${
                                   q.type === 'Writing' ? 'border-blue-500/30 text-blue-400 bg-blue-500/5' : 
@@ -477,14 +477,14 @@ export const QuestionBankPanel: React.FC = () => {
                             </div>
 
                             <div className="md:col-span-4 space-y-1 min-w-0">
-                              <div className="text-[9px] font-black uppercase tracking-widest text-white/30">Theme / Title</div>
+                              <div className="text-[10px] font-black uppercase tracking-widest text-white/30">Theme / Title</div>
                               <h4 className="font-bold text-base text-white group-hover:text-primary transition-colors truncate">
                                 {data.title || data.topic || data.theme || 'Untitled Question'}
                               </h4>
                             </div>
 
                             <div className="md:col-span-5 space-y-1 hidden sm:block min-w-0">
-                              <div className="text-[9px] font-black uppercase tracking-widest text-white/30">Preview Content</div>
+                              <div className="text-[10px] font-black uppercase tracking-widest text-white/30">Preview Content</div>
                               <p className="text-xs text-white/40 line-clamp-1 italic font-medium">
                                 {data.context || data.emailBody || data.situation || data.transcript || data.passage || 'No preview available'}
                               </p>
@@ -492,7 +492,7 @@ export const QuestionBankPanel: React.FC = () => {
 
                         <div className="flex items-center gap-4">
                           <div className="md:col-span-1 space-y-1 text-right hidden lg:block">
-                            <div className="text-[9px] font-black uppercase tracking-widest text-white/30">Visibility</div>
+                            <div className="text-[10px] font-black uppercase tracking-widest text-white/30">Visibility</div>
                             <div className="flex justify-end">
                               {q.isPublic !== false ? (
                                 <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary-rgb),0.5)]" title="Public" />

@@ -1441,7 +1441,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
 
             <div className="bg-white/5 border border-white/10 rounded-3xl p-5 md:p-6 space-y-4">
               <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2 text-white/60 font-black uppercase text-[8px] md:text-[10px] tracking-widest italic">
+                <div className="flex items-center gap-2 text-white/60 font-black uppercase text-[10px] md:text-[10px] tracking-widest italic">
                   <Sparkles size={12} className="text-primary" /> Mic Sensitivity
                 </div>
                 <span className="text-primary font-black italic text-xs md:text-sm">{Math.round(sensitivity * 100)}%</span>
@@ -1455,7 +1455,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
                 onChange={(e) => setSensitivity(parseFloat(e.target.value))}
                 className="w-full h-1 md:h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary"
               />
-              <div className="flex justify-between text-[7px] md:text-[8px] font-bold text-white/20 uppercase tracking-tighter">
+              <div className="flex justify-between text-[10px] md:text-[10px] font-bold text-white/20 uppercase tracking-tighter">
                 <span>Lower (Quiet Env)</span>
                 <span>Normal</span>
                 <span>Higher (Noisy)</span>
@@ -1468,7 +1468,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
                   <AlertCircle size={16} />
                 </div>
                 <div className="text-left">
-                  <p className="text-[8px] font-black uppercase text-white/30 tracking-widest italic">Challenge Level</p>
+                  <p className="text-[10px] font-black uppercase text-white/30 tracking-widest italic">Challenge Level</p>
                   <p className="text-xs font-bold text-white capitalize">{difficulty} Mode</p>
                 </div>
               </div>
@@ -1491,7 +1491,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
                   <Play size={16} />
                 </div>
                 <div className="text-left">
-                  <p className="text-[8px] font-black uppercase text-white/30 tracking-widest italic">Connection Mode</p>
+                  <p className="text-[10px] font-black uppercase text-white/30 tracking-widest italic">Connection Mode</p>
                   <p className="text-xs font-bold text-white capitalize">{isOfflineMode ? 'Practice Offline' : 'Online Practice'}</p>
                 </div>
               </div>
@@ -1517,7 +1517,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
                   <Sparkles size={16} />
                 </div>
                 <div className="text-left">
-                  <p className="text-[8px] font-black uppercase text-white/30 tracking-widest italic">AI Evaluation Level</p>
+                  <p className="text-[10px] font-black uppercase text-white/30 tracking-widest italic">AI Evaluation Level</p>
                   <p className="text-xs font-bold text-white capitalize">{analysisType} Mode</p>
                 </div>
               </div>
@@ -1541,7 +1541,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
                     </button>
                   ))}
                 </div>
-                <p className="text-[8px] text-white/30 font-medium px-2 italic">
+                <p className="text-[10px] text-white/30 font-medium px-2 italic">
                   {analysisType === 'basic' 
                     ? "Standard SPM speaking practice feedback." 
                     : "Detailed speaking feedback (2 credits for free users)."}
@@ -1555,7 +1555,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
                   <BookOpen size={16} />
                 </div>
                 <div className="text-left">
-                  <p className="text-[8px] font-black uppercase text-white/30 tracking-widest italic">Question Source</p>
+                  <p className="text-[10px] font-black uppercase text-white/30 tracking-widest italic">Question Source</p>
                   <p className="text-xs font-bold text-white capitalize">{selectedPart === 1 || selectedPart === 'Full' ? 'Everyday warm-up bank · No AI generation' : source === 'ai' ? 'AI Generated' : 'Question Bank'}</p>
                 </div>
               </div>
@@ -1658,7 +1658,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
                   <div className="space-y-6 flex flex-col items-center">
                     <div className="w-full bg-gradient-to-br from-primary/20 to-primary/5 border-2 border-primary/40 rounded-2xl md:rounded-[2rem] p-4 md:p-8 text-center shadow-[0_0_40px_rgba(var(--primary-rgb),0.15)] relative overflow-hidden">
                       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(var(--primary-rgb),0.2)_0%,transparent_70%)] opacity-50" />
-                      <p className="text-[8px] md:text-[10px] uppercase font-black text-primary tracking-[0.4em] mb-1 md:mb-2 relative z-10">Central Topic</p>
+                      <p className="text-[10px] md:text-[10px] uppercase font-black text-primary tracking-[0.4em] mb-1 md:mb-2 relative z-10">Central Topic</p>
                       <h5 className="text-sm md:text-xl font-black text-white italic leading-tight tracking-tight relative z-10">
                         {task.discussion.situation}
                       </h5>
@@ -1669,9 +1669,9 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
                           <span className="text-primary/40 mb-1 md:mb-2 font-display text-base md:text-lg opacity-50 absolute top-1 left-2 md:top-2 md:left-3">0{i+1}</span>
                           <span className="group-hover:opacity-0 transition-opacity z-10 mt-1 md:mt-2">{p}</span>
                           {task.discussion?.guides?.[i] && (
-                            <div className="absolute inset-0 bg-primary/10 backdrop-blur-md p-2 md:p-4 flex items-center justify-center text-[8px] md:text-xs text-white font-bold italic translate-y-full group-hover:translate-y-0 transition-transform duration-300 ring-1 ring-primary/30 z-20">
+                            <div className="absolute inset-0 bg-primary/10 backdrop-blur-md p-2 md:p-4 flex items-center justify-center text-[10px] md:text-xs text-white font-bold italic translate-y-full group-hover:translate-y-0 transition-transform duration-300 ring-1 ring-primary/30 z-20">
                               <div className="space-y-1 w-full h-full flex flex-col justify-center">
-                                <p className="text-[6px] md:text-[8px] uppercase text-primary/60 mb-0.5 md:mb-1">Guiding Tip</p>
+                                <p className="text-[10px] md:text-[10px] uppercase text-primary/60 mb-0.5 md:mb-1">Guiding Tip</p>
                                 <span className="drop-shadow-md leading-tight">{task.discussion.guides[i]}</span>
                               </div>
                             </div>
@@ -1735,7 +1735,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
                   <div className="flex flex-col items-end">
                     <div className="flex items-center gap-2">
                       <div className={`w-1.5 h-1.5 rounded-full ${isAiSpeaking ? 'bg-primary animate-pulse shadow-[0_0_8px_rgba(202,255,0,0.5)]' : 'bg-green-500'} `} />
-                      <span className="text-[8px] md:text-[10px] font-black uppercase text-primary italic">
+                      <span className="text-[10px] md:text-[10px] font-black uppercase text-primary italic">
                         {isAiSpeaking ? 'Speaking' : isPaused ? 'Paused' : isRecording ? 'Recording' : 'Ready'}
                       </span>
                     </div>
@@ -1794,7 +1794,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
                               : 'bg-primary/15 border border-primary/20 rounded-tr-none text-white/85'
                             }`}>
                               {m.role === 'ai' && (
-                                <span className="block text-[8px] uppercase tracking-widest text-primary font-black italic mb-1">Examiner</span>
+                                <span className="block text-[10px] uppercase tracking-widest text-primary font-black italic mb-1">Examiner</span>
                               )}
                               {m.text}
                             </div>
@@ -2011,7 +2011,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
                       {/* Mind Map / Central Topic - compact in later steps */}
                       <div className={`relative w-full flex flex-col items-center gap-3 transition-all duration-500`}>
                         <div className={`w-full bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-2xl text-center shadow-[0_0_30px_rgba(var(--primary-rgb),0.05)] relative overflow-hidden ${part3Step > 1 ? 'p-3 md:p-4' : 'p-5 md:p-6 border-2 border-primary/30'}`}>
-                          <p className={`text-[9px] uppercase font-black text-primary tracking-[0.4em] relative z-10 ${part3Step > 1 ? 'mb-1 opacity-60' : 'mb-2'}`}>Central Topic</p>
+                          <p className={`text-[10px] uppercase font-black text-primary tracking-[0.4em] relative z-10 ${part3Step > 1 ? 'mb-1 opacity-60' : 'mb-2'}`}>Central Topic</p>
                           <h5 className={`${part3Step > 1 ? 'text-sm md:text-base opacity-80' : 'text-lg md:text-xl'} font-black text-white italic leading-tight tracking-tight relative z-10`}>
                             {task.discussion.situation}
                           </h5>
@@ -2021,7 +2021,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
                           <div className={`grid ${part3Step > 1 ? 'grid-cols-3 gap-1.5 md:gap-2 opacity-50' : 'grid-cols-2 md:grid-cols-3 gap-3'} w-full transition-all duration-500`}>
                             {(task.discussion.points || []).map((p, i) => (
                               <div key={i} className={`bg-white/5 border border-white/10 rounded-xl text-center flex items-center justify-center ${part3Step > 1 ? 'p-2' : 'p-3 md:p-4 hover:bg-white/10 hover:border-white/20'}`}>
-                                <p className={`${part3Step > 1 ? 'text-[9px] leading-tight' : 'text-xs md:text-sm'} font-bold text-white/80`}>{p}</p>
+                                <p className={`${part3Step > 1 ? 'text-[10px] leading-tight' : 'text-xs md:text-sm'} font-bold text-white/80`}>{p}</p>
                               </div>
                             ))}
                           </div>

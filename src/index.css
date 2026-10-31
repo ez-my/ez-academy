@@ -47,6 +47,18 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-display font-black tracking-tighter;
   }
+
+  /* iOS Safari zooms the whole page when a focused field is under 16px, and the
+     page does not zoom back out. Tailwind's preflight makes form controls inherit
+     their font, so any field sitting inside a text-sm block inherited 14px and
+     triggered it. Phone widths only, so desktop layouts are untouched. */
+  @media (max-width: 640px) {
+    input:not([type='checkbox']):not([type='radio']):not([type='range']),
+    textarea,
+    select {
+      font-size: 16px;
+    }
+  }
 }
 
 /* High Contrast Mode Overrides */
@@ -159,6 +171,80 @@
 
 .btn-secondary {
   @apply bg-[var(--border-color)] border border-[var(--border-color)] text-[var(--text-color)] font-bold px-8 py-4 rounded-2xl transition-all hover:bg-[var(--border-color)] uppercase tracking-widest text-xs;
+}
+
+/* ---------------------------------------------------------------------------
+   EZ component layer
+   ---------------------------------------------------------------------------
+   An audit of the app found 148 buttons wearing 125 different class strings,
+   and 204 hand-rolled card-like boxes against 86 uses of .glass-card. The old
+   .btn-primary bakes in its own padding and italics, so anything that needed a
+   different size could not use it and grew its own classes instead. These
+   primitives separate shape, size and tone so one button can be every button.
+
+   Every interactive primitive clears 44px, the comfortable minimum for a thumb.
+   Focus is not restated here: :focus-visible in the base layer already rings
+   every focusable element.
+   --------------------------------------------------------------------------- */
+
+.ez-btn {
+  @apply inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-xl
+         text-sm font-semibold leading-none text-center
+         transition-[background-color,border-color,color,transform,opacity] duration-200
+         disabled:opacity-40 disabled:pointer-events-none;
+}
+.ez-btn:active:not(:disabled) { transform: scale(0.98); }
+
+/* Tone. One obvious primary action per view; the rest recede. */
+.ez-btn-primary { @apply bg-primary text-[#0A0A0A] font-bold hover:brightness-110; }
+.ez-btn-secondary { @apply bg-white/5 border border-white/15 text-white hover:bg-white/10 hover:border-white/25; }
+.ez-btn-ghost { @apply text-white/70 hover:text-white hover:bg-white/5; }
+.ez-btn-danger { @apply bg-red-500/10 border border-red-500/30 text-red-200 hover:bg-red-500/20; }
+
+/* Size. The 44px floor holds; only the padding and type move. */
+.ez-btn-sm { @apply px-3 text-xs; }
+.ez-btn-lg { @apply min-h-14 px-6 text-base rounded-2xl; }
+.ez-btn-block { @apply w-full; }
+
+/* Surfaces. .ez-card is the quiet default; .glass-card stays for the heavier,
+   blurred panels it already dresses. */
+.ez-card { @apply rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5; }
+.ez-card-tight { @apply rounded-xl border border-white/10 bg-white/[0.03] p-3; }
+.ez-card-accent { @apply border-primary/25 bg-primary/[0.05]; }
+
+/* Forms. Inputs were each styled where they stood, so heights and radii drifted
+   from one page to the next. */
+.ez-label { @apply block text-sm font-medium text-white/85 mb-1.5; }
+.ez-field {
+  @apply w-full min-h-11 rounded-xl border border-white/15 bg-black/30 px-3 py-2.5
+         text-base text-white placeholder:text-white/35
+         transition-colors focus:border-primary focus:outline-none
+         disabled:opacity-50;
+}
+.ez-field[aria-invalid='true'] { @apply border-red-500/60; }
+.ez-hint { @apply text-xs text-white/45 mt-1.5; }
+.ez-error { @apply text-sm text-amber-100 mt-1.5; }
+
+/* The small uppercase labels this app leans on. Previously written inline at
+   anywhere from 6px to 11px; 6px is not readable on a phone held at arm's
+   length, which is how most of these learners study. */
+.ez-micro { @apply text-[10px] font-black uppercase tracking-widest; }
+.ez-chip { @apply inline-flex items-center gap-1.5 rounded-lg border border-white/12 bg-white/5 px-2.5 py-1 text-xs text-white/70; }
+
+/* Section rhythm, so pages stop choosing their own vertical spacing. */
+.ez-stack { @apply space-y-4 sm:space-y-5; }
+.ez-page { @apply max-w-4xl mx-auto min-w-0 pb-8 space-y-4 sm:space-y-5; }
+
+/* States. Every list that can be empty should say so in the same voice. */
+.ez-empty { @apply rounded-2xl border border-dashed border-white/15 bg-white/[0.02] p-6 sm:p-8 text-center; }
+.ez-empty-title { @apply text-sm font-semibold text-white/80; }
+.ez-empty-body { @apply text-xs text-white/50 mt-1.5 max-w-sm mx-auto leading-relaxed; }
+.ez-skeleton { @apply rounded-xl bg-white/[0.06] animate-pulse; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ez-btn { transition: none; }
+  .ez-btn:active:not(:disabled) { transform: none; }
+  .ez-skeleton { animation: none; }
 }
 
 @layer utilities {

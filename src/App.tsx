@@ -209,7 +209,7 @@ const ModuleGuard = ({ children, slug, modules, isAdmin, onNavigate }: { childre
         </button>
         
         <div className="pt-4">
-          <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20">EZ Academy Engineering Division</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20">EZ Academy Engineering Division</p>
         </div>
       </div>
     );

@@ -148,7 +148,7 @@ export const SiteEditorPanel: React.FC = () => {
                     <ShieldAlert size={18} /> Identity & Visual Core
                   </h4>
                   <div className="flex items-center gap-2">
-                    <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Quick Themes</span>
+                    <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">Quick Themes</span>
                     {[
                       { p: '#CCFF00', name: 'Cyber' },
                       { p: '#00E0FF', name: 'Aqua' },
@@ -188,7 +188,7 @@ export const SiteEditorPanel: React.FC = () => {
                           onChange={(e) => setSiteConfig({...siteConfig, colors: {...siteConfig.colors, primary: e.target.value.toUpperCase()}})}
                           className="w-full bg-transparent border-none p-0 text-xl font-black italic tracking-tighter text-white focus:outline-none"
                         />
-                        <p className="text-[9px] text-white/20 font-black uppercase tracking-widest">Main Accent HEX Code</p>
+                        <p className="text-[10px] text-white/20 font-black uppercase tracking-widest">Main Accent HEX Code</p>
                       </div>
                     </div>
                   </div>
@@ -214,7 +214,7 @@ export const SiteEditorPanel: React.FC = () => {
                           onChange={(e) => setSiteConfig({...siteConfig, colors: {...siteConfig.colors, obsidian: e.target.value.toUpperCase()}})}
                           className="w-full bg-transparent border-none p-0 text-xl font-black italic tracking-tighter text-white focus:outline-none"
                         />
-                        <p className="text-[9px] text-white/20 font-black uppercase tracking-widest">Obsidian Base HEX</p>
+                        <p className="text-[10px] text-white/20 font-black uppercase tracking-widest">Obsidian Base HEX</p>
                       </div>
                     </div>
                   </div>
@@ -352,7 +352,7 @@ export const SiteEditorPanel: React.FC = () => {
                     </div>
                   </div>
                   <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl">
-                    <p className="text-[9px] text-primary font-black uppercase tracking-widest italic">
+                    <p className="text-[10px] text-primary font-black uppercase tracking-widest italic">
                       SYSTEM NOTE: Media URLs must be direct links. Audio will be processed through the global player synchronized with user sessions.
                     </p>
                   </div>
@@ -395,12 +395,12 @@ export const SiteEditorPanel: React.FC = () => {
                           </div>
                           <div>
                             <h5 className="text-sm font-black italic tracking-tight">{section.title}</h5>
-                            <p className="text-[9px] text-white/20 font-black uppercase tracking-widest mt-1">ID: {section.id}</p>
+                            <p className="text-[10px] text-white/20 font-black uppercase tracking-widest mt-1">ID: {section.id}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-6">
                            <div className="flex items-center gap-2">
-                             <span className="text-[8px] font-black uppercase tracking-widest text-white/20">Global Nav</span>
+                             <span className="text-[10px] font-black uppercase tracking-widest text-white/20">Global Nav</span>
                              <button 
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -551,7 +551,7 @@ export const SiteEditorPanel: React.FC = () => {
                           </button>
                           
                           <div className="flex flex-col items-end">
-                            <label className="text-[8px] font-black uppercase tracking-widest text-white/20 mb-1">Highlight</label>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-white/20 mb-1">Highlight</label>
                             <button 
                               onClick={() => {
                                 const newItems = [...(siteConfig?.features?.items || [])];
@@ -638,7 +638,7 @@ export const SiteEditorPanel: React.FC = () => {
                     <Layout size={18} /> Landing Page Architecture
                   </h4>
                   <div className="p-2 bg-primary/5 border border-primary/20 rounded-xl">
-                    <p className="text-[8px] text-primary font-black uppercase tracking-widest italic">
+                    <p className="text-[10px] text-primary font-black uppercase tracking-widest italic">
                       Drag to reorder sections. Toggle to hide/show.
                     </p>
                   </div>
@@ -660,7 +660,7 @@ export const SiteEditorPanel: React.FC = () => {
                         <GripVertical size={16} className="text-white/20 group-hover:text-primary transition-colors" />
                         <div>
                           <p className="text-xs font-black italic tracking-tight">{section.label}</p>
-                          <p className="text-[8px] text-white/20 font-black uppercase tracking-[0.2em] mt-0.5">Component ID: {section.id}</p>
+                          <p className="text-[10px] text-white/20 font-black uppercase tracking-[0.2em] mt-0.5">Component ID: {section.id}</p>
                         </div>
                       </div>
                       
@@ -671,7 +671,7 @@ export const SiteEditorPanel: React.FC = () => {
                           );
                           setSiteConfig({...siteConfig, sectionLayout: newLayout});
                         }}
-                        className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
                           section.enabled 
                             ? 'bg-primary/20 text-primary border border-primary/30' 
                             : 'bg-white/5 text-white/20 border border-white/10'
@@ -735,7 +735,7 @@ export const SiteEditorPanel: React.FC = () => {
 
                   {/* PREVIEW OF THE SNIPPET */}
                   <div className="p-6 bg-black/40 border border-white/5 rounded-3xl space-y-4">
-                    <p className="text-[9px] font-black text-white/20 uppercase tracking-widest">Live Sharing Insight (Google Search)</p>
+                    <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">Live Sharing Insight (Google Search)</p>
                     <div className="space-y-1">
                       <a href="https://ez-academy.my" target="_blank" rel="noopener noreferrer" className="text-xl text-[#8ab4f8] font-medium hover:underline cursor-pointer block">
                         {siteConfig.seo?.metaTitle || 'EZ Academy Link'}
@@ -760,7 +760,7 @@ export const SiteEditorPanel: React.FC = () => {
                   <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40 italic flex items-center gap-2">
                     <Activity size={14} className="text-primary animate-pulse" /> Live Visual Feed
                   </h4>
-                  <span className="text-[8px] font-black bg-primary/10 text-primary px-2 py-0.5 rounded border border-primary/20 tracking-widest uppercase">Scaled 0.6x</span>
+                  <span className="text-[10px] font-black bg-primary/10 text-primary px-2 py-0.5 rounded border border-primary/20 tracking-widest uppercase">Scaled 0.6x</span>
                 </div>
 
                 {/* THE MOCKUP STAGE */}
@@ -794,12 +794,12 @@ export const SiteEditorPanel: React.FC = () => {
                      </div>
                      <div className="flex gap-3">
                         <div 
-                          className="px-6 py-3 rounded-full text-[8px] font-black uppercase tracking-widest text-obsidian shadow-lg"
+                          className="px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest text-obsidian shadow-lg"
                           style={{ backgroundColor: siteConfig?.colors?.primary }}
                         >
                           {siteConfig?.hero?.ctaText}
                         </div>
-                        <div className="px-6 py-3 rounded-full text-[8px] font-black uppercase tracking-widest border border-white/10 text-white">
+                        <div className="px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest border border-white/10 text-white">
                           {siteConfig?.hero?.secondaryCtaText}
                         </div>
                      </div>
@@ -829,7 +829,7 @@ export const SiteEditorPanel: React.FC = () => {
                 </div>
 
                 <div className="glass-card p-6 border-white/5 bg-white/[0.02]">
-                  <p className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em] mb-4">Diagnostic Context</p>
+                  <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-4">Diagnostic Context</p>
                   <div className="space-y-2 text-[10px] font-medium text-white/50">
                     <div className="flex justify-between"><span>Active Accent</span> <span className="font-mono text-primary" style={{ color: siteConfig.colors.primary }}>{siteConfig.colors.primary}</span></div>
                     <div className="flex justify-between"><span>Media Objects</span> <span className="text-white">{(siteConfig.media?.backgroundAudio ? 1 : 0) + (siteConfig.media?.promoVideo ? 1 : 0) + (siteConfig.hero.imageUrl ? 1 : 0)} Active</span></div>
@@ -891,7 +891,7 @@ export const SiteEditorPanel: React.FC = () => {
                             title={name}
                           >
                             <Icon size={20} className="group-hover:scale-110 group-hover:text-primary transition-transform" />
-                            <span className="text-[6px] font-black uppercase tracking-tighter text-white/20 truncate w-full text-center group-hover:text-primary/60">{name}</span>
+                            <span className="text-[10px] font-black uppercase tracking-tighter text-white/20 truncate w-full text-center group-hover:text-primary/60">{name}</span>
                           </button>
                         );
                       })}
@@ -919,7 +919,7 @@ export const SiteEditorPanel: React.FC = () => {
               <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 italic">Editor Status</div>
               <div className="flex items-center gap-2 mt-0.5">
                 <div className={`w-1.5 h-1.5 rounded-full ${isSiteConfigSaving ? 'bg-amber-500 animate-pulse' : 'bg-primary shadow-[0_0_8px_rgba(var(--primary-rgb),0.5)]'}`} />
-                <span className="text-[9px] font-bold text-white/60">Ready to Commit</span>
+                <span className="text-[10px] font-bold text-white/60">Ready to Commit</span>
               </div>
             </div>
 

@@ -117,7 +117,7 @@ function ActivityTimeline({ userId }: { userId: string }) {
                 <p className="text-[11px] font-bold text-white/90">{log.message}</p>
                 <div className="flex items-center gap-2 mt-1">
                   <Clock size={10} className="text-white/30" />
-                  <span className="text-[9px] font-black uppercase tracking-widest text-white/30">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-white/30">
                     {new Date(log.timestamp).toLocaleDateString()}
                   </span>
                 </div>
