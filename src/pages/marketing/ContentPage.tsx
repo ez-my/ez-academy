@@ -5,9 +5,15 @@ import { useSiteConfig } from '../../context/SiteConfigContext';
 
 export const ContentPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
-  const { config } = useSiteConfig();
+  const { config, loading } = useSiteConfig();
 
   const section = config?.contentSections?.find(s => s.id === slug);
+
+  // The config is no longer read before the app paints, so a real page would redirect
+  // to the home page if we treated "not loaded yet" as "no such page".
+  if (loading) {
+    return <div className="min-h-[80vh]" aria-busy="true" />;
+  }
 
   if (!section) {
     return <Navigate to="/" replace />;

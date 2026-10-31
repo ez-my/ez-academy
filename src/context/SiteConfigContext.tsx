@@ -1,16 +1,18 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useCallback, useContext, useState, useEffect } from 'react';
 import { SiteConfig } from '../types';
-import { getSiteConfig, db, handleFirestoreError, OperationType } from '../lib/firebase';
-import { onSnapshot, doc } from 'firebase/firestore';
+import { getSiteConfig, handleFirestoreError, OperationType } from '../lib/firebase';
 
 interface SiteConfigContextType {
   config: SiteConfig | null;
   loading: boolean;
+  /** Re-read the config. The site editor calls this after saving. */
+  refresh: () => Promise<void>;
 }
 
 const SiteConfigContext = createContext<SiteConfigContextType>({
   config: null,
   loading: true,
+  refresh: async () => {},
 });
 
 const DEFAULT_CONFIG: SiteConfig = {
@@ -106,42 +108,23 @@ export const SiteConfigProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [config, setConfig] = useState<SiteConfig | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Initial fetch
-    const fetchConfig = async () => {
-      try {
-        const data = await getSiteConfig();
-        if (data) {
-          setConfig(simpleText(data));
-        } else {
-          setConfig(DEFAULT_CONFIG);
-        }
-      } catch (err) {
-        console.error("Config fetch error:", err);
-        setConfig(DEFAULT_CONFIG);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchConfig();
-
-    // Real-time subscription
-    const unsubscribe = onSnapshot(doc(db, 'settings', 'main'), (docSnap) => {
-      if (docSnap.exists()) {
-        setConfig(simpleText(docSnap.data() as SiteConfig));
-      }
-    }, (error) => {
-      console.error("Error subscribing to site config:", error);
-      try {
-        handleFirestoreError(error, OperationType.GET, 'settings/main');
-      } catch (e) {
-        // Fallback if handleFirestoreError is not available
-      }
-    });
-
-    return () => unsubscribe();
+  // A one-shot read, not an onSnapshot listener. Site config changes when an admin
+  // saves the site editor, which is rare, so a standing listener made every visitor
+  // -- signed in or not -- hold an open Firestore stream for an update they would
+  // never see. The editor calls refresh() after saving instead.
+  const load = useCallback(async () => {
+    try {
+      const data = await getSiteConfig();
+      setConfig(data ? simpleText(data) : DEFAULT_CONFIG);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.GET, 'settings/main');
+      setConfig(DEFAULT_CONFIG);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => { void load(); }, [load]);
 
   // Update CSS Variables based on colors
   useEffect(() => {
@@ -162,8 +145,11 @@ export const SiteConfigProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, [config]);
 
   return (
-    <SiteConfigContext.Provider value={{ config: config || DEFAULT_CONFIG, loading }}>
-      {!loading && children}
+    // Children render straight away against DEFAULT_CONFIG. Gating them on the read
+    // meant nothing on the page -- not even the marketing home, which reads no config
+    // at all -- could paint until Firebase had loaded, initialised and answered.
+    <SiteConfigContext.Provider value={{ config: config || DEFAULT_CONFIG, loading, refresh: load }}>
+      {children}
     </SiteConfigContext.Provider>
   );
 };
