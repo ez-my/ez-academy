@@ -114,6 +114,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ uid, suggestedName, onCo
 
             <div>
               <span className="block text-sm font-medium mb-1.5">Photo <span className="text-white/40 font-normal">(optional)</span></span>
+              <p className="text-xs text-white/40 mb-2">Stays on this phone or computer. The leaderboard shows the first letter of your name instead.</p>
               <DevicePhotoPicker uid={uid} />
             </div>
 

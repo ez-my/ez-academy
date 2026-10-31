@@ -552,6 +552,7 @@ const AVATAR_OPTIONS = [
                 <User size={16} />
                 Profile picture
               </h4>
+              <p className="text-xs text-white/45 -mt-3">Your own photo stays on this device. The leaderboard shows the first letter of your name.</p>
               <div className="flex flex-wrap gap-4">
                  {AVATAR_OPTIONS.map((url, i) => (
                    <button
