@@ -182,6 +182,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
   const [error, setError] = useState<string | null>(null);
   const [sensitivity, setSensitivity] = useState(1.0);
   const [messages, setMessages] = useState<{ role: 'ai' | 'user', text: string }[]>([]);
+  const [showEarlier, setShowEarlier] = useState(false);
   const [difficulty, setDifficulty] = useState<'normal' | 'expert'>(localStorage.getItem('preferred_difficulty') as 'normal' | 'expert' || 'normal');
   const [source, setSource] = useState<'ai' | 'bank'>(localStorage.getItem('preferred_source') as 'ai' | 'bank' || 'bank');
   const warmupHistoryRef = useRef<string[]>([]);
@@ -584,7 +585,21 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
   // Auto-scroll messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, transcript]);
+    // Deliberately not keyed on `transcript`. It changes on every recognised word,
+    // and scrolling the history on each one fought the user while they spoke.
+  }, [messages]);
+
+  // The question being answered is the last thing the examiner said. It is pinned
+  // above the scroller rather than living inside it, so the answer box and the
+  // earlier turns can never push it out of view.
+  const lastExaminerIdx = (() => {
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      if (messages[i].role === 'ai') return i;
+    }
+    return -1;
+  })();
+  const currentQuestion = lastExaminerIdx >= 0 ? messages[lastExaminerIdx].text : '';
+  const earlierMessages = lastExaminerIdx >= 0 ? messages.slice(0, lastExaminerIdx) : messages;
 
   const handleSelectPartDupe = (part: 1 | 2 | 3 | 'Full') => {
     handleSelectPartWithLimit(part);
@@ -1700,7 +1715,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
           >
             {/* Part 1 Experience - Conversation Bubbles */}
             {(selectedPart === 1 || (selectedPart === 'Full' && currentFullPart === 1)) && (
-              <div className="flex flex-col h-[min(78svh,740px)] min-h-[520px] w-full max-w-3xl mx-auto border border-white/15 rounded-2xl sm:rounded-3xl bg-obsidian-subtle/40 overflow-hidden relative">
+              <div className="flex flex-col w-full max-w-3xl mx-auto border border-white/15 rounded-2xl sm:rounded-3xl bg-obsidian-subtle/40 overflow-hidden relative">
                 {/* Chat Header */}
                 <div className="p-4 md:p-6 border-b border-white/5 flex items-center justify-between bg-white/5 backdrop-blur-md sticky top-0 z-10">
                   <div className="flex items-center gap-3 md:gap-4">
@@ -1728,136 +1743,119 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
                   </div>
                 </div>
 
-                {/* Chat Body */}
-                <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-4 md:space-y-6 scroll-smooth custom-scrollbar">
-                  {messages.map((m, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      transition={{ type: "spring", stiffness: 200, damping: 25 }}
-                      className={`flex ${m.role === 'ai' ? 'justify-start' : 'justify-end'}`}
-                    >
-                      <div className={`max-w-[90%] md:max-w-[75%] p-4 md:p-5 rounded-2xl md:rounded-3xl text-base font-medium leading-relaxed shadow-lg relative ${
-                        m.role === 'ai' 
-                        ? 'bg-white/5 border border-white/10 rounded-tl-none text-white/90' 
-                        : 'bg-primary border border-primary/20 rounded-tr-none text-obsidian shadow-primary/10'
-                      }`}>
-                        {m.role === 'ai' && (
-                          <div className="flex items-center gap-2 mb-2">
-                             <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                             <span className="text-[8px] uppercase tracking-widest text-primary font-black italic">Examiner</span>
-                          </div>
-                        )}
-                        <p className="tracking-tight">{m.text}</p>
-                        
-                        {/* Speaker relative indicator for AI messages */}
-                        {m.role === 'ai' && i === messages.length - 1 && isAiSpeaking && (
-                          <div className="absolute -left-2 md:-left-4 top-1/2 -translate-y-1/2 -translate-x-full pr-4">
-                            <motion.div
-                              animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
-                              transition={{ repeat: Infinity, duration: 1 }}
-                              className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20 backdrop-blur-sm shadow-xl"
-                            >
-                              <Volume2 size={16} />
-                            </motion.div>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  ))}
+                {/* Current question -- pinned, never scrolls away */}
+                <div className="shrink-0 px-4 py-4 md:px-6 md:py-5 border-b border-white/10 bg-black/25">
+                  <div className="flex items-center justify-between gap-3 mb-2.5">
+                    <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-primary italic">
+                      Question {Math.max(1, currentQuestionIdx + 1)} of {Math.max(task?.questions?.length || 0, 4)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => { if (currentQuestion) void speak(currentQuestion); }}
+                      disabled={isAiSpeaking || isAiThinking || !currentQuestion}
+                      className="min-h-11 px-3 rounded-xl border border-white/15 bg-white/5 text-xs font-semibold text-white/80 flex items-center gap-2 shrink-0 disabled:opacity-40"
+                    ><Volume2 size={15} /> Listen again</button>
+                  </div>
 
-                  {/* Live User Transcript */}
-                  {isRecording && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      className="flex justify-end"
-                    >
-                      <div className="max-w-[95%] md:max-w-[80%] w-full p-4 md:p-5 rounded-2xl md:rounded-3xl rounded-tr-none bg-primary border border-primary/30 text-obsidian text-sm shadow-xl shadow-primary/20">
-                        <div className="flex items-center justify-between gap-4 mb-3 pb-2 border-b border-black/5">
-                          <div className="flex items-center gap-2">
-                            <motion.span 
-                              animate={isPaused ? { scale: 1, opacity: 1 } : { scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
-                              transition={isPaused ? undefined : { repeat: Infinity, duration: 1.5 }}
-                              className={`w-2 h-2 rounded-full ${isPaused ? 'bg-orange-600 shadow-[0_0_8px_rgba(234,88,12,0.5)]' : 'bg-red-600 shadow-[0_0_8px_rgba(220,38,38,0.5)]'}`} 
-                            />
-                            <span className="text-[9px] uppercase tracking-widest text-obsidian/60 font-black">{isPaused ? 'Paused' : 'Live Capture'}</span>
-                          </div>
-                          
-                          {/* Animated Waveform */}
-                          <div className="flex items-end gap-[2px] h-3">
-                            {[...Array(6)].map((_, i) => (
-                              <motion.div
-                                key={i}
-                                animate={{ height: [4, 12, 4] }}
-                                transition={{ 
-                                  repeat: Infinity, 
-                                  duration: 0.6 + Math.random() * 0.4,
-                                  delay: i * 0.1 
-                                }}
-                                className="w-[3px] bg-obsidian/40 rounded-full"
-                              />
-                            ))}
-                          </div>
-                        </div>
-                        <label htmlFor="part1-answer-text" className="block text-sm font-semibold mb-2">What the app heard</label>
-                        <textarea
-                          id="part1-answer-text"
-                          rows={3}
-                          value={answerDraft ?? transcript}
-                          onChange={event => setAnswerDraft(event.target.value)}
-                          placeholder="Your words appear here. If they do not, type your answer before continuing."
-                          className="w-full rounded-xl bg-black/10 border border-obsidian/20 p-3 text-base leading-relaxed text-obsidian placeholder:text-obsidian/50 focus:outline-none focus:border-obsidian"
-                        />
-                        {transcriptionError && <p className="mt-2 text-sm text-obsidian/80">{transcriptionError}</p>}
-                      </div>
-                    </motion.div>
-                  )}
-                  {/* AI Thinking Indicator */}
-                  {isAiThinking && (
-                    <motion.div
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="flex justify-start"
-                    >
-                      <div className="bg-white/5 border border-white/10 p-4 rounded-2xl rounded-tl-none flex gap-1">
-                        <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1 }} className="w-1.5 h-1.5 bg-white/40 rounded-full" />
-                        <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-1.5 h-1.5 bg-white/40 rounded-full" />
-                        <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-1.5 h-1.5 bg-white/40 rounded-full" />
-                      </div>
-                    </motion.div>
-                  )}
-                  
-                  <div ref={messagesEndRef} className="h-4" />
-                </div>
+                  <p className="text-lg md:text-2xl font-semibold leading-snug tracking-tight text-white">
+                    {isAiThinking ? 'Preparing your next question…' : currentQuestion}
+                  </p>
 
-                {/* Progress Bar */}
-                <div className="px-4 md:px-8 py-2 bg-black/20 flex items-center gap-4">
-                  <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
-                    <motion.div 
+                  <div className="mt-4 h-1 bg-white/10 rounded-full overflow-hidden">
+                    <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${(Math.max(0, currentQuestionIdx + 1) / Math.max(task?.questions?.length || 0, 4)) * 100}%` }}
                       className="h-full bg-primary shadow-[0_0_10px_rgba(202,255,0,0.5)]"
                     />
                   </div>
-                  <span className="text-sm font-semibold text-white/70 whitespace-nowrap">
-                    Question {Math.max(1, currentQuestionIdx + 1)} of {Math.max(task?.questions?.length || 0, 4)}
-                  </span>
                 </div>
 
-                {/* Chat Controls */}
-                <div className="p-4 md:p-8 bg-white/5 backdrop-blur-xl border-t border-white/5">
-                  <div className="max-w-md mx-auto">
+                {/* Earlier turns, folded away. Open on request only, so the card
+                    shows the question, the answer and the controls at once and
+                    there is nothing to scroll past to find any of them. */}
+                {earlierMessages.length > 0 && (
+                  <div className="shrink-0 border-b border-white/10 bg-black/10">
                     <button
                       type="button"
-                      onClick={() => {
-                        const lastQuestion = messages.filter(message => message.role === 'ai').slice(-1)[0]?.text;
-                        if (lastQuestion) void speak(lastQuestion);
-                      }}
-                      disabled={isAiSpeaking || isAiThinking}
-                      className="w-full min-h-11 mb-3 rounded-xl border border-white/20 bg-white/5 text-sm font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-40"
-                    ><Volume2 size={17} /> Listen again</button>
+                      onClick={() => setShowEarlier(open => !open)}
+                      aria-expanded={showEarlier}
+                      className="w-full min-h-11 px-4 md:px-6 flex items-center justify-between gap-3 text-xs font-semibold text-white/55"
+                    >
+                      <span>Earlier in this conversation ({earlierMessages.length})</span>
+                      <ChevronRight size={15} className={showEarlier ? 'rotate-90 transition-transform' : 'transition-transform'} />
+                    </button>
+                    {showEarlier && (
+                      <div className="max-h-44 overflow-y-auto px-4 md:px-6 pb-4 space-y-2.5 custom-scrollbar">
+                        {earlierMessages.map((m, i) => (
+                          <div key={i} className={`flex ${m.role === 'ai' ? 'justify-start' : 'justify-end'}`}>
+                            <div className={`max-w-[88%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                              m.role === 'ai'
+                              ? 'bg-white/5 border border-white/10 rounded-tl-none text-white/70'
+                              : 'bg-primary/15 border border-primary/20 rounded-tr-none text-white/85'
+                            }`}>
+                              {m.role === 'ai' && (
+                                <span className="block text-[8px] uppercase tracking-widest text-primary font-black italic mb-1">Examiner</span>
+                              )}
+                              {m.text}
+                            </div>
+                          </div>
+                        ))}
+                        <div ref={messagesEndRef} className="h-px" />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* The answer. Sits between the question and the controls instead of
+                    inside a scroller, so it can never push the question off screen. */}
+                {isRecording && (
+                  <div className="shrink-0 px-4 py-3 md:px-6 md:py-4 bg-primary text-obsidian border-t border-black/10">
+                    <div className="flex items-center justify-between gap-4 mb-2">
+                      <div className="flex items-center gap-2">
+                        <motion.span
+                          animate={isPaused ? { scale: 1, opacity: 1 } : { scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+                          transition={isPaused ? undefined : { repeat: Infinity, duration: 1.5 }}
+                          className={`w-2 h-2 rounded-full ${isPaused ? 'bg-orange-600' : 'bg-red-600'}`}
+                        />
+                        <label htmlFor="part1-answer-text" className="text-[10px] uppercase tracking-widest font-black text-obsidian/70">
+                          {isPaused ? 'Paused · what the app heard' : 'What the app heard'}
+                        </label>
+                      </div>
+                      <div className="flex items-end gap-[2px] h-3" aria-hidden="true">
+                        {[...Array(6)].map((_, i) => (
+                          <motion.div
+                            key={i}
+                            animate={isPaused ? { height: 4 } : { height: [4, 12, 4] }}
+                            transition={isPaused ? undefined : { repeat: Infinity, duration: 0.6 + Math.random() * 0.4, delay: i * 0.1 }}
+                            className="w-[3px] bg-obsidian/40 rounded-full"
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <textarea
+                      id="part1-answer-text"
+                      rows={2}
+                      value={answerDraft ?? transcript}
+                      onChange={event => setAnswerDraft(event.target.value)}
+                      placeholder="Your words appear here. If they do not, type your answer."
+                      className="w-full min-h-[76px] md:min-h-[92px] rounded-xl bg-black/10 border border-obsidian/20 p-3 text-base leading-relaxed text-obsidian placeholder:text-obsidian/50 focus:outline-none focus:border-obsidian"
+                    />
+                    {transcriptionError && <p className="mt-2 text-sm text-obsidian/80">{transcriptionError}</p>}
+                  </div>
+                )}
+
+                {/* Examiner is composing the next question */}
+                {isAiThinking && !isRecording && (
+                  <div className="shrink-0 px-4 md:px-6 pb-4 flex gap-1" aria-hidden="true">
+                    <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1 }} className="w-1.5 h-1.5 bg-white/40 rounded-full" />
+                    <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-1.5 h-1.5 bg-white/40 rounded-full" />
+                    <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-1.5 h-1.5 bg-white/40 rounded-full" />
+                  </div>
+                )}
+
+                {/* Chat Controls */}
+                <div className="shrink-0 p-4 md:px-6 md:py-5 bg-white/5 backdrop-blur-xl border-t border-white/5">
+                  <div className="max-w-md mx-auto">
                     {!isRecording ? (
                       <motion.button 
                         whileHover={{ scale: 1.05 }}
@@ -1882,7 +1880,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
                         <ChevronRight size={24} />
                       </motion.button>
                     ) : (
-                      <div className="flex flex-col gap-4">
+                      <div className="flex flex-col gap-3">
                         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                           <div className={`flex-1 p-4 rounded-2xl border flex items-center justify-between gap-3 ${isPaused ? 'bg-orange-500/10 border-orange-500/20' : 'bg-red-500/10 border-red-500/20'}`}>
                             <div className="flex items-center gap-3">
@@ -1917,7 +1915,6 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
                             )}
                           </motion.button>
                         </div>
-                        <p className="text-sm text-center text-white/60">Check the words above before continuing.</p>
                       </div>
                     )}
                   </div>
