@@ -158,6 +158,7 @@ import { SEOSync } from './components/SEOSync';
 import { Server, Zap } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 import { ADMIN_EMAIL } from './constants';
+import { POINTS_ON_SIGNUP } from './points';
 import { playNavSound } from './lib/audio';
 
 // Run non-urgent work after the browser is done with the important frames.
@@ -435,7 +436,7 @@ export default function App() {
       weeklyGoalMinutes: profile?.weeklyGoalMinutes || 15,
       onboardingCompleted: true,
       streak: 1,
-      points: 100,
+      points: POINTS_ON_SIGNUP,
       credits: 3, // Base credits for starting
       weeklyGoalProgress: 0,
       createdAt: profile?.createdAt || Date.now()

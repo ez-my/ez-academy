@@ -56,7 +56,7 @@ for (const type of ['SpeakEZ', 'WriteEZ', 'ReadEZ', 'ListenEZ']) {
     assert.equal(profile.credits, 47);
   });
 }
-test('actual saveSession adapter keeps retries and later feedback to one completion reward', async () => {
+test('actual saveSession adapter still writes the profile once, and never points', async () => {
   const {save,writes}=isolatedSave();
   const base={id:'stable-fixture',userId:'existing-uid',type:'WriteEZ',timestamp:123456,duration:0,transcript:'My meaningful fixture answer.',feedback:''};
   await save('existing-uid',{...base,score:null});
@@ -65,7 +65,16 @@ test('actual saveSession adapter keeps retries and later feedback to one complet
   assert.equal(writes.filter(w=>w.path==='users/existing-uid').length,1);
   assert.equal(writes.filter(w=>w.path.endsWith('/sessions/stable-fixture')).length,3);
   assert.equal(writes.at(-1)?.data.score,0);
-  assert.deepEqual(writes[1].data.points,{increment:5});
+
+  // This used to assert the client incremented points by 5. It must not any
+  // more: points decide leaderboard rank, the server awards them when it spends
+  // a practice, and firestore.rules now rejects a points change from a learner.
+  // A client that still sent one would have every result sync refused.
+  for (const write of writes.filter(w=>w.path==='users/existing-uid')) {
+    assert.equal('points' in write.data, false, 'the browser must not write points');
+  }
+  // The streak is still client-written, and still arrives.
+  assert.ok(writes.find(w=>w.path==='users/existing-uid' && 'streak' in w.data));
 });
 
 test('failed session write rejects and never awards points', async () => {

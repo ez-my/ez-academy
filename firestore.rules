@@ -98,16 +98,19 @@ service cloud.firestore {
       allow create: if isOwner(userId) && isValidId(userId) && isValidUser(incoming())
         && incoming().uid == request.auth.uid && incoming().get('plan', 'free') == 'free'
         && incoming().get('credits', 0) >= 0 && incoming().get('credits', 0) <= 3
+        // Creation is the one moment a learner writes their own points, so it is
+        // capped at the signup grant. Without this a new account could be created
+        // holding any score at all and go straight to the top of the leaderboard.
+        && incoming().get('points', 0) >= 0 && incoming().get('points', 0) <= 100
         && !incoming().keys().hasAny(['planExpiresAt','lastPaymentAt','lastTransactionId']);
-      // NOTE: points are still incremented by the client (lib/firebase.saveSession),
-      // so this cap bounds a single write rather than making the score trustworthy.
-      // A determined learner can still loop writes. Moving the award server-side is
-      // the real fix; until then the leaderboard is a friendly ranking, not a record.
+      // Points decide leaderboard rank, so a learner may not move their own. The
+      // server awards them through the Admin SDK, which bypasses these rules, at
+      // the moment it spends a practice from the daily allowance. A signed-in
+      // learner must leave the value exactly as it is.
       allow update: if isValidUser(incoming()) && incoming().uid == existing().uid &&
         (isAdmin() || (isOwner(userId) &&
           !incoming().diff(existing()).affectedKeys().hasAny(['plan','planExpiresAt','planUpdatedAt','lastPaymentAt','lastTransactionId']) &&
-          incoming().get('points',0) >= existing().get('points',0) &&
-          incoming().get('points',0) <= existing().get('points',0) + 25 &&
+          incoming().get('points',0) == existing().get('points',0) &&
           incoming().get('credits',0) >= 0 && incoming().get('credits',0) <= existing().get('credits',0)));
       allow delete: if isAdmin();
 
