@@ -32,6 +32,7 @@ const WriteEZ = lazyWithPreload(() => import('./pages/WriteEZ').then(m => ({ def
 const ReadEZ = lazyWithPreload(() => import('./pages/ReadEZ').then(m => ({ default: m.ReadEZ })));
 const ListenEZ = lazyWithPreload(() => import('./pages/ListenEZ').then(m => ({ default: m.ListenEZ })));
 const History = lazyWithPreload(() => import('./pages/History').then(m => ({ default: m.History })));
+const LeaderboardPage = lazyWithPreload(() => import('./components/dashboard/Leaderboard').then(m => ({ default: m.Leaderboard })));
 const SpeakEZEvaluator = lazyWithPreload(() => import('./pages/SpeakEZEvaluator'));
 const Shell = lazyWithPreload(() => import('./components/layout/Shell').then(m => ({ default: m.Shell })));
 const MarketingHome = lazyWithPreload(() => import('./pages/marketing/Home').then(m => ({ default: m.MarketingHome })));
@@ -295,6 +296,7 @@ const ProtectedApp = ({
         <Route path="/listenez" element={<ModuleGuard slug="listenez" modules={modules} isAdmin={isAdmin} onNavigate={navigate}><>{skillProfile('listen')?.plan === 'free' && <GeneralFeedbackPanel skill="listen"/>}<ListenEZ profile={skillProfile('listen')!} /></></ModuleGuard>} />
         <Route path="/support" element={<SupportPage/>} />
         <Route path="/history" element={<History />} />
+        <Route path="/leaderboard" element={<LeaderboardPage />} />
         {/* One admin workspace. /admin/monitor was the second entry point; it now
             redirects, carrying its ?tab= through so old links still land correctly. */}
         <Route path="/admin" element={

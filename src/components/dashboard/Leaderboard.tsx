@@ -92,12 +92,17 @@ export const Leaderboard: React.FC = () => {
 
   return (
     <section className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg sm:text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Trophy size={24} className="text-yellow-400" />
-          Top Learners
-        </h3>
-        <div className="px-3 py-1 bg-yellow-400/10 border border-yellow-400/20 rounded-full text-[10px] font-black uppercase text-yellow-500 tracking-[0.2em] italic">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
+            <Trophy size={26} className="text-yellow-400 shrink-0" />
+            Top Learners
+          </h1>
+          <p className="text-xs sm:text-sm text-white/50 mt-1.5">
+            Ranked by practice points. Finish a practice to climb.
+          </p>
+        </div>
+        <div className="hidden sm:block shrink-0 whitespace-nowrap px-3 py-1 bg-yellow-400/10 border border-yellow-400/20 rounded-full text-[10px] font-black uppercase text-yellow-500 tracking-[0.2em] italic">
           Leaderboard
         </div>
       </div>

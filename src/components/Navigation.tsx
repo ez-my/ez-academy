@@ -1,4 +1,4 @@
-import {Info} from 'lucide-react';
+import { Info, Trophy } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -32,7 +32,7 @@ import { OfficialSocialLinks } from './social/OfficialSocialLinks';
 // the whole barrel eagerly instead put ~800 kB of unused icons on every page.
 const STATIC_ICONS: Record<string, React.ComponentType<any>> = {
   LayoutDashboard, Mic, PenTool, BookOpen, Headset, Headphones, GraduationCap,
-  History: HistoryIcon, User, ShieldAlert, ChevronDown, ChevronUp, LogOut, Zap, Plus, Layout,
+  History: HistoryIcon, User, ShieldAlert, ChevronDown, ChevronUp, LogOut, Zap, Plus, Layout, Trophy,
 };
 
 const LucideIcon = ({ name, size = 20, className = "" }: { name: string, size?: number, className?: string }) => {
@@ -114,13 +114,14 @@ export const Navigation: React.FC<NavigationProps> = ({
   ];
 
   const UTILITY_ITEMS = [
+    { id: 'leaderboard', label: 'Leaderboard', iconName: 'Trophy', description: 'Top learners and their schools' },
     { id: 'history', label: 'History', icon: HistoryIcon },
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'support', label: 'Help & Support', icon: Info },
   ];
 
   // Prevent dynamic modules from clashing with reserved IDs
-  const RESERVED_IDS = new Set(['dashboard', 'speakez', 'muet', 'writeez', 'readez', 'listenez', 'history', 'profile', 'admin', 'pricing', 'onboarding', 'login']);
+  const RESERVED_IDS = new Set(['dashboard', 'speakez', 'muet', 'writeez', 'readez', 'listenez', 'history', 'profile', 'admin', 'pricing', 'onboarding', 'login', 'leaderboard']);
 
   const NAV_ITEMS = [
     ...CORE_ITEMS,
