@@ -6,32 +6,147 @@ import { PaywallGate } from './components/paywall/PaywallGate';
 import { useSkillPackages } from './lib/useSkillPackages';
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation, Link } from 'react-router-dom';
-// Lazily load heavy pages
-const SupportPage = lazy(()=>import('./pages/SupportPage').then(m=>({default:m.SupportPage})));
-const Auth = lazy(() => import('./pages/Auth').then(m => ({ default: m.Auth })));
-const Onboarding = lazy(() => import('./pages/Onboarding').then(m => ({ default: m.Onboarding })));
-const StudyTools = lazy(()=>import('./pages/StudyTools').then(m=>({default:m.StudyTools})));
-const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
-const SpeakEZ = lazy(() => import('./pages/SpeakEZ').then(m => ({ default: m.SpeakEZ })));
-const WriteEZ = lazy(() => import('./pages/WriteEZ').then(m => ({ default: m.WriteEZ })));
-const ReadEZ = lazy(() => import('./pages/ReadEZ').then(m => ({ default: m.ReadEZ })));
-const ListenEZ = lazy(() => import('./pages/ListenEZ').then(m => ({ default: m.ListenEZ })));
-const History = lazy(() => import('./pages/History').then(m => ({ default: m.History })));
-const SpeakEZEvaluator = lazy(() => import('./pages/SpeakEZEvaluator'));
-const Shell = lazy(() => import('./components/layout/Shell').then(m => ({ default: m.Shell })));
-const MarketingHome = lazy(() => import('./pages/marketing/Home').then(m => ({ default: m.MarketingHome })));
-const MarketingAbout = lazy(() => import('./pages/marketing/About').then(m => ({ default: m.MarketingAbout })));
-const MarketingEcosystem = lazy(() => import('./pages/marketing/Ecosystem').then(m => ({ default: m.MarketingEcosystem })));
-const MarketingEZEnglish = lazy(() => import('./pages/marketing/EZEnglish').then(m => ({ default: m.MarketingEZEnglish })));
-const MarketingPrograms = lazy(() => import('./pages/marketing/Programs').then(m => ({ default: m.MarketingPrograms })));
-const MarketingResources = lazy(() => import('./pages/marketing/Resources').then(m => ({ default: m.MarketingResources })));
-const ContentPage = lazy(() => import('./pages/marketing/ContentPage').then(m => ({ default: m.ContentPage })));
-const LegalInfo = lazy(() => import('./pages/marketing/LegalInfo').then(m => ({ default: m.LegalInfo })));
-const PaymentGate = lazy(() => import('./pages/PaymentGate'));
-const AdminPage = lazy(() => import('./pages/AdminPage').then(m => ({ default: m.AdminPage })));
-const ProfilePage = lazy(() => import('./pages/ProfilePage').then(m => ({ default: m.ProfilePage })));
-const PricingPage = lazy(() => import('./pages/PricingPage').then(m => ({ default: m.PricingPage })));
-const MUETPage = lazy(() => import('./pages/MUETPage').then(m => ({ default: m.MUETPage })));
+// Lazily load heavy pages.
+// lazyWithPreload keeps the import factory reachable so a route's chunk can be
+// warmed on hover/focus. Without that, the first click on a link paid the full
+// network round trip for the chunk with nothing on screen in the meantime.
+type Preloadable = { preload: () => void; readonly isLoaded: boolean };
+function lazyWithPreload<T extends React.ComponentType<any>>(factory: () => Promise<{ default: T }>) {
+  let started: Promise<{ default: T }> | undefined;
+  let loaded = false;
+  const load = () => (started ??= factory().then(mod => { loaded = true; return mod; }));
+  const Component = lazy(load) as React.LazyExoticComponent<T> & Preloadable;
+  Component.preload = () => { void load(); };
+  Object.defineProperty(Component, 'isLoaded', { get: () => loaded });
+  return Component;
+}
+
+const SupportPage = lazyWithPreload(()=>import('./pages/SupportPage').then(m=>({default:m.SupportPage})));
+const Auth = lazyWithPreload(() => import('./pages/Auth').then(m => ({ default: m.Auth })));
+const Onboarding = lazyWithPreload(() => import('./pages/Onboarding').then(m => ({ default: m.Onboarding })));
+import type { OnboardingData } from './pages/Onboarding';
+const StudyTools = lazyWithPreload(()=>import('./pages/StudyTools').then(m=>({default:m.StudyTools})));
+const Dashboard = lazyWithPreload(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
+const SpeakEZ = lazyWithPreload(() => import('./pages/SpeakEZ').then(m => ({ default: m.SpeakEZ })));
+const WriteEZ = lazyWithPreload(() => import('./pages/WriteEZ').then(m => ({ default: m.WriteEZ })));
+const ReadEZ = lazyWithPreload(() => import('./pages/ReadEZ').then(m => ({ default: m.ReadEZ })));
+const ListenEZ = lazyWithPreload(() => import('./pages/ListenEZ').then(m => ({ default: m.ListenEZ })));
+const History = lazyWithPreload(() => import('./pages/History').then(m => ({ default: m.History })));
+const SpeakEZEvaluator = lazyWithPreload(() => import('./pages/SpeakEZEvaluator'));
+const Shell = lazyWithPreload(() => import('./components/layout/Shell').then(m => ({ default: m.Shell })));
+const MarketingHome = lazyWithPreload(() => import('./pages/marketing/Home').then(m => ({ default: m.MarketingHome })));
+const MarketingAbout = lazyWithPreload(() => import('./pages/marketing/About').then(m => ({ default: m.MarketingAbout })));
+const MarketingEcosystem = lazyWithPreload(() => import('./pages/marketing/Ecosystem').then(m => ({ default: m.MarketingEcosystem })));
+const MarketingEZEnglish = lazyWithPreload(() => import('./pages/marketing/EZEnglish').then(m => ({ default: m.MarketingEZEnglish })));
+const MarketingPrograms = lazyWithPreload(() => import('./pages/marketing/Programs').then(m => ({ default: m.MarketingPrograms })));
+const MarketingResources = lazyWithPreload(() => import('./pages/marketing/Resources').then(m => ({ default: m.MarketingResources })));
+const ContentPage = lazyWithPreload(() => import('./pages/marketing/ContentPage').then(m => ({ default: m.ContentPage })));
+const LegalInfo = lazyWithPreload(() => import('./pages/marketing/LegalInfo').then(m => ({ default: m.LegalInfo })));
+const PaymentGate = lazyWithPreload(() => import('./pages/PaymentGate'));
+const AdminPage = lazyWithPreload(() => import('./pages/AdminPage').then(m => ({ default: m.AdminPage })));
+const ProfilePage = lazyWithPreload(() => import('./pages/ProfilePage').then(m => ({ default: m.ProfilePage })));
+const PricingPage = lazyWithPreload(() => import('./pages/PricingPage').then(m => ({ default: m.PricingPage })));
+const MUETPage = lazyWithPreload(() => import('./pages/MUETPage').then(m => ({ default: m.MUETPage })));
+
+// Which chunk to warm for a given in-app href. Longest/most specific first.
+const PREFETCH_ROUTES: Array<[RegExp, Preloadable[]]> = [
+  [/^\/$/,            [MarketingHome]],
+  [/^\/plans$/,       [PricingPage]],
+  [/^\/affiliate$/,   [MarketingAbout]],
+  [/^\/ez-english$/,  [MarketingEZEnglish]],
+  [/^\/ecosystem$/,   [MarketingEcosystem]],
+  [/^\/programs$/,    [MarketingPrograms]],
+  [/^\/resources$/,   [MarketingResources]],
+  [/^\/(privacy|terms)$/, [LegalInfo]],
+  [/^\/section\//,    [ContentPage]],
+  [/^\/login$/,       [Auth]],
+  [/^\/(checkout|payment-status)$/, [PaymentGate]],
+  [/^\/app\/speakez/, [Shell, SpeakEZ]],
+  [/^\/app\/writeez/, [Shell, WriteEZ]],
+  [/^\/app\/readez/,  [Shell, ReadEZ]],
+  [/^\/app\/listenez/,[Shell, ListenEZ]],
+  [/^\/app/,          [Shell, Dashboard]],
+];
+
+// Warm a route's chunk as soon as the user shows intent, rather than on click.
+// touchstart is included because on a phone it lands ~100ms before the click.
+const useRoutePrefetch = () => {
+  useEffect(() => {
+    const warmed = new Set<string>();
+    const onIntent = (event: Event) => {
+      const target = event.target as HTMLElement | null;
+      const anchorEl = target && typeof target.closest === 'function'
+        ? target.closest('a[href]') as HTMLAnchorElement | null
+        : null;
+      if (!anchorEl) return;
+      const href = anchorEl.getAttribute('href') || '';
+      if (!href.startsWith('/') || warmed.has(href)) return;
+      warmed.add(href);
+      const path = href.split('#')[0].split('?')[0] || '/';
+      for (const [pattern, modules] of PREFETCH_ROUTES) {
+        if (pattern.test(path)) { modules.forEach(m => m.preload()); return; }
+      }
+    };
+    const opts = { passive: true } as const;
+    document.addEventListener('mouseover', onIntent, opts);
+    document.addEventListener('focusin', onIntent, opts);
+    document.addEventListener('touchstart', onIntent, opts);
+    return () => {
+      document.removeEventListener('mouseover', onIntent);
+      document.removeEventListener('focusin', onIntent);
+      document.removeEventListener('touchstart', onIntent);
+    };
+  }, []);
+};
+
+// A click used to leave the old page on screen with no feedback at all while the
+// next chunk downloaded. This is that missing feedback.
+//
+// It is driven from the click rather than from render state on purpose: react-router
+// wraps navigation in startTransition, so useDeferredValue/Suspense never surface a
+// pending state here — React just keeps the old page committed until the chunk lands.
+const useNavProgress = () => {
+  const location = useLocation();
+  const [pending, setPending] = useState(false);
+
+  // The new route has committed, so whatever we were waiting for has arrived.
+  useEffect(() => { setPending(false); }, [location.pathname]);
+
+  useEffect(() => {
+    const onClick = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      const anchorEl = target && typeof target.closest === 'function'
+        ? target.closest('a[href]') as HTMLAnchorElement | null
+        : null;
+      if (!anchorEl || anchorEl.target === '_blank') return;
+      const href = anchorEl.getAttribute('href') || '';
+      if (!href.startsWith('/')) return;
+      const path = href.split('#')[0].split('?')[0] || '/';
+      if (path === window.location.pathname) return;
+      const match = PREFETCH_ROUTES.find(([pattern]) => pattern.test(path));
+      // Already warmed by the hover prefetch: the swap will be instant, so a bar
+      // flashing for one frame would be worse than no bar at all.
+      if (match && match[1].every(mod => mod.isLoaded)) return;
+      setPending(true);
+    };
+    document.addEventListener('click', onClick, true);
+    return () => document.removeEventListener('click', onClick, true);
+  }, []);
+
+  // Never let the bar outlive the navigation that started it.
+  useEffect(() => {
+    if (!pending) return;
+    const timer = setTimeout(() => setPending(false), 10000);
+    return () => clearTimeout(timer);
+  }, [pending]);
+
+  return pending;
+};
+
+const NavProgress = ({ active }: { active: boolean }) =>
+  active ? <div className="nav-progress" role="progressbar" aria-label="Loading page" /> : null;
 
 import { MarketingLayout } from './components/layout/MarketingLayout';
 import { UserProfile, AppModule } from './types';
@@ -43,6 +158,19 @@ import { Server, Zap } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 import { ADMIN_EMAIL } from './constants';
 import { playNavSound } from './lib/audio';
+
+// Run non-urgent work after the browser is done with the important frames.
+const deferIdle = (fn: () => void) => {
+  const ric = (window as any).requestIdleCallback;
+  if (typeof ric === 'function') ric(() => fn(), { timeout: 3000 });
+  else setTimeout(fn, 1200);
+};
+
+const AuthSpinner = () => (
+  <div className="h-screen bg-card flex items-center justify-center">
+    <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+  </div>
+);
 
 const ModuleGuard = ({ children, slug, modules, isAdmin, onNavigate }: { children: React.ReactNode, slug: string, modules: AppModule[], isAdmin: boolean, onNavigate: (path: string) => void }) => {
   const module = modules.find(m => m.slug === slug);
@@ -99,30 +227,30 @@ const ProtectedApp = ({
   modules, 
   handleOnboardingComplete, 
   handleLogout,
-  currentTab
+  currentTab,
+  authLoading
 }: { 
   user: User | null, 
   profile: UserProfile | null, 
   profileLoading: boolean, 
   profileError: string | null,
   modules: AppModule[],
-  handleOnboardingComplete: (data: Partial<UserProfile>) => Promise<void>,
+  handleOnboardingComplete: (data: OnboardingData) => Promise<void>,
   handleLogout: () => Promise<void>,
-  currentTab: string
+  currentTab: string,
+  authLoading: boolean
 }) => {
   const navigate = useNavigate();
   const skillProfile = useSkillPackages(profile);
   
+  // Auth state is not known yet — waiting is correct here, redirecting is not:
+  // bouncing to /login would log out anyone hard-refreshing a protected page.
+  if (authLoading) return <AuthSpinner />;
+
   if (!user) return <Navigate to="/login" replace />;
   if (!user.emailVerified) return <Navigate to="/login" replace />;
   
-  if (profileLoading) {
-    return (
-      <div className="h-screen bg-card flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (profileLoading) return <AuthSpinner />;
 
   if (profileError) {
     return (
@@ -139,7 +267,7 @@ const ProtectedApp = ({
     );
   }
   
-  if (!profile || !profile.onboardingCompleted) return <Onboarding onComplete={handleOnboardingComplete} />;
+  if (!profile || !profile.onboardingCompleted) return <Onboarding uid={user.uid} suggestedName={user.displayName || ''} onComplete={handleOnboardingComplete} />;
 
   const isAdmin = user.email === ADMIN_EMAIL;
 
@@ -204,11 +332,14 @@ export default function App() {
   
   const navigate = useNavigate();
   const location = useLocation();
+  useRoutePrefetch();
+  const routeChanging = useNavProgress();
   useEffect(()=>{if(!user?.emailVerified||!location.pathname.startsWith('/app'))return;const day=new Date(Date.now()+8*3600000).toISOString().slice(0,10),key=`ez-visit:${user.uid}:${day}`;try{if(sessionStorage.getItem(key))return;}catch{}let cancelled=false;user.getIdToken().then(token=>fetch('/api/usage/visit',{method:'POST',headers:{Authorization:`Bearer ${token}`}})).then(r=>{if(r.ok&&!cancelled)try{sessionStorage.setItem(key,'1');}catch{}}).catch(()=>{});return()=>{cancelled=true;};},[user,location.pathname]);
 
 
   useEffect(() => {
     let unsubscribeProfile: () => void;
+    let unsubscribeModules: (() => void) | undefined;
     
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
@@ -216,9 +347,15 @@ export default function App() {
       try {
         if (firebaseUser) {
           setProfileLoading(true);
+          // Module flags only gate the signed-in app, so this listener does not
+          // belong on the public pages — it was opening a Firestore channel for
+          // every anonymous visitor to the marketing site.
+          if (!unsubscribeModules) unsubscribeModules = subscribeToModules(setModules);
           // Initial fetch to decide if we need onboarding
           const initialProfile = await getUserProfile(firebaseUser.uid);
-          if (initialProfile) affiliateRequest("affiliate/account",{}).catch(() => {});
+          // Fire-and-forget account sync. A cold Netlify function can take over a
+          // second, so keep it off the critical path instead of racing first paint.
+          if (initialProfile) deferIdle(() => { affiliateRequest("affiliate/account",{}).catch(() => {}); });
           
           if (initialProfile === undefined) {
              setProfileError("Could not retrieve your profile due to a network or server issue. Please try again later.");
@@ -238,6 +375,11 @@ export default function App() {
           if (unsubscribeProfile) {
             unsubscribeProfile();
           }
+          if (unsubscribeModules) {
+            unsubscribeModules();
+            unsubscribeModules = undefined;
+          }
+          setModules([]);
         }
       } catch (err) {
         setProfileError("An unexpected error occurred during profile initialization.");
@@ -248,14 +390,10 @@ export default function App() {
       }
     });
 
-    const unsubscribeModules = subscribeToModules((data) => {
-      setModules(data);
-    });
-
     return () => {
       unsubscribeAuth();
       if (unsubscribeProfile) unsubscribeProfile();
-      unsubscribeModules();
+      if (unsubscribeModules) unsubscribeModules();
     };
   }, []);
 
@@ -278,12 +416,18 @@ export default function App() {
     }
   };
 
-  const handleOnboardingComplete = async (data: { goal: string }) => {
+  const handleOnboardingComplete = async (data: OnboardingData) => {
     if (!user) return;
+    // Registration now collects these too; normaliseDetails has already trimmed
+    // them and dropped anything the form does not own.
     const newProfile: UserProfile = {
       uid: user.uid,
       email: user.email || '',
-      displayName: user.displayName || 'EZ Master',
+      displayName: data.displayName || user.displayName || 'EZ Master',
+      school: data.school || undefined,
+      referralSource: data.referralSource || undefined,
+      referralNote: data.referralNote || undefined,
+      leaderboardOptOut: data.leaderboardOptOut,
       goal: data.goal,
       level: profile?.level || 'INTERMEDIATE', // Existing profile default; no diagnostic score is assigned.
       weeklyGoalMinutes: profile?.weeklyGoalMinutes || 15,
@@ -313,14 +457,6 @@ export default function App() {
   // Derived active tab from pathname for Shell highlighting
   const currentTab = location.pathname.split('/').pop() || 'dashboard';
 
-  if (loading || (user && profileLoading)) {
-    return (
-      <div className="h-screen bg-card flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-      </div>
-    );
-  }
-
   return (
     <Suspense fallback={
       <div className="h-screen bg-card flex items-center justify-center">
@@ -339,6 +475,7 @@ export default function App() {
       <GlobalAudioPlayer />
       {/* Global Scanline Overlay */}
       <div className="fixed inset-0 pointer-events-none z-[100] scanline opacity-30 mix-blend-overlay"></div>
+      <NavProgress active={routeChanging} />
       <Routes>
       {/* Public Marketing Routes */}
       <Route element={<MarketingLayout isLoggedIn={!!user} />}>
@@ -356,7 +493,7 @@ export default function App() {
       </Route>
 
       {/* Auth Route */}
-      <Route path="/login" element={(user && user.emailVerified) ? <Navigate to="/app" replace /> : <Auth onLogin={handleLogin} />} />
+      <Route path="/login" element={loading ? <AuthSpinner /> : ((user && user.emailVerified) ? <Navigate to="/app" replace /> : <Auth onLogin={handleLogin} />)} />
 
       {/* Payment Routes */}
       <Route path="/checkout" element={<PaymentGate />} />
@@ -368,6 +505,7 @@ export default function App() {
           user={user} 
           profile={profile} 
           profileLoading={profileLoading} 
+          authLoading={loading} 
           profileError={profileError} 
           modules={modules}
           handleOnboardingComplete={handleOnboardingComplete}

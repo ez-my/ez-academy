@@ -1,19 +1,22 @@
 import {Info} from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import * as Icons from 'lucide-react';
 import { 
   LayoutDashboard, 
   Mic, 
   PenTool, 
   BookOpen, 
   Headset, 
+  Headphones,
+  GraduationCap,
   History as HistoryIcon, 
   User, 
   ShieldAlert,
   ChevronDown, 
   ChevronUp, 
   LogOut,
+  Zap,
+  Plus,
   Layout
 } from 'lucide-react';
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
@@ -22,9 +25,28 @@ import { AppModule } from '../types';
 import { cn } from '../lib/utils';
 import { OfficialSocialLinks } from './social/OfficialSocialLinks';
 
-// Helper to render lucide icon from string
+// Helper to render lucide icon from string.
+// Module iconNames come from config, so the lookup has to stay dynamic. The names
+// our own config ships are bundled here and render immediately; anything an admin
+// picks outside that set is fetched from the full icon set on demand. Importing
+// the whole barrel eagerly instead put ~800 kB of unused icons on every page.
+const STATIC_ICONS: Record<string, React.ComponentType<any>> = {
+  LayoutDashboard, Mic, PenTool, BookOpen, Headset, Headphones, GraduationCap,
+  History: HistoryIcon, User, ShieldAlert, ChevronDown, ChevronUp, LogOut, Zap, Plus, Layout,
+};
+
 const LucideIcon = ({ name, size = 20, className = "" }: { name: string, size?: number, className?: string }) => {
-  const Icon = (Icons as any)[name] || Layout;
+  const [resolved, setResolved] = useState<React.ComponentType<any> | null>(() => STATIC_ICONS[name] ?? null);
+  useEffect(() => {
+    const staticIcon = STATIC_ICONS[name];
+    if (staticIcon) { setResolved(() => staticIcon); return; }
+    let cancelled = false;
+    import('lucide-react').then(all => {
+      if (!cancelled) setResolved(() => (all as any)[name] ?? Layout);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [name]);
+  const Icon = resolved ?? Layout;
   return <Icon size={size} className={className} />;
 };
 
@@ -204,13 +226,13 @@ export const Navigation: React.FC<NavigationProps> = ({
           
           <div className="xl:flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-2xl group cursor-pointer hover:bg-primary/5 hover:border-primary/20 transition-all" onClick={() => onChange('pricing')}>
             <div className="flex items-center gap-2">
-              <Icons.Zap size={14} className="text-primary animate-pulse" />
+              <Zap size={14} className="text-primary animate-pulse" />
               <div className="hidden xl:block">
                 <div className="text-[8px] font-black uppercase text-white/40 tracking-wider">Credits</div>
                 <div className="text-xs font-black italic text-primary leading-none mt-0.5">{credits || 0} Credits</div>
               </div>
             </div>
-            <Icons.Plus size={12} className="hidden xl:block text-white/20 group-hover:text-primary transition-colors" />
+            <Plus size={12} className="hidden xl:block text-white/20 group-hover:text-primary transition-colors" />
           </div>
 
           <button 

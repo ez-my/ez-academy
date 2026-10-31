@@ -6,6 +6,8 @@ import {registerMUETBankRoutes} from './muetBankRoutes';
 import {registerPracticeRoutes} from './practiceRoutes';
 import {registerMarketingRoutes} from './marketingRoutes';
 import {registerPricingRoutes} from './pricingRoutes';
+import {registerCommunityRoutes} from './communityRoutes';
+import {ADMIN_EMAIL} from '../constants';
 import {registerOperationsRoutes} from './operationsRoutes';
 import {reserveMonitoredCall} from './operations';
 import { WARMUP_VOICE } from '../speakingWarmup';
@@ -207,70 +209,7 @@ export function createApplication() {
     });
   });
 
-  // API Route for Leaderboard
-  app.get("/api/leaderboard", async (req, res) => {
-    res.set('Cache-Control', 'no-store');
-    try {
-      console.log("[Leaderboard] Fetching top users...");
-      
-      let usersData: any[] = [];
-      const usersSnap = await adminDb.collection("users").orderBy("points", "desc").limit(20).get();
-      
-      usersData = usersSnap.docs.map(d => ({
-        uid: d.id,
-        ...d.data()
-      }));
-      
-      const topUsers = usersData
-        .filter((u: any) => u.email !== "ezacademy.my@gmail.com")
-        .slice(0, 10);
-
-      const usersWithTrends = await Promise.all(topUsers.map(async (user: any) => {
-        let isUp = true;
-        let percentage = 0;
-        try {
-          let sessionsData: any[] = [];
-          const sessionsSnap = await adminDb.collection("users").doc(user.uid).collection("sessions").orderBy("timestamp", "desc").limit(2).get();
-          sessionsData = sessionsSnap.docs.map(d => d.data());
-          
-          if (sessionsData.length >= 2) {
-            const latest = sessionsData[0].score || 0;
-            const prev = sessionsData[1].score || 0;
-            if (prev > 0) {
-              percentage = Math.round(((latest - prev) / prev) * 100);
-              isUp = percentage >= 0;
-              percentage = Math.abs(percentage);
-            } else if (latest > 0) {
-              percentage = 100;
-              isUp = true;
-            }
-          } else {
-            const hash = user.uid.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
-            isUp = hash % 2 === 0;
-            percentage = (hash % 15) + 1;
-          }
-        } catch (e) {
-          const hash = user.uid.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
-          isUp = hash % 2 === 0;
-          percentage = (hash % 15) + 1;
-        }
-
-        return {
-          uid: user.uid,
-          displayName: user.displayName || "Anonymous Student",
-          points: user.points || 0,
-          level: user.level || "Beginner",
-          photoURL: user.photoURL,
-          trend: { isUp, percentage }
-        };
-      }));
-
-      res.json({ success: true, leaderboard: usersWithTrends });
-    } catch(err: any) {
-      console.error("Leaderboard API Error:", err);
-      res.status(200).json({ success: false, error: "Leaderboard is temporarily unavailable", leaderboard: [] });
-    }
-  });
+  registerCommunityRoutes(app, adminDb, ADMIN_EMAIL);
 
   registerPaymentRoutes(app, adminDb);
 

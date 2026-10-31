@@ -56,8 +56,14 @@ export default defineConfig(({mode}) => {
       emptyOutDir: true,
       rollupOptions: {
         output: {
+          // Only packages genuinely needed at boot are pinned to eager chunks.
+          // lucide-react, motion and recharts are deliberately absent: naming a
+          // barrel package here resolves its index and defeats tree-shaking, so
+          // every icon and chart shipped on the marketing pages. Left unlisted,
+          // Rollup places them in the lazy route chunks that actually import them.
           manualChunks: {
-            'vendor': ['react', 'react-dom', 'react-router-dom', 'firebase/app', 'firebase/auth', 'firebase/firestore', 'lucide-react', 'motion/react', 'recharts'],
+            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+            'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
           },
         },
       },

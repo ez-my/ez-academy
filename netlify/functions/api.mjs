@@ -13335,10 +13335,10 @@ var require_auth2 = __commonJS({
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.AuthErrorCode = exports.FirebaseAuthError = exports.UserRecord = exports.UserMetadata = exports.UserInfo = exports.PhoneMultiFactorInfo = exports.MultiFactorSettings = exports.MultiFactorInfo = exports.ProjectConfigManager = exports.ProjectConfig = exports.TenantManager = exports.TenantAwareAuth = exports.Tenant = exports.BaseAuth = exports.Auth = void 0;
-    exports.getAuth = getAuth9;
+    exports.getAuth = getAuth10;
     var index_1 = require_app();
     var auth_1 = require_auth();
-    function getAuth9(app) {
+    function getAuth10(app) {
       if (typeof app === "undefined") {
         app = (0, index_1.getApp)();
       }
@@ -28041,6 +28041,159 @@ function registerPricingRoutes(app, db) {
   });
 }
 
+// src/server/communityRoutes.ts
+var import_auth4 = __toESM(require_auth2(), 1);
+
+// src/profileFields.ts
+var REFERRAL_SOURCES = [
+  { id: "tiktok", label: "TikTok" },
+  { id: "instagram", label: "Instagram" },
+  { id: "threads", label: "Threads" },
+  { id: "facebook", label: "Facebook" },
+  { id: "teacher", label: "My teacher" },
+  { id: "friend", label: "A friend or family" },
+  { id: "search", label: "Google search" },
+  { id: "other", label: "Somewhere else" }
+];
+var REFERRAL_SOURCE_IDS = REFERRAL_SOURCES.map((source) => source.id);
+var MAX_NAME_LENGTH = 60;
+var MAX_SCHOOL_LENGTH = 120;
+var tidyText = (value, limit) => typeof value === "string" ? value.replace(/\s+/g, " ").trim().slice(0, limit) : "";
+var SHARE_REWARD_MAX_PER_ACCOUNT = 7;
+var SHARE_PLATFORMS = ["tiktok", "instagram", "threads", "facebook", "whatsapp", "other"];
+var isSharePlatform = (value) => typeof value === "string" && SHARE_PLATFORMS.includes(value);
+function readShareState(data) {
+  const raw = data ?? {};
+  const total = Number(raw.total);
+  return {
+    total: Number.isFinite(total) && total > 0 ? Math.floor(total) : 0,
+    lastDay: typeof raw.lastDay === "string" ? raw.lastDay : ""
+  };
+}
+function claimShareReward(state, day) {
+  const remainingBefore = Math.max(0, SHARE_REWARD_MAX_PER_ACCOUNT - state.total);
+  if (state.total >= SHARE_REWARD_MAX_PER_ACCOUNT) {
+    return {
+      granted: false,
+      message: `You have claimed all ${SHARE_REWARD_MAX_PER_ACCOUNT} share rewards for this account.`,
+      next: state,
+      remaining: 0
+    };
+  }
+  if (state.lastDay === day) {
+    return {
+      granted: false,
+      message: "You have already claimed your share reward today. Come back tomorrow.",
+      next: state,
+      remaining: remainingBefore
+    };
+  }
+  const next = { total: state.total + 1, lastDay: day };
+  const remaining = SHARE_REWARD_MAX_PER_ACCOUNT - next.total;
+  return {
+    granted: true,
+    message: remaining > 0 ? `One extra practice added. ${remaining} share ${remaining === 1 ? "reward" : "rewards"} left on this account.` : "One extra practice added. That was the last share reward for this account.",
+    next,
+    remaining
+  };
+}
+function shareAvailability(state, day) {
+  const remaining = Math.max(0, SHARE_REWARD_MAX_PER_ACCOUNT - state.total);
+  if (remaining === 0) return { canClaim: false, remaining, reason: "all-used" };
+  if (state.lastDay === day) return { canClaim: false, remaining, reason: "claimed-today" };
+  return { canClaim: true, remaining, reason: "available" };
+}
+
+// src/server/communityRoutes.ts
+var LEADERBOARD_SIZE = 10;
+var LEADERBOARD_SCAN = 40;
+function buildLeaderboard(users, viewerUid, adminEmail, size = LEADERBOARD_SIZE) {
+  return users.filter((user) => user.data.leaderboardOptOut !== true).filter((user) => String(user.data.email || "") !== adminEmail).map((user) => ({
+    uid: user.uid,
+    displayName: tidyText(user.data.displayName, MAX_NAME_LENGTH) || "EZ learner",
+    school: tidyText(user.data.school, MAX_SCHOOL_LENGTH),
+    points: Math.max(0, Math.floor(Number(user.data.points) || 0)),
+    level: typeof user.data.level === "string" ? user.data.level : "BEGINNER",
+    isYou: user.uid === viewerUid
+  })).sort((a, b) => b.points - a.points).slice(0, size).map((row, index) => ({ ...row, rank: index + 1 }));
+}
+function registerCommunityRoutes(app, db, adminEmail, verifyOverride) {
+  const verify = async (req) => {
+    const token = req.headers.authorization?.match(/^Bearer (.+)$/i)?.[1];
+    if (!token) throw Object.assign(Error("Please sign in again."), { status: 401 });
+    try {
+      return verifyOverride ? await verifyOverride(token) : await (0, import_auth4.getAuth)().verifyIdToken(token);
+    } catch {
+      throw Object.assign(Error("Please sign in again."), { status: 401 });
+    }
+  };
+  const fail = (res, error2) => res.status(error2.status || 503).json({ error: error2.status ? error2.message : "Something went wrong. Please try again." });
+  app.get("/api/leaderboard", async (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    try {
+      const viewer = await verify(req);
+      const snapshot = await db.collection("users").orderBy("points", "desc").limit(LEADERBOARD_SCAN).get();
+      const rows2 = buildLeaderboard(
+        snapshot.docs.map((doc) => ({ uid: doc.id, data: doc.data() })),
+        viewer.uid,
+        adminEmail
+      );
+      return res.json({ success: true, leaderboard: rows2 });
+    } catch (error2) {
+      if (error2.status === 401) return fail(res, error2);
+      console.error("Leaderboard failed:", error2);
+      return res.status(200).json({ success: false, error: "The leaderboard is temporarily unavailable.", leaderboard: [] });
+    }
+  });
+  app.get("/api/share/status", async (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    try {
+      const user = await verify(req);
+      const snapshot = await db.doc(`share_rewards/${user.uid}`).get();
+      const day = malaysiaPracticeDay();
+      return res.json({ day, max: SHARE_REWARD_MAX_PER_ACCOUNT, ...shareAvailability(readShareState(snapshot.data()), day) });
+    } catch (error2) {
+      return fail(res, error2);
+    }
+  });
+  app.post("/api/share/claim", async (req, res) => {
+    res.set("Cache-Control", "private, no-store");
+    try {
+      const user = await verify(req);
+      const { platform } = req.body || {};
+      if (!isSharePlatform(platform)) throw Object.assign(Error("Choose where you shared it."), { status: 400 });
+      const day = malaysiaPracticeDay();
+      const stateRef = db.doc(`share_rewards/${user.uid}`);
+      const ledgerRef = db.doc(`package_entitlements/${user.uid}`);
+      const outcome = await db.runTransaction(async (transaction) => {
+        const [stateSnap, ledgerSnap] = await Promise.all([transaction.get(stateRef), transaction.get(ledgerRef)]);
+        const decision = claimShareReward(readShareState(stateSnap.data()), day);
+        if (!decision.granted) return decision;
+        transaction.set(stateRef, { ...decision.next, updatedAt: Date.now(), lastPlatform: platform }, { merge: true });
+        transaction.set(
+          ledgerRef,
+          { rewardPracticeCredits: Number(ledgerSnap.data()?.rewardPracticeCredits || 0) + 1 },
+          { merge: true }
+        );
+        transaction.set(db.doc(`share_rewards/${user.uid}/claims/${day}`), {
+          day,
+          platform,
+          at: Date.now(),
+          total: decision.next.total
+        });
+        return decision;
+      });
+      if (!outcome.granted) return res.status(429).json({ error: outcome.message, remaining: outcome.remaining });
+      return res.json({ granted: true, message: outcome.message, remaining: outcome.remaining });
+    } catch (error2) {
+      return fail(res, error2);
+    }
+  });
+}
+
+// src/constants.ts
+var ADMIN_EMAIL = "ezacademy.my@gmail.com";
+
 // src/server/operationsAudio.ts
 function operationsAudioCanary() {
   const samples = 4e3, buffer = Buffer.alloc(44 + samples * 2);
@@ -28354,9 +28507,9 @@ var groups = [
 var WARMUP_QUESTIONS = groups.flatMap((questions, group) => questions.map((text2, i) => ({ id: `warmup-${group}-${i}`, group, text: text2 })));
 
 // src/server/achievementRoutes.ts
-var import_auth4 = __toESM(require_auth2(), 1);
+var import_auth5 = __toESM(require_auth2(), 1);
 import { randomUUID as randomUUID5 } from "node:crypto";
-async function claimShareReward(db, uid, ticketId, now = Date.now()) {
+async function claimShareReward2(db, uid, ticketId, now = Date.now()) {
   if (!/^[a-f0-9-]{36}$/i.test(ticketId)) throw new Error("Invalid sharing ticket");
   return db.runTransaction(async (t) => {
     const ticket = db.doc(`achievement_share_tickets/${ticketId}`), day = db.doc(`achievement_share_rewards/${uid}/days/${malaysiaDay(now)}`), ledger = db.doc(`package_entitlements/${uid}`);
@@ -28370,7 +28523,7 @@ async function claimShareReward(db, uid, ticketId, now = Date.now()) {
     return { awarded: SHARE_AI_REWARD, alreadyClaimed: false };
   });
 }
-function registerAchievementRoutes(app, db, verify = (token) => (0, import_auth4.getAuth)().verifyIdToken(token, true)) {
+function registerAchievementRoutes(app, db, verify = (token) => (0, import_auth5.getAuth)().verifyIdToken(token, true)) {
   app.use("/api/achievements", async (req, res, next) => {
     res.set("Cache-Control", "no-store");
     const token = req.get("authorization")?.match(/^Bearer (.+)$/i)?.[1];
@@ -28410,7 +28563,7 @@ function registerAchievementRoutes(app, db, verify = (token) => (0, import_auth4
   app.post("/api/achievements/share/claim", async (req, res) => {
     try {
       if (Object.keys(req.body || {}).some((k) => k !== "ticketId")) return res.status(400).json({ error: "Invalid request" });
-      res.json(await claimShareReward(db, res.locals.uid, req.body?.ticketId));
+      res.json(await claimShareReward2(db, res.locals.uid, req.body?.ticketId));
     } catch {
       res.status(400).json({ error: "Sharing session expired. Start sharing again." });
     }
@@ -28418,7 +28571,7 @@ function registerAchievementRoutes(app, db, verify = (token) => (0, import_auth4
 }
 
 // src/server/application.ts
-var import_auth8 = __toESM(require_auth2(), 1);
+var import_auth9 = __toESM(require_auth2(), 1);
 var import_firestore9 = __toESM(require_firestore(), 1);
 import express2 from "express";
 import cors from "cors";
@@ -28427,7 +28580,7 @@ import OpenAI6 from "openai";
 
 // src/server/firebaseAdmin.ts
 var import_app = __toESM(require_app(), 1);
-var import_auth5 = __toESM(require_auth2(), 1);
+var import_auth6 = __toESM(require_auth2(), 1);
 var import_firestore6 = __toESM(require_firestore(), 1);
 
 // firebase-applet-config.json
@@ -28459,11 +28612,11 @@ function initializeExistingFirebase() {
   }
   if ((0, import_app.getApp)().options.projectId !== firebase_applet_config_default.projectId) throw new Error("Firebase project mismatch");
   const databaseId = firebase_applet_config_default.firestoreDatabaseId === "(default)" ? void 0 : firebase_applet_config_default.firestoreDatabaseId;
-  return { auth: (0, import_auth5.getAuth)(), database: (0, import_firestore6.getFirestore)((0, import_app.getApp)(), databaseId) };
+  return { auth: (0, import_auth6.getAuth)(), database: (0, import_firestore6.getFirestore)((0, import_app.getApp)(), databaseId) };
 }
 
 // src/server/listeningRoutes.ts
-var import_auth6 = __toESM(require_auth2(), 1);
+var import_auth7 = __toESM(require_auth2(), 1);
 var import_firestore7 = __toESM(require_firestore(), 1);
 import express from "express";
 
@@ -28570,7 +28723,7 @@ function createListeningCheckHandler(deps) {
 function registerListeningRoutes(router, database) {
   router.get("/api/listening/audio/:testId", createListeningAudioHandler());
   router.post("/api/listening/check", express.json({ limit: "16kb" }), createListeningCheckHandler({
-    verifyToken: (token) => (0, import_auth6.getAuth)().verifyIdToken(token),
+    verifyToken: (token) => (0, import_auth7.getAuth)().verifyIdToken(token),
     upsert: (uid, id, build) => database.runTransaction(async (transaction) => {
       const ref = database.doc(`users/${uid}/sessions/${id}`);
       const snapshot = await transaction.get(ref);
@@ -29117,7 +29270,7 @@ function registerPaymentRoutes(app, adminDb, overrides = {}) {
 }
 
 // src/server/taskRoutes.ts
-var import_auth7 = __toESM(require_auth2(), 1);
+var import_auth8 = __toESM(require_auth2(), 1);
 
 // src/server/providerContext.ts
 import { AsyncLocalStorage } from "node:async_hooks";
@@ -31245,7 +31398,7 @@ async function reserveAIRequest(database, uid, requestId, task, env = process.en
 // src/server/taskRoutes.ts
 function registerTaskRoutes(app, database, overrides) {
   const deps = overrides || {
-    verify: (token) => (0, import_auth7.getAuth)().verifyIdToken(token, true),
+    verify: (token) => (0, import_auth8.getAuth)().verifyIdToken(token, true),
     allowed: previewAllows,
     access: async (uid, skill, fullTest = false) => {
       const balance = await aiAllowance(database, uid);
@@ -31355,7 +31508,7 @@ function createApplication() {
     const token = req.get("authorization")?.match(/^Bearer (.+)$/i)?.[1];
     if (!token) return res.status(401).json({ error: "Sign in required" });
     try {
-      const identity = await (0, import_auth8.getAuth)().verifyIdToken(token, true);
+      const identity = await (0, import_auth9.getAuth)().verifyIdToken(token, true);
       return res.status(previewAllows(identity.uid) ? 200 : 403).json({ allowed: previewAllows(identity.uid) });
     } catch {
       return res.status(401).json({ error: "Sign in required" });
@@ -31366,7 +31519,7 @@ function createApplication() {
     const token = req.get("authorization")?.match(/^Bearer (.+)$/i)?.[1];
     if (!token) return res.status(401).json({ error: "Sign in required" });
     try {
-      const identity = await (0, import_auth8.getAuth)().verifyIdToken(token, true);
+      const identity = await (0, import_auth9.getAuth)().verifyIdToken(token, true);
       return res.json(await aiAllowance(adminDb, identity.uid));
     } catch {
       return res.status(503).json({ error: "AI balance unavailable" });
@@ -31378,7 +31531,7 @@ function createApplication() {
     const token = req.get("authorization")?.match(/^Bearer (.+)$/i)?.[1];
     if (!token) return res.status(401).json({ error: "Sign in required" });
     try {
-      const identity = await (0, import_auth8.getAuth)().verifyIdToken(token, true);
+      const identity = await (0, import_auth9.getAuth)().verifyIdToken(token, true);
       if (!previewAllows(identity.uid)) return res.status(403).json({ error: "This preview is for designated test accounts only." });
       if ((req.path.startsWith("/api/payment/") || req.path === "/api/checkout") && process.env.PAYMENT_SANDBOX !== "true") return res.status(503).json({ error: "Payments are disabled in staging until sandbox settings are configured." });
       return next();
@@ -31399,7 +31552,7 @@ function createApplication() {
     if (!bearer) return res.status(401).json({ error: "Sign in required" });
     let uid;
     try {
-      uid = (await (0, import_auth8.getAuth)().verifyIdToken(bearer)).uid;
+      uid = (await (0, import_auth9.getAuth)().verifyIdToken(bearer)).uid;
     } catch {
       return res.status(401).json({ error: "Sign in required" });
     }
@@ -31472,60 +31625,7 @@ function createApplication() {
       timestamp: (/* @__PURE__ */ new Date()).toISOString()
     });
   });
-  app.get("/api/leaderboard", async (req, res) => {
-    res.set("Cache-Control", "no-store");
-    try {
-      console.log("[Leaderboard] Fetching top users...");
-      let usersData = [];
-      const usersSnap = await adminDb.collection("users").orderBy("points", "desc").limit(20).get();
-      usersData = usersSnap.docs.map((d) => ({
-        uid: d.id,
-        ...d.data()
-      }));
-      const topUsers = usersData.filter((u) => u.email !== "ezacademy.my@gmail.com").slice(0, 10);
-      const usersWithTrends = await Promise.all(topUsers.map(async (user) => {
-        let isUp = true;
-        let percentage = 0;
-        try {
-          let sessionsData = [];
-          const sessionsSnap = await adminDb.collection("users").doc(user.uid).collection("sessions").orderBy("timestamp", "desc").limit(2).get();
-          sessionsData = sessionsSnap.docs.map((d) => d.data());
-          if (sessionsData.length >= 2) {
-            const latest = sessionsData[0].score || 0;
-            const prev = sessionsData[1].score || 0;
-            if (prev > 0) {
-              percentage = Math.round((latest - prev) / prev * 100);
-              isUp = percentage >= 0;
-              percentage = Math.abs(percentage);
-            } else if (latest > 0) {
-              percentage = 100;
-              isUp = true;
-            }
-          } else {
-            const hash = user.uid.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-            isUp = hash % 2 === 0;
-            percentage = hash % 15 + 1;
-          }
-        } catch (e) {
-          const hash = user.uid.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-          isUp = hash % 2 === 0;
-          percentage = hash % 15 + 1;
-        }
-        return {
-          uid: user.uid,
-          displayName: user.displayName || "Anonymous Student",
-          points: user.points || 0,
-          level: user.level || "Beginner",
-          photoURL: user.photoURL,
-          trend: { isUp, percentage }
-        };
-      }));
-      res.json({ success: true, leaderboard: usersWithTrends });
-    } catch (err) {
-      console.error("Leaderboard API Error:", err);
-      res.status(200).json({ success: false, error: "Leaderboard is temporarily unavailable", leaderboard: [] });
-    }
-  });
+  registerCommunityRoutes(app, adminDb, ADMIN_EMAIL);
   registerPaymentRoutes(app, adminDb);
   app.use("/api", (_req, res) => res.status(404).json({ code: "not_found", error: "This API endpoint was not found." }));
   app.use((error2, _req, res, _next) => {

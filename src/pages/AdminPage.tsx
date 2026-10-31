@@ -1,10 +1,7 @@
 import './admin.css';
 import React, { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import {
-  Activity, BookOpen, Coins, CreditCard, DollarSign, Edit2, Layout, LogOut,
-  ShieldAlert, Tag, Target, TrendingUp, Users,
-} from 'lucide-react';
+import { Activity, BookOpen, Coins, CreditCard, DollarSign, Edit2, Layout, LogOut, ShieldAlert, Tag, Target, TrendingUp, Users, Megaphone } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { ADMIN_EMAIL } from '../constants';
 
@@ -15,6 +12,7 @@ import { MarketingPanel } from './MarketingPanel';
 import { OperationsPanel } from './OperationsPanel';
 import { ModulesPanel } from './admin/ModulesPanel';
 import { UsersPanel } from './admin/UsersPanel';
+import { GrowthPanel } from './admin/GrowthPanel';
 import { PaymentsPanel } from './admin/PaymentsPanel';
 import { QuestionBankPanel } from './admin/QuestionBankPanel';
 import { SiteEditorPanel } from './admin/SiteEditorPanel';
@@ -39,6 +37,7 @@ const SECTIONS = [
     tabs: [
       { id: 'dashboard', label: 'Daily activity', icon: Activity },
       { id: 'users', label: 'Users', icon: Users },
+      { id: 'growth', label: 'Where they come from', icon: Megaphone },
     ],
   },
   {
@@ -218,6 +217,7 @@ export const AdminPage: React.FC = () => {
 
       {activeTab === 'dashboard' && <AdminDashboard onOpenTab={setActiveTab} />}
       {activeTab === 'users' && <UsersPanel />}
+      {activeTab === 'growth' && <GrowthPanel onOpenTab={setActiveTab} />}
       {activeTab === 'maintenance' && <RevenueCostsPanel onOpenTab={setActiveTab} />}
       {activeTab === 'pricing' && <PricingPanel />}
       {activeTab === 'payments' && <PaymentsPanel />}

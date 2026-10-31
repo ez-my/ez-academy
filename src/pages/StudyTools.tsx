@@ -6,7 +6,6 @@ import { collection, query, where, orderBy, getDocs, addDoc, deleteDoc, updateDo
 import { db, auth, handleFirestoreError, OperationType, getFriendlyFirebaseError } from '../lib/firebase';
 import { toast } from 'react-hot-toast';
 import { TaskReminder, UserProfile } from '../types';
-import * as Icons from 'lucide-react';
 import { cn } from '../lib/utils';
 import confetti from 'canvas-confetti';
 import { Achievements } from '../components/dashboard/Achievements';

@@ -4,6 +4,7 @@ import ReactQuill from 'react-quill-new';
 import * as Icons from 'lucide-react';
 import { Activity, CheckCircle2, ChevronDown, ChevronRight, Edit2, FileText, GripVertical, Headphones, Info, Layout, Mic, Plus, RefreshCcw, Save, Search, ShieldAlert, Target, Trash2, X, Zap } from 'lucide-react';
 import { getSiteConfig, updateSiteConfig } from '../../lib/firebase';
+import { useSiteConfig } from '../../context/SiteConfigContext';
 import { SiteConfig } from '../../types';
 import { useConfirmDialog } from './ConfirmDialog';
 import { LucideIcon } from './LucideIcon';
@@ -14,6 +15,7 @@ import { TooltipHelp } from './TooltipHelp';
 // AdminPage, detached from the form it saves, with a second copy in the header.
 export const SiteEditorPanel: React.FC = () => {
   const { setConfirmDialog, confirmDialogElement } = useConfirmDialog();
+  const { refresh: refreshSiteConfig } = useSiteConfig();
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
   const [isSiteConfigLoading, setIsSiteConfigLoading] = useState(false);
@@ -82,6 +84,9 @@ export const SiteEditorPanel: React.FC = () => {
     setIsSiteConfigSaving(true);
     try {
       await updateSiteConfig(siteConfig);
+      // The provider no longer listens for changes, so tell it to re-read: without
+      // this the live site keeps serving the pre-save copy until a full reload.
+      await refreshSiteConfig();
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
