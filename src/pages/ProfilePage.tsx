@@ -1,5 +1,6 @@
 import {DevicePhotoPicker} from '../components/profile/DevicePhotoPicker';
 import {useDevicePhoto,removeDevicePhoto} from '../lib/devicePhoto';
+import {REFERRAL_SOURCES,MAX_SCHOOL_LENGTH,MAX_REFERRAL_NOTE_LENGTH,normaliseDetails,validateDetails} from '../profileFields';
 import {AffiliateWallet} from '../components/affiliate/AffiliateWallet';
 import {Rewards} from '../components/profile/Rewards';
 import {OfficialSocialLinks} from '../components/social/OfficialSocialLinks';
@@ -7,7 +8,7 @@ import {practiceRequest} from '../lib/practice';
 import {Achievements} from '../components/dashboard/Achievements';
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { LogOut, Edit2, Save, X, User, Target, CheckCircle2, AlertCircle, Settings, Moon, Upload, Type, Eye, Clock, Activity, ChevronRight, History, Download, Smartphone, Mic, Volume2 } from 'lucide-react';
+import { LogOut, Edit2, Save, X, User, Target, CheckCircle2, AlertCircle, Settings, Moon, Upload, Type, Eye, Clock, Activity, ChevronRight, History, Download, Smartphone, Mic, Volume2, School, Share, PlusSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { UserProfile, ActivityLog } from '../types';
 import { updateProfile, submitFeedback, getActivityLogs, updateDailyGoal } from '../lib/firebase';
@@ -266,64 +267,106 @@ function FeedbackForm({ userId, userEmail }: { userId: string; userEmail: string
   );
 }
 
+// Dismissed or installed: either way the learner has dealt with it, so the card
+// does not come back. Kept per browser because installing is a per-device act.
+const INSTALL_DONE_KEY = 'ez_install_done';
+
+const readInstallDone = () => {
+  try { return localStorage.getItem(INSTALL_DONE_KEY) === '1'; } catch { return false; }
+};
+const writeInstallDone = () => {
+  try { localStorage.setItem(INSTALL_DONE_KEY, '1'); } catch { /* private window; the card simply returns next time */ }
+};
+
 function AppInstallWidget() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isInstallable, setIsInstallable] = useState(false);
   const [isIos, setIsIos] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [done, setDone] = useState(readInstallDone);
+  const [showIosSteps, setShowIosSteps] = useState(false);
 
   useEffect(() => {
     if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true) {
       setIsStandalone(true);
     }
+    const ua = window.navigator.userAgent.toLowerCase();
+    // iPadOS reports itself as a Mac, so a touch-capable "Mac" counts as iOS here.
+    const iosLike = /iphone|ipad|ipod/.test(ua) || (/macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+    setIsIos(iosLike);
 
-    const userAgent = window.navigator.userAgent.toLowerCase();
-    const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
-    setIsIos(isIosDevice);
-
-    const handleBeforeInstallPrompt = (e: any) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setIsInstallable(true);
+    const onPrompt = (event: any) => { event.preventDefault(); setDeferredPrompt(event); };
+    window.addEventListener('beforeinstallprompt', onPrompt);
+    // Android fires this when the install completes, including from the browser menu.
+    const onInstalled = () => { writeInstallDone(); setDone(true); };
+    window.addEventListener('appinstalled', onInstalled);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onPrompt);
+      window.removeEventListener('appinstalled', onInstalled);
     };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
-  const installPwa = async () => {
-    if (!deferredPrompt) {
-      if (isIos) {
-        alert("To install on iOS: tap the Share button at the bottom of your Safari menu and select 'Add to Home Screen'.");
-      } else {
-         alert("App is already installed, or not supported by your current browser.");
-      }
+  const install = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      setDeferredPrompt(null);
+      if (outcome === 'accepted') { writeInstallDone(); setDone(true); }
       return;
     }
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setIsInstallable(false);
-    }
+    // No native prompt: iOS Safari never fires one, and other browsers only fire it
+    // once. Show the steps inline rather than in an alert() the learner cannot re-read.
+    setShowIosSteps(true);
   };
 
-  if (isStandalone) return null;
+  const dismiss = () => { writeInstallDone(); setDone(true); };
+
+  // Already an app, or already dealt with.
+  if (isStandalone || done) return null;
 
   return (
-    <div className="glass-card p-4 sm:p-5 space-y-6 bg-primary/5 border-primary/20">
-      <div className="flex items-center gap-2 mb-2">
-         <Smartphone size={20} className="text-primary" />
-         <h3 className="text-base font-semibold text-primary">Add to home screen</h3>
+    <section className="glass-card p-4 sm:p-5 space-y-3 bg-primary/5 border-primary/20" aria-labelledby="install-title">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <Smartphone size={20} className="text-primary shrink-0" />
+          <h3 id="install-title" className="text-base font-semibold text-primary truncate">Add EZ Academy to your home screen</h3>
+        </div>
+        <button
+          type="button" onClick={dismiss} aria-label="Hide this"
+          className="min-h-11 px-2 text-white/40 hover:text-white shrink-0"
+        ><X size={16} /></button>
       </div>
-      <p className="text-xs text-white/60">Add EZ Academy to your home screen.</p>
-      <button 
-        onClick={installPwa}
-        className="w-full py-4 bg-primary text-obsidian rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
-      >
-        <Download size={16} />
-        Add to Home Screen
-      </button>
-    </div>
+      <p className="text-xs text-white/60">Open it like an app, straight from your home screen. No download needed.</p>
+
+      {showIosSteps ? (
+        <ol className="text-xs text-white/75 space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
+          {isIos ? (
+            <>
+              <li className="flex items-start gap-2"><Share size={14} className="text-primary mt-0.5 shrink-0" /><span>Tap the <strong>Share</strong> button in Safari&rsquo;s toolbar.</span></li>
+              <li className="flex items-start gap-2"><PlusSquare size={14} className="text-primary mt-0.5 shrink-0" /><span>Scroll down and tap <strong>Add to Home Screen</strong>.</span></li>
+              <li className="flex items-start gap-2"><CheckCircle2 size={14} className="text-primary mt-0.5 shrink-0" /><span>Tap <strong>Add</strong>. EZ Academy appears with your apps.</span></li>
+            </>
+          ) : (
+            <>
+              <li className="flex items-start gap-2"><PlusSquare size={14} className="text-primary mt-0.5 shrink-0" /><span>Open your browser&rsquo;s <strong>menu</strong> (⋮ or ⋯).</span></li>
+              <li className="flex items-start gap-2"><Download size={14} className="text-primary mt-0.5 shrink-0" /><span>Tap <strong>Add to Home screen</strong> or <strong>Install app</strong>.</span></li>
+              <li className="flex items-start gap-2"><CheckCircle2 size={14} className="text-primary mt-0.5 shrink-0" /><span>Confirm. EZ Academy appears with your apps.</span></li>
+            </>
+          )}
+          <li className="pt-1">
+            <button type="button" onClick={dismiss} className="min-h-11 text-primary underline font-semibold">Done, hide this</button>
+          </li>
+        </ol>
+      ) : (
+        <button
+          type="button"
+          onClick={install}
+          className="w-full py-4 bg-primary text-obsidian rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+        >
+          <Download size={16} />
+          Add to Home Screen
+        </button>
+      )}
+    </section>
   );
 }
 
@@ -337,6 +380,10 @@ export function ProfilePage({ profile, onLogout }: ProfilePageProps) {
   const [editedGoal, setEditedGoal] = useState(profile.goal);
   const [editedStreakGoal, setEditedStreakGoal] = useState(profile.streakGoal || 7);
   const [editedPhotoUrl, setEditedPhotoUrl] = useState(profile.photoURL || '');
+  const [editedSchool, setEditedSchool] = useState(profile.school || '');
+  const [editedReferral, setEditedReferral] = useState(profile.referralSource || '');
+  const [editedReferralNote, setEditedReferralNote] = useState(profile.referralNote || '');
+  const [editedOptOut, setEditedOptOut] = useState(profile.leaderboardOptOut === true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -376,8 +423,24 @@ const AVATAR_OPTIONS = [
     setSuccess(false);
 
     try {
+      // Normalised through the same helper registration uses, so a name edited
+      // here is capped and trimmed exactly as it was when it was first collected.
+      const details = normaliseDetails({
+        displayName: editedName,
+        school: editedSchool,
+        referralSource: editedReferral as any,
+        referralNote: editedReferralNote,
+        leaderboardOptOut: editedOptOut,
+      });
+      const problems = validateDetails(details);
+      if (problems.length) { setError(problems[0]); setIsSaving(false); return; }
+
       await updateProfile(profile.uid, {
-        displayName: editedName.trim(),
+        displayName: details.displayName,
+        school: details.school,
+        referralSource: details.referralSource,
+        referralNote: details.referralNote,
+        leaderboardOptOut: details.leaderboardOptOut,
         goal: editedGoal as any,
         streakGoal: editedStreakGoal,
         photoURL: editedPhotoUrl.trim() || undefined
@@ -398,6 +461,10 @@ const AVATAR_OPTIONS = [
     setEditedName(profile.displayName);
     setEditedGoal(profile.goal);
     setEditedPhotoUrl(profile.photoURL || '');
+    setEditedSchool(profile.school || '');
+    setEditedReferral(profile.referralSource || '');
+    setEditedReferralNote(profile.referralNote || '');
+    setEditedOptOut(profile.leaderboardOptOut === true);
     setClearLocalPhoto(false);
     setIsEditing(false);
     setError(null);
@@ -406,6 +473,9 @@ const AVATAR_OPTIONS = [
 
   return (
     <div className="profile-page space-y-4 max-w-4xl min-w-0 mx-auto pb-8">
+      {/* Top of the page, as asked. The widget removes itself once the app is
+          installed or the learner says they are done with it. */}
+      <AppInstallWidget />
       <header className="flex justify-between items-center gap-3">
         <div>
           <h2 className="text-xl sm:text-2xl font-semibold">Profile</h2>
@@ -517,6 +587,58 @@ const AVATAR_OPTIONS = [
                   />
                 </div>
               </div>
+            </div>
+
+            <div className="space-y-6">
+              <h4 className="text-sm font-black uppercase tracking-widest text-white/60 flex items-center gap-2">
+                <School size={16} />
+                School and leaderboard
+              </h4>
+
+              <div>
+                <label htmlFor="profile-school" className="block text-[10px] font-black uppercase tracking-[0.3em] text-white/40 mb-3">Your school</label>
+                <input
+                  id="profile-school" type="text" maxLength={MAX_SCHOOL_LENGTH}
+                  value={editedSchool} onChange={e => setEditedSchool(e.target.value)}
+                  placeholder="e.g. SMK Taman Desa"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary/50 transition-colors"
+                />
+                <p className="text-xs text-white/40 mt-2">Shown beside your name on the leaderboard.</p>
+              </div>
+
+              <div>
+                <span id="profile-heard" className="block text-[10px] font-black uppercase tracking-[0.3em] text-white/40 mb-3">Where you heard about us</span>
+                <div role="radiogroup" aria-labelledby="profile-heard" className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {REFERRAL_SOURCES.map(source => (
+                    <label key={source.id} className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 cursor-pointer text-xs transition-colors ${editedReferral === source.id ? 'border-primary bg-primary/10' : 'border-white/10 hover:border-white/30'}`}>
+                      <input
+                        type="radio" name="profile-referral" value={source.id}
+                        checked={editedReferral === source.id}
+                        onChange={() => setEditedReferral(source.id)}
+                        className="h-4 w-4 accent-primary shrink-0"
+                      />
+                      <span className="min-w-0 truncate">{source.label}</span>
+                    </label>
+                  ))}
+                </div>
+                {editedReferral === 'other' && (
+                  <input
+                    type="text" maxLength={MAX_REFERRAL_NOTE_LENGTH} aria-label="Where you heard about us"
+                    value={editedReferralNote} onChange={e => setEditedReferralNote(e.target.value)}
+                    placeholder="Tell us where"
+                    className="mt-2 w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary/50"
+                  />
+                )}
+              </div>
+
+              <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4 cursor-pointer">
+                <input
+                  type="checkbox" checked={editedOptOut}
+                  onChange={e => setEditedOptOut(e.target.checked)}
+                  className="h-4 w-4 accent-primary mt-0.5 shrink-0"
+                />
+                <span className="text-xs text-white/60">Keep me off the public leaderboard. Your practice still counts towards your own progress.</span>
+              </label>
             </div>
 
             <div className="space-y-6">

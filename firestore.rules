@@ -47,7 +47,13 @@ service cloud.firestore {
         && (data.get('plan', 'free') is string)
         && (data.get('credits', 0) is int)
         && (data.get('streak', 0) is int)
-        && (data.get('points', 0) is int);
+        && (data.get('points', 0) is int)
+        // Fields collected at registration. School and name sit side by side on the
+        // public leaderboard, so both are length-capped here as well as in the client.
+        && (data.get('school', '') is string && data.get('school', '').size() <= 120)
+        && (data.get('referralSource', '') in ['', 'tiktok', 'instagram', 'threads', 'facebook', 'teacher', 'friend', 'search', 'other'])
+        && (data.get('referralNote', '') is string && data.get('referralNote', '').size() <= 80)
+        && (data.get('leaderboardOptOut', false) is bool);
     }
 
     function isValidTransaction(data) {
@@ -93,9 +99,15 @@ service cloud.firestore {
         && incoming().uid == request.auth.uid && incoming().get('plan', 'free') == 'free'
         && incoming().get('credits', 0) >= 0 && incoming().get('credits', 0) <= 3
         && !incoming().keys().hasAny(['planExpiresAt','lastPaymentAt','lastTransactionId']);
+      // NOTE: points are still incremented by the client (lib/firebase.saveSession),
+      // so this cap bounds a single write rather than making the score trustworthy.
+      // A determined learner can still loop writes. Moving the award server-side is
+      // the real fix; until then the leaderboard is a friendly ranking, not a record.
       allow update: if isValidUser(incoming()) && incoming().uid == existing().uid &&
         (isAdmin() || (isOwner(userId) &&
           !incoming().diff(existing()).affectedKeys().hasAny(['plan','planExpiresAt','planUpdatedAt','lastPaymentAt','lastTransactionId']) &&
+          incoming().get('points',0) >= existing().get('points',0) &&
+          incoming().get('points',0) <= existing().get('points',0) + 25 &&
           incoming().get('credits',0) >= 0 && incoming().get('credits',0) <= existing().get('credits',0)));
       allow delete: if isAdmin();
 
@@ -176,6 +188,20 @@ service cloud.firestore {
       allow read, write: if false;
     }
     match /pricing_versions/{version} {
+      allow read, write: if false;
+    }
+
+    // Share-to-earn. The learner must not be able to reach their own counter, or
+    // the one-a-day and seven-per-account caps would be theirs to edit.
+    match /share_rewards/{userId} {
+      allow read, write: if false;
+      match /claims/{day} {
+        allow read, write: if false;
+      }
+    }
+
+    // The pool that share rewards and reward codes both pay into.
+    match /package_entitlements/{userId} {
       allow read, write: if false;
     }
 

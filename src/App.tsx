@@ -24,6 +24,7 @@ function lazyWithPreload<T extends React.ComponentType<any>>(factory: () => Prom
 const SupportPage = lazyWithPreload(()=>import('./pages/SupportPage').then(m=>({default:m.SupportPage})));
 const Auth = lazyWithPreload(() => import('./pages/Auth').then(m => ({ default: m.Auth })));
 const Onboarding = lazyWithPreload(() => import('./pages/Onboarding').then(m => ({ default: m.Onboarding })));
+import type { OnboardingData } from './pages/Onboarding';
 const StudyTools = lazyWithPreload(()=>import('./pages/StudyTools').then(m=>({default:m.StudyTools})));
 const Dashboard = lazyWithPreload(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
 const SpeakEZ = lazyWithPreload(() => import('./pages/SpeakEZ').then(m => ({ default: m.SpeakEZ })));
@@ -234,7 +235,7 @@ const ProtectedApp = ({
   profileLoading: boolean, 
   profileError: string | null,
   modules: AppModule[],
-  handleOnboardingComplete: (data: Partial<UserProfile>) => Promise<void>,
+  handleOnboardingComplete: (data: OnboardingData) => Promise<void>,
   handleLogout: () => Promise<void>,
   currentTab: string,
   authLoading: boolean
@@ -266,7 +267,7 @@ const ProtectedApp = ({
     );
   }
   
-  if (!profile || !profile.onboardingCompleted) return <Onboarding onComplete={handleOnboardingComplete} />;
+  if (!profile || !profile.onboardingCompleted) return <Onboarding uid={user.uid} suggestedName={user.displayName || ''} onComplete={handleOnboardingComplete} />;
 
   const isAdmin = user.email === ADMIN_EMAIL;
 
@@ -415,12 +416,18 @@ export default function App() {
     }
   };
 
-  const handleOnboardingComplete = async (data: { goal: string }) => {
+  const handleOnboardingComplete = async (data: OnboardingData) => {
     if (!user) return;
+    // Registration now collects these too; normaliseDetails has already trimmed
+    // them and dropped anything the form does not own.
     const newProfile: UserProfile = {
       uid: user.uid,
       email: user.email || '',
-      displayName: user.displayName || 'EZ Master',
+      displayName: data.displayName || user.displayName || 'EZ Master',
+      school: data.school || undefined,
+      referralSource: data.referralSource || undefined,
+      referralNote: data.referralNote || undefined,
+      leaderboardOptOut: data.leaderboardOptOut,
       goal: data.goal,
       level: profile?.level || 'INTERMEDIATE', // Existing profile default; no diagnostic score is assigned.
       weeklyGoalMinutes: profile?.weeklyGoalMinutes || 15,

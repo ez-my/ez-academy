@@ -43,6 +43,14 @@ export interface UserProfile {
   micEnabled?: boolean;
   soundEnabled?: boolean;
   aiEngine?: 'gemini' | 'chatgpt';
+  /** Shown beside the name on the leaderboard. Collected at registration, editable later. */
+  school?: string;
+  /** Where the learner first heard about EZ Academy; one of REFERRAL_SOURCES. */
+  referralSource?: string;
+  /** Free text, only ever set alongside referralSource 'other'. */
+  referralNote?: string;
+  /** Keeps this learner off the public leaderboard. */
+  leaderboardOptOut?: boolean;
 }
 
 export interface ActivityLog {
