@@ -326,9 +326,9 @@ function AppInstallWidget() {
   return (
     <section className="glass-card p-4 sm:p-5 space-y-3 bg-primary/5 border-primary/20" aria-labelledby="install-title">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <Smartphone size={20} className="text-primary shrink-0" />
-          <h3 id="install-title" className="text-base font-semibold text-primary truncate">Add EZ Academy to your home screen</h3>
+        <div className="flex items-start gap-2 min-w-0">
+          <Smartphone size={20} className="text-primary shrink-0 mt-0.5" />
+          <h3 id="install-title" className="text-base font-semibold text-primary leading-snug">Add EZ Academy to your home screen</h3>
         </div>
         <button
           type="button" onClick={dismiss} aria-label="Hide this"

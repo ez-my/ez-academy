@@ -13,7 +13,8 @@
     "test:migration": "node --import tsx --test tests/migration.test.ts",
     "generate:ai-clients": "node scripts/generate-ai-clients.mjs",
     "test": "node --import tsx --test tests/*.test.ts",
-    "build:photo-tools": "node scripts/build-photo-tools.mjs"
+    "build:photo-tools": "node scripts/build-photo-tools.mjs",
+    "preview:ui": "vite --config vite.preview.config.ts"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
