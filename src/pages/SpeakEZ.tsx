@@ -1301,7 +1301,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
             <button 
               onClick={resetToSelection}
               className="p-3 bg-white/5 border border-white/10 rounded-full text-white/40 hover:text-red-500 hover:bg-red-500/10 transition-all flex items-center gap-2"
-              title="Exit Session"
+              aria-label="Exit this practice session" title="Exit Session"
             >
               <Trash2 size={18} />
               <span className="text-[10px] font-black uppercase tracking-widest mr-2">Exit</span>
@@ -1950,7 +1950,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
               <button
                 onClick={isPaused ? resumeRecording : pauseRecording}
                 className={`min-h-12 rounded-xl px-4 flex items-center justify-center gap-2 text-sm font-semibold transition-all ${isPaused ? 'bg-orange-500/20 text-orange-200 hover:bg-orange-500/30' : 'bg-white/10 text-white hover:bg-white/20'}`}
-                title={isPaused ? "Resume" : "Pause"}
+                aria-label={isPaused ? "Resume recording" : "Pause recording"} title={isPaused ? "Resume" : "Pause"}
               >
                 {isPaused ? <Play fill="currentColor" size={14} className="ml-0.5" /> : <Pause fill="currentColor" size={14} />}
                 {isPaused ? 'Resume' : 'Pause'}

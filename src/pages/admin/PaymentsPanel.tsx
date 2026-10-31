@@ -410,7 +410,7 @@ export const PaymentsPanel: React.FC = () => {
               <button 
                 onClick={fetchTransactions}
                 className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-white/40 hover:text-primary transition-all"
-                title="Refresh"
+                aria-label="Refresh payments" title="Refresh"
               >
                 <RefreshCcw size={16} />
               </button>

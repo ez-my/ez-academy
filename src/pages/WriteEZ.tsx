@@ -615,9 +615,9 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
       />
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h2 className="text-2xl sm:text-4xl font-black tracking-tighter mb-2 flex items-center gap-3 italic">
+          <h1 className="text-2xl sm:text-4xl font-black tracking-tighter mb-2 flex items-center gap-3 italic">
             <PenTool className="text-primary" /> WRITE<span className="text-primary italic">EZ</span>
-          </h2>
+          </h1>
           <p className="text-white/40 uppercase tracking-[0.3em] text-xs font-bold">
             {PART_INFO[activePart].desc}
           </p>
@@ -740,7 +740,8 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                     <button 
                       onClick={handleGenerateTaskWithLimit}
                       disabled={isGeneratingTask || isAnalyzing}
-                      className="p-2 bg-white/5 rounded-xl hover:bg-white/10 transition-colors text-white/50"
+                      className="min-h-11 min-w-11 inline-flex items-center justify-center bg-white/5 rounded-xl hover:bg-white/10 transition-colors text-white/50"
+                      aria-label="Generate a new writing scenario"
                       title="New Scenario"
                     >
                       <RefreshCw size={16} className={isGeneratingTask ? 'animate-spin' : ''} />
@@ -1429,7 +1430,8 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                     : `Continue writing your ${spmTask?.practiceMode || 'essay'} here...`
                   : "Begin your essay here... (Minimum 30 words for AI analysis)"
               }
-              className="w-full min-h-[300px] h-[45vh] md:h-[600px] p-6 md:p-8 bg-transparent text-white/90 focus:outline-none resize-none font-sans text-base md:text-lg leading-relaxed placeholder:text-white/10"
+              aria-label={`Your ${isSPM ? (activePart === 'PART 1' ? 'letter' : 'essay') : 'essay'}`}
+              className="w-full min-h-[300px] h-[45vh] md:h-[600px] p-6 md:p-8 bg-transparent text-white/90 focus:outline-none resize-none font-sans text-base md:text-lg leading-relaxed placeholder:text-white/30"
             />
           </div>
 
@@ -1481,11 +1483,17 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                   handleAnalyze();
                 }}
                 disabled={isAnalyzing || text.length < 5}
+                aria-busy={isAnalyzing}
                 className={`flex-1 btn-primary flex items-center justify-center gap-3 ${text.length < 5 ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
               >
-                {isAnalyzing ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />}
+                {isAnalyzing ? <Loader2 className="animate-spin" size={20} aria-hidden="true" /> : <Sparkles size={20} aria-hidden="true" />}
                 {plan === 'free' ? 'View General Feedback' : isAnalyzing ? 'Decoding Structures...' : isFullEssayMode ? 'Grade Final Essay' : 'Analyze Component'}
               </button>
+              {/* Announced once when the wait starts, rather than leaving a
+                  screen reader user with a silent spinning icon. */}
+              <p role="status" aria-live="polite" className="sr-only">
+                {isAnalyzing ? 'Analysing your writing. This can take a moment.' : ''}
+              </p>
               {!isFullEssayMode && (activePart === 'PART 2' || activePart === 'PART 3') && spmTask && !assemblyMode && (
                 <button
                   onClick={handleManualSaveComponent}

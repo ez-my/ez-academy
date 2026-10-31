@@ -354,7 +354,7 @@ export const QuestionBankPanel: React.FC = () => {
                 <button 
                   onClick={expandAllQuestions}
                   className="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-all"
-                  title="Expand All"
+                  aria-label="Expand all questions" title="Expand All"
                 >
                   Expand All
                 </button>
@@ -362,7 +362,7 @@ export const QuestionBankPanel: React.FC = () => {
                 <button 
                   onClick={collapseAllQuestions}
                   className="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-all"
-                  title="Collapse All"
+                  aria-label="Collapse all questions" title="Collapse All"
                 >
                   Collapse All
                 </button>
