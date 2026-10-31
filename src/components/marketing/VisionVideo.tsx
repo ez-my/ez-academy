@@ -43,7 +43,7 @@ export const VisionVideo: React.FC<VisionVideoProps> = React.memo(({ title, desc
         {/* AI Badge */}
         <div className="absolute top-6 left-6 z-10 flex items-center gap-2 px-3 py-1.5 bg-obsidian/60 backdrop-blur-md rounded-full border border-white/10 shadow-lg">
           <Sparkles className="text-primary" size={12} />
-          <span className="text-[9px] font-black uppercase tracking-widest text-white/80">{badge}</span>
+          <span className="text-[10px] font-black uppercase tracking-widest text-white/80">{badge}</span>
         </div>
 
         {/* Play Overlay */}

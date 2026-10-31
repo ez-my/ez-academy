@@ -3,7 +3,7 @@ import {ShareReward} from '../components/ShareReward';
 import {useDevicePhoto} from '../lib/devicePhoto';
 import React,{useEffect,useState,useRef} from 'react';
 import {Link} from 'react-router-dom';
-import {BookOpen,PenTool,Mic,Headphones,ArrowRight,Flame,Star,Volume2,Bookmark,Check,RefreshCw,Crown,Bell,CalendarDays,Target,Lightbulb,Trophy,BarChart3,ChevronRight,Sparkles} from 'lucide-react';
+import { BookOpen, PenTool, Mic, Headphones, ArrowRight, Flame, Star, Volume2, Bookmark, Check, RefreshCw, Crown, Bell, CalendarDays, Target, Lightbulb, Trophy, BarChart3, ChevronRight, Sparkles } from 'lucide-react';
 import {collection,getCountFromServer,getDocs,query,where,Timestamp} from 'firebase/firestore';
 import {db} from '../lib/firebase';
 import {practiceRequest} from '../lib/practice';
@@ -48,6 +48,11 @@ export const Dashboard:React.FC<{profile:UserProfile;onSelectModule:(id:string)=
    <nav className="ezd-skills" aria-label="Practice skills">{tiles.map(({key,name,module:id,Icon})=>{const a=today?.skills[key],empty=a&&a.remaining===0;const used=a?.used||0;return <button key={key} className={`ezd-skill ${empty?'is-used':''}`} onClick={()=>onSelectModule(module(key,id))} aria-label={`${name}: ${a?a.remaining+' practices left'+(a.shared?' in shared free allowance':''):'balance loading'}`}><span className="ezd-skill-icon"><Icon/></span><b>{name}</b><small>{a?`${Math.min(used,a.limit)} / ${a.limit} used today`:'Loading…'}</small><span className="ezd-meter"><i style={{width:a?`${Math.min(100,used/a.limit*100)}%`:'0%'}}/></span><span className="ezd-remaining">{!a?'Open skill':empty?<>Daily limit reached <Check size={13}/></>:`${a.remaining} practice${a.remaining===1?'':'s'} left`}</span><ChevronRight className="ezd-skill-arrow"/></button>;})}</nav>
    <p className="ezd-footnote">Free: 2 total across all skills, in addition to new plan allowances. Resets at midnight, Malaysia time.</p>
   </section>
+  <Link to="/app/leaderboard" className="ezd-panel flex items-center gap-3 min-h-11 no-underline" aria-label="Open the leaderboard">
+   <Trophy aria-hidden="true"/>
+   <span className="flex-1 min-w-0"><b>Leaderboard</b><small className="block text-white/55">See where you rank against other schools</small></span>
+   <ArrowRight aria-hidden="true"/>
+  </Link>
   <ShareReward achievement={focus?.score !== null && focus?.score !== undefined ? `I scored ${Math.round(Number(focus.score))}% on ${focus.label}` : undefined}/>
   <section className="ezd-panel ezd-recommend" aria-label="Recommended practice"><div className="ezd-recommend-copy"><div className="ezd-eyebrow"><Target/>Recommended for you</div><h2>{today&&!focus?<>Great work <em>today!</em></>:<>Improve your <em>{recommended.name}</em></>}</h2><p>{today&&!focus?'Your daily allowance is used. See your progress and return tomorrow.':focus?.score!==null&&focus?.score!==undefined?`Your recent ${focus.label.toLowerCase()} score is currently the lowest. Keep going with a short practice.`:'Small steps build confidence. Start with a short practice today.'}</p><button className="ezd-cta" onClick={()=>today&&!focus?onSelectModule('profile?section=progress'):onSelectModule(module(recommended.key,recommended.module))}>{today&&!focus?'View your progress':`Start ${recommended.name} Practice`}<ArrowRight/></button></div><div className="ezd-recommend-art"><span className="ezd-speech">Small steps,<br/>big progress!</span><BarChart3 className="ezd-growth"/><img src="/images/dashboard/ez-mascot-point-v1.webp" alt=""/></div></section>
   <div className="ezd-bottom-grid">

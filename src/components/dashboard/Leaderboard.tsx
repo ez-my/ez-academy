@@ -92,12 +92,17 @@ export const Leaderboard: React.FC = () => {
 
   return (
     <section className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg sm:text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Trophy size={24} className="text-yellow-400" />
-          Top Learners
-        </h3>
-        <div className="px-3 py-1 bg-yellow-400/10 border border-yellow-400/20 rounded-full text-[10px] font-black uppercase text-yellow-500 tracking-[0.2em] italic">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
+            <Trophy size={26} className="text-yellow-400 shrink-0" />
+            Top Learners
+          </h1>
+          <p className="text-xs sm:text-sm text-white/50 mt-1.5">
+            Ranked by practice points. Finish a practice to climb.
+          </p>
+        </div>
+        <div className="hidden sm:block shrink-0 whitespace-nowrap px-3 py-1 bg-yellow-400/10 border border-yellow-400/20 rounded-full text-[10px] font-black uppercase text-yellow-500 tracking-[0.2em] italic">
           Leaderboard
         </div>
       </div>
@@ -143,7 +148,7 @@ export const Leaderboard: React.FC = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-black italic uppercase tracking-tight text-white mb-0.5 truncate">
-                      {user.displayName}{user.isYou && <span className="ml-2 text-[9px] not-italic font-black uppercase tracking-widest text-primary">You</span>}
+                      {user.displayName}{user.isYou && <span className="ml-2 text-[10px] not-italic font-black uppercase tracking-widest text-primary">You</span>}
                     </h4>
                     {user.school && (
                       <p className="flex items-center gap-1.5 text-[11px] text-white/55 truncate mb-1" title={user.school}>
@@ -205,7 +210,7 @@ export const Leaderboard: React.FC = () => {
                           </div>
                           <div className="flex flex-col min-w-0">
                             <span className="font-bold text-sm text-white group-hover:text-primary transition-colors truncate max-w-[150px]">
-                              {user.displayName}{user.isYou && <span className="ml-2 text-[9px] font-black uppercase tracking-widest text-primary">You</span>}
+                              {user.displayName}{user.isYou && <span className="ml-2 text-[10px] font-black uppercase tracking-widest text-primary">You</span>}
                             </span>
                             {/* On a phone the School column is hidden, so it rides along here. */}
                             <span className="text-[10px] text-white/40 truncate max-w-[150px] sm:hidden">{user.school || '—'}</span>

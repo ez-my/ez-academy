@@ -615,9 +615,9 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
       />
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h2 className="text-2xl sm:text-4xl font-black tracking-tighter mb-2 flex items-center gap-3 italic">
+          <h1 className="text-2xl sm:text-4xl font-black tracking-tighter mb-2 flex items-center gap-3 italic">
             <PenTool className="text-primary" /> WRITE<span className="text-primary italic">EZ</span>
-          </h2>
+          </h1>
           <p className="text-white/40 uppercase tracking-[0.3em] text-xs font-bold">
             {PART_INFO[activePart].desc}
           </p>
@@ -660,7 +660,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
               }`}
             >
               <span className="text-[10px] md:text-[10px] font-black uppercase tracking-tighter leading-none">{part}</span>
-              <span className={`text-[8px] md:text-[8px] font-bold uppercase tracking-widest mt-0.5 opacity-60 ${activePart === part ? 'text-obsidian' : 'text-white/30'}`}>
+              <span className={`text-[10px] md:text-[10px] font-bold uppercase tracking-widest mt-0.5 opacity-60 ${activePart === part ? 'text-obsidian' : 'text-white/30'}`}>
                 {PART_INFO[part].label}
               </span>
             </button>
@@ -712,7 +712,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                     <div className="flex items-center gap-2">
                        <p className="text-white/40 text-[11px] md:text-[10px] font-bold uppercase tracking-widest leading-none">You must answer this question.</p>
                        <div className="flex items-center gap-2 flex-wrap">
-                         <span className="text-[9px] md:text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 bg-white/5 rounded border border-white/10 text-white/40">
+                         <span className="text-[10px] md:text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 bg-white/5 rounded border border-white/10 text-white/40">
                            {activePart === 'PART 1' && !isGeneratingTask && spmTask && PART1_QUESTION_BANK.some(q => q.emailBody === spmTask.emailBody) 
                              ? `Bank: ${PART1_QUESTION_BANK.filter(q => q.theme === spmTask.theme && usedPart1Indices.includes(PART1_QUESTION_BANK.indexOf(q))).length}/20` 
                              : activePart === 'PART 2' && !isGeneratingTask && spmTask && PART2_QUESTION_BANK.some(q => q.title === spmTask.title)
@@ -721,7 +721,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                          </span>
                          <button 
                            onClick={() => setShowRubric(true)}
-                           className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-primary/60 hover:text-primary transition-colors border-b border-primary/20 pb-0.5"
+                           className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-primary/60 hover:text-primary transition-colors border-b border-primary/20 pb-0.5"
                          >
                            <Info size={8} /> Examiner Rubric
                          </button>
@@ -735,12 +735,13 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                       title={isOfflineMode ? "Running in Offline Mode (Using local question bank)" : "Online Mode (Gemini AI enabled)"}
                     >
                       <div className={`w-1.5 h-1.5 rounded-full ${isOfflineMode ? 'bg-orange-500 animate-pulse' : 'bg-green-500'}`} />
-                      <span className="text-[8px] font-black uppercase tracking-widest">{isOfflineMode ? 'Offline' : 'Online'}</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest">{isOfflineMode ? 'Offline' : 'Online'}</span>
                     </button>
                     <button 
                       onClick={handleGenerateTaskWithLimit}
                       disabled={isGeneratingTask || isAnalyzing}
-                      className="p-2 bg-white/5 rounded-xl hover:bg-white/10 transition-colors text-white/50"
+                      className="min-h-11 min-w-11 inline-flex items-center justify-center bg-white/5 rounded-xl hover:bg-white/10 transition-colors text-white/50"
+                      aria-label="Generate a new writing scenario"
                       title="New Scenario"
                     >
                       <RefreshCw size={16} className={isGeneratingTask ? 'animate-spin' : ''} />
@@ -750,7 +751,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
 
                 {activePart === 'PART 2' && (spmTask || isGeneratingTask) && !feedback && (
                   <div className="space-y-2">
-                    <p className="text-[9px] font-black uppercase text-white/20 tracking-widest px-1">Practice focus</p>
+                    <p className="text-[10px] font-black uppercase text-white/20 tracking-widest px-1">Practice focus</p>
                     <div className="flex flex-wrap bg-white/5 p-1 rounded-xl border border-white/5 max-w-full">
                       {(['AUTO', 'Full', 'Introduction', 'Body', 'Conclusion'] as const).map(mode => (
                         <button
@@ -762,7 +763,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                             }
                             setPart2SubMode(mode);
                           }}
-                          className={`shrink-0 min-w-[70px] md:min-w-0 flex-1 py-2 md:py-1.5 rounded-lg text-[9px] md:text-[8px] font-black uppercase tracking-[0.1em] md:tracking-[0.2em] transition-all ${
+                          className={`shrink-0 min-w-[70px] md:min-w-0 flex-1 py-2 md:py-1.5 rounded-lg text-[10px] md:text-[10px] font-black uppercase tracking-[0.1em] md:tracking-[0.2em] transition-all ${
                             part2SubMode === mode 
                             ? 'bg-primary text-obsidian shadow-lg italic' 
                             : 'text-white/30 hover:text-white'
@@ -777,7 +778,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
 
                 {activePart === 'PART 3' && (spmTask || isGeneratingTask) && !feedback && (
                   <div className="space-y-2">
-                    <p className="text-[9px] font-black uppercase text-white/20 tracking-widest px-1">Practice step</p>
+                    <p className="text-[10px] font-black uppercase text-white/20 tracking-widest px-1">Practice step</p>
                     <div className="flex flex-wrap bg-white/5 p-1 rounded-xl border border-white/5 max-w-full">
                       {(['AUTO', 'Full', 'Introduction', 'Body', 'Conclusion'] as const).map(mode => (
                         <button
@@ -789,7 +790,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                             }
                             setPart3SubMode(mode);
                           }}
-                          className={`shrink-0 min-w-[70px] md:min-w-0 flex-1 py-2 md:py-1.5 rounded-lg text-[9px] md:text-[8px] font-black uppercase tracking-[0.1em] md:tracking-[0.2em] transition-all ${
+                          className={`shrink-0 min-w-[70px] md:min-w-0 flex-1 py-2 md:py-1.5 rounded-lg text-[10px] md:text-[10px] font-black uppercase tracking-[0.1em] md:tracking-[0.2em] transition-all ${
                             part3SubMode === mode 
                             ? 'bg-primary text-obsidian shadow-lg italic' 
                             : 'text-white/30 hover:text-white'
@@ -851,7 +852,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                               </div>
                               <span className="text-[10px] font-bold uppercase tracking-widest">{part.label}</span>
                             </div>
-                            {isDone && <span className="text-[8px] font-black text-primary/60 italic uppercase tracking-widest">Saved</span>}
+                            {isDone && <span className="text-[10px] font-black text-primary/60 italic uppercase tracking-widest">Saved</span>}
                           </button>
                         );
                       })}
@@ -924,7 +925,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                               </div>
                               <span className="text-[10px] font-bold uppercase tracking-widest">{part.label}</span>
                             </div>
-                            {isDone && <span className="text-[8px] font-black text-primary/60 italic uppercase tracking-widest">Saved</span>}
+                            {isDone && <span className="text-[10px] font-black text-primary/60 italic uppercase tracking-widest">Saved</span>}
                           </button>
                         );
                       })}
@@ -956,7 +957,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                     </div>
                     <div>
                       <h4 className="text-lg font-black italic text-white tracking-tight">Ready to Practice {activePart}?</h4>
-                      <p className="text-[9px] font-black uppercase text-white/20 tracking-widest mt-1 italic text-center">Step 1: Select Theme</p>
+                      <p className="text-[10px] font-black uppercase text-white/20 tracking-widest mt-1 italic text-center">Step 1: Select Theme</p>
                     </div>
 
                     <div className="w-full space-y-4">
@@ -971,7 +972,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                             key={theme}
                             disabled={!!spmTask && !feedback}
                             onClick={() => setSelectedTheme(theme)}
-                            className={`px-4 py-5 rounded-xl text-[10px] md:text-[8px] font-black uppercase tracking-[0.15em] border transition-all leading-tight text-center flex items-center justify-center min-h-[60px] ${
+                            className={`px-4 py-5 rounded-xl text-[10px] md:text-[10px] font-black uppercase tracking-[0.15em] border transition-all leading-tight text-center flex items-center justify-center min-h-[60px] ${
                               selectedTheme === theme 
                               ? 'bg-primary/20 border-primary text-primary shadow-[0_0_15px_rgba(var(--primary-rgb),0.1)]' 
                               : 'bg-white/5 border-white/10 text-white/40 hover:border-white/30'
@@ -984,14 +985,14 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                       
                       {activePart === 'PART 3' && (
                         <div className="space-y-3 pt-4 border-t border-white/5 text-left">
-                          <p className="text-[9px] font-black uppercase text-white/20 tracking-widest px-1 italic">Step 2: Choose Essay Format</p>
+                          <p className="text-[10px] font-black uppercase text-white/20 tracking-widest px-1 italic">Step 2: Choose Essay Format</p>
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                             {(['Article', 'Story', 'Review', 'Speech', 'Report'] as const).map(type => (
                               <button
                                 key={type}
                                 disabled={!!spmTask && !feedback}
                                 onClick={() => setPart3Type(type)}
-                                className={`px-3 py-4 rounded-lg text-[10px] md:text-[8px] font-black uppercase tracking-widest border transition-all ${
+                                className={`px-3 py-4 rounded-lg text-[10px] md:text-[10px] font-black uppercase tracking-widest border transition-all ${
                                   part3Type === type 
                                   ? 'bg-primary/20 border-primary text-primary shadow-lg italic' 
                                   : 'bg-white/5 border-transparent text-white/20 hover:text-white/40 hover:bg-white/[0.08]'
@@ -1006,7 +1007,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
 
                       <div className="flex items-center justify-center gap-2 py-2">
                         <div className="h-[1px] flex-1 bg-white/5" />
-                        <span className="text-[7px] font-black text-white/20 uppercase tracking-[0.3em]">Theme Rotation Engine</span>
+                        <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">Theme Rotation Engine</span>
                         <div className="h-[1px] flex-1 bg-white/5" />
                       </div>
 
@@ -1071,7 +1072,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                               setText(`To: ${spmTask.friendEmail}\nSubject: ${spmTask.subject}\n\nHi ${spmTask.friendName},\n\nIt's great to hear from you! Regarding your questions about ${spmTask.theme}, here is my advice.\n\nFirst, I think you should definitely try to spend more time practicing every day. Maybe you can set a schedule to stay focused? \n\nAlso, for your second question, I would suggest asking your teacher for help. They know the syllabus best and can give you great tips!\n\nI hope this helps you feel more prepared. Good luck with everything!\n\nBye for now!`);
                             }
                           }}
-                          className="absolute -bottom-8 right-0 w-8 h-8 opacity-0 hover:opacity-10 cursor-pointer flex items-center justify-center text-[8px] border border-white/20 rounded-full"
+                          className="absolute -bottom-8 right-0 w-8 h-8 opacity-0 hover:opacity-10 cursor-pointer flex items-center justify-center text-[10px] border border-white/20 rounded-full"
                           title="Debug: Fill Sample"
                         >
                           FILL
@@ -1118,7 +1119,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50 italic">In your essay, write about:</p>
                            </div>
                            {spmTask?.practiceMode === 'Body' && (
-                             <span className="text-[8px] font-black bg-primary text-obsidian px-2 py-0.5 rounded-full border border-primary/20 shadow-[0_0_10px_rgba(var(--primary-rgb),0.3)]">PEEL METHOD</span>
+                             <span className="text-[10px] font-black bg-primary text-obsidian px-2 py-0.5 rounded-full border border-primary/20 shadow-[0_0_10px_rgba(var(--primary-rgb),0.3)]">PEEL METHOD</span>
                            )}
                         </div>
                         {spmTask?.practiceMode !== 'Body' ? (
@@ -1151,7 +1152,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                                   </div>
                                   <div className="space-y-1">
                                     {selectedPointIdx === idx && (
-                                      <p className="text-[8px] font-black uppercase text-primary tracking-widest italic animate-pulse">Now Elaborating</p>
+                                      <p className="text-[10px] font-black uppercase text-primary tracking-widest italic animate-pulse">Now Elaborating</p>
                                     )}
                                     <span className={`text-sm font-bold leading-relaxed ${selectedPointIdx === idx ? 'text-white' : 'text-white/80'}`}>
                                       {point}
@@ -1168,7 +1169,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                         {spmTask?.practiceMode === 'Body' && selectedPointIdx === null && (
                           <div className="flex items-center gap-2 mt-3 p-3 bg-orange-500/10 rounded-xl border border-orange-500/20">
                             <Info size={12} className="text-orange-400" />
-                            <p className="text-[9px] font-black uppercase text-orange-400 tracking-widest leading-none">
+                            <p className="text-[10px] font-black uppercase text-orange-400 tracking-widest leading-none">
                               Pick a point to expand
                             </p>
                           </div>
@@ -1176,7 +1177,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                         <div className="mt-8 p-4 bg-white/5 rounded-2xl border border-dashed border-white/10 group hover:border-primary/30 transition-colors">
                           <div className="flex items-center gap-2 mb-2 text-white/40 group-hover:text-primary transition-colors">
                             <BookOpen size={12} />
-                            <p className="text-[9px] font-black uppercase tracking-widest">Exam Guidance</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest">Exam Guidance</p>
                           </div>
                           <p className="text-[10px] font-bold text-white/40 leading-relaxed italic group-hover:text-white/60">
                             Write your essay in <span className="text-primary">125–150 words</span>. Ensure you use an appropriate style and address the task prompt accurately.
@@ -1227,7 +1228,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                            </div>
                            <button 
                              onClick={() => setShowStructures(!showStructures)}
-                             className="text-[10px] md:text-[8px] font-black bg-white/5 text-white/40 px-3 py-2 md:px-2 md:py-1 rounded border border-white/10 hover:text-white transition-colors"
+                             className="text-[10px] md:text-[10px] font-black bg-white/5 text-white/40 px-3 py-2 md:px-2 md:py-1 rounded border border-white/10 hover:text-white transition-colors"
                            >
                              {showStructures ? 'HIDE STRUCTURE' : 'SHOW STRUCTURE'}
                            </button>
@@ -1253,7 +1254,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                         <div className="mt-8 p-4 bg-white/5 rounded-2xl border border-dashed border-white/10 group hover:border-primary/30 transition-colors">
                           <div className="flex items-center gap-2 mb-2 text-white/40 group-hover:text-primary transition-colors">
                             <BookOpen size={12} />
-                            <p className="text-[9px] font-black uppercase tracking-widest">Extended Writing Guide</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest">Extended Writing Guide</p>
                           </div>
                           <p className="text-[10px] font-bold text-white/40 leading-relaxed italic group-hover:text-white/60">
                             Write your response in <span className="text-primary uppercase tracking-tighter">200–250 words</span>. Use an appropriate style and structure for a {spmTask?.essayType}.
@@ -1313,7 +1314,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                       <div key={part.id} className="space-y-2">
                         <div className="flex items-center gap-2">
                           <div className={`w-1 h-1 rounded-full ${content ? 'bg-primary' : 'bg-white/10'}`} />
-                          <span className="text-[9px] font-black uppercase tracking-widest text-white/30">{part.label}</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-white/30">{part.label}</span>
                         </div>
                         <p className={`text-lg leading-relaxed ${content ? 'text-white/90' : 'text-white/10 italic'}`}>
                           {content || 'Section not yet drafted.'}
@@ -1381,7 +1382,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                 {isFullEssayMode && (
                   <div className="flex items-center gap-1.5 px-2 py-0.5 bg-black/20 rounded border border-white/10">
                     <span className={`w-1.5 h-1.5 rounded-full ${Object.values(essayComponents).filter(Boolean).length === 5 ? 'bg-green-400' : 'bg-orange-400'}`} />
-                    <span className="text-[8px] font-black uppercase tracking-tighter text-white/40">
+                    <span className="text-[10px] font-black uppercase tracking-tighter text-white/40">
                       {Object.values(essayComponents).filter(Boolean).length === 5 ? 'Complete' : 'Incomplete'}
                     </span>
                   </div>
@@ -1389,7 +1390,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                 {activePart === 'PART 1' && (
                   <div className="flex items-center gap-1.5 px-2 py-0.5 bg-black/20 rounded border border-white/10">
                     <span className={`w-1.5 h-1.5 rounded-full ${wordCount >= 70 && wordCount <= 100 ? 'bg-green-400' : wordCount > 100 ? 'bg-red-400' : 'bg-orange-400'}`} />
-                    <span className="text-[8px] font-black uppercase tracking-tighter text-white/40">
+                    <span className="text-[10px] font-black uppercase tracking-tighter text-white/40">
                       {wordCount >= 70 && wordCount <= 100 ? 'Optimal' : wordCount > 100 ? 'Too Long' : 'Drafting'}
                     </span>
                   </div>
@@ -1406,13 +1407,13 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
               <div className="px-8 pt-8 pb-0">
                 <div className="bg-white/5 p-6 rounded-2xl border border-white/10 relative">
                   <div className="absolute top-0 right-0 p-3 flex items-center gap-2">
-                    <span className="text-[7px] font-black uppercase tracking-[0.3em] text-primary italic">Draft In Progress</span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary italic">Draft In Progress</span>
                     <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                   </div>
                   <div className="prose prose-invert max-w-none text-white/60 text-sm leading-relaxed whitespace-pre-wrap italic">
                     {spmTask.partialEssay}
                   </div>
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 flex items-center gap-2 px-3 py-1 bg-primary text-obsidian rounded-full text-[8px] font-black uppercase tracking-widest italic shadow-lg">
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 flex items-center gap-2 px-3 py-1 bg-primary text-obsidian rounded-full text-[10px] font-black uppercase tracking-widest italic shadow-lg">
                     <ChevronRight size={10} />
                     Continue writing from here
                   </div>
@@ -1429,7 +1430,8 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                     : `Continue writing your ${spmTask?.practiceMode || 'essay'} here...`
                   : "Begin your essay here... (Minimum 30 words for AI analysis)"
               }
-              className="w-full min-h-[300px] h-[45vh] md:h-[600px] p-6 md:p-8 bg-transparent text-white/90 focus:outline-none resize-none font-sans text-base md:text-lg leading-relaxed placeholder:text-white/10"
+              aria-label={`Your ${isSPM ? (activePart === 'PART 1' ? 'letter' : 'essay') : 'essay'}`}
+              className="w-full min-h-[300px] h-[45vh] md:h-[600px] p-6 md:p-8 bg-transparent text-white/90 focus:outline-none resize-none font-sans text-base md:text-lg leading-relaxed placeholder:text-white/30"
             />
           </div>
 
@@ -1481,11 +1483,17 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                   handleAnalyze();
                 }}
                 disabled={isAnalyzing || text.length < 5}
+                aria-busy={isAnalyzing}
                 className={`flex-1 btn-primary flex items-center justify-center gap-3 ${text.length < 5 ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
               >
-                {isAnalyzing ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />}
+                {isAnalyzing ? <Loader2 className="animate-spin" size={20} aria-hidden="true" /> : <Sparkles size={20} aria-hidden="true" />}
                 {plan === 'free' ? 'View General Feedback' : isAnalyzing ? 'Decoding Structures...' : isFullEssayMode ? 'Grade Final Essay' : 'Analyze Component'}
               </button>
+              {/* Announced once when the wait starts, rather than leaving a
+                  screen reader user with a silent spinning icon. */}
+              <p role="status" aria-live="polite" className="sr-only">
+                {isAnalyzing ? 'Analysing your writing. This can take a moment.' : ''}
+              </p>
               {!isFullEssayMode && (activePart === 'PART 2' || activePart === 'PART 3') && spmTask && !assemblyMode && (
                 <button
                   onClick={handleManualSaveComponent}
@@ -1573,7 +1581,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                         </div>
                       </div>
                       <div className="px-4 py-2 bg-primary/10 rounded-xl border border-primary/20">
-                         <p className="text-[8px] font-black uppercase tracking-widest text-primary animate-pulse">Blueprint: {Object.values(essayComponents).filter(Boolean).length}/5</p>
+                         <p className="text-[10px] font-black uppercase tracking-widest text-primary animate-pulse">Blueprint: {Object.values(essayComponents).filter(Boolean).length}/5</p>
                       </div>
                     </motion.div>
                   )}
@@ -1607,7 +1615,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                           
                           <div className="flex items-center gap-8">
                             <div className="text-right">
-                               <p className="text-[9px] font-black uppercase tracking-widest text-white/20 mb-1">Assessment Level</p>
+                               <p className="text-[10px] font-black uppercase tracking-widest text-white/20 mb-1">Assessment Level</p>
                                <p className={`text-xl font-black italic uppercase tracking-tighter ${
                                  feedback.level === 'Excellent' ? 'text-primary' : 
                                  feedback.level === 'Average' ? 'text-blue-400' : 'text-red-400'
@@ -1631,7 +1639,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                             { label: 'Language', val: feedback.marks.language, max: 5, color: 'text-orange-400' },
                           ].map((m) => (
                             <div key={m.label} className="bg-white/[0.03] p-6 rounded-2xl border border-white/5 group hover:border-primary/20 transition-all hover:translate-y-[-2px]">
-                              <p className="text-[9px] font-black uppercase tracking-widest text-white/20 mb-3 group-hover:text-white/40 transition-colors">{m.label}</p>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-white/20 mb-3 group-hover:text-white/40 transition-colors">{m.label}</p>
                               <div className="flex items-end gap-1.5">
                                  <span className={`text-3xl font-black italic tracking-tighter ${m.color}`}>{m.val}</span>
                                  <span className="text-xs font-bold text-white/10 mb-1">/ {m.max}</span>
@@ -1659,11 +1667,11 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                              <div className="flex gap-4">
                                <div className="flex items-center gap-1.5">
                                  <div className={`w-1.5 h-1.5 rounded-full ${wordCount >= 125 && wordCount <= 150 ? 'bg-green-400' : 'bg-red-400'}`} />
-                                 <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Length: {wordCount} words</span>
+                                 <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Length: {wordCount} words</span>
                                </div>
                                <div className="flex items-center gap-1.5">
                                  <div className={`w-1.5 h-1.5 rounded-full ${Object.values(essayComponents).filter(Boolean).length === 5 ? 'bg-green-400' : 'bg-orange-400'}`} />
-                                 <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Coverage: {Object.values(essayComponents).filter(Boolean).length}/5 Parts</span>
+                                 <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Coverage: {Object.values(essayComponents).filter(Boolean).length}/5 Parts</span>
                                </div>
                              </div>
                           )}
@@ -1774,7 +1782,7 @@ export const WriteEZ: React.FC<WriteEZProps> = ({ userGoal, userLevel, plan = 'f
                                  </div>
                              </div>
                              <div className="bg-black/30 rounded-xl p-4 border border-white/5 relative">
-                                <span className="absolute -top-3 left-4 bg-indigo-500 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full">Shareable Flex</span>
+                                <span className="absolute -top-3 left-4 bg-indigo-500 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full">Shareable Flex</span>
                                 <p className="text-sm font-medium text-white/90 italic">{feedback.userEvaluation.shareableSnippet}</p>
                              </div>
                           </div>

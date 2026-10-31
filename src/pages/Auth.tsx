@@ -259,7 +259,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 blur-[120px] rounded-full" />
       </div>
 
-      <Link to="/" className="absolute top-8 left-8 flex items-center gap-2 text-white/50 hover:text-white transition-colors z-20 text-sm font-bold uppercase tracking-widest">
+      <Link to="/" className="absolute top-6 left-4 sm:top-8 sm:left-8 min-h-11 px-2 -ml-2 inline-flex items-center gap-2 text-white/50 hover:text-white transition-colors z-20 text-sm font-bold uppercase tracking-widest">
         <ArrowLeft size={16} />
         Back to Home
       </Link>
@@ -294,9 +294,8 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
               <button 
                 onClick={handleGoogleLogin}
                 disabled={isLoggingIn}
-                className="w-full flex items-center justify-center gap-4 bg-white text-obsidian font-bold py-4 rounded-xl hover:bg-primary transition-all group overflow-hidden relative disabled:opacity-50 disabled:cursor-not-allowed"
+                className="ez-btn ez-btn-secondary ez-btn-lg ez-btn-block gap-3"
               >
-                <div className="absolute inset-0 bg-primary translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
                 {isLoggingIn ? (
                   <Loader2 className="w-5 h-5 animate-spin relative z-10" />
                 ) : (
@@ -322,7 +321,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
 
           <form onSubmit={handleEmailAuth} className="space-y-4 text-left">
             <div className="space-y-2">
-              <label htmlFor="auth-email" className="text-xs font-bold text-white/60">Email</label>
+              <label htmlFor="auth-email" className="ez-label">Email</label>
               <div className="relative">
                 <input 
                   type="email"
@@ -331,7 +330,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="student@ezacademy.my"
-                  className="w-full bg-obsidian border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-primary transition-colors text-white"
+                  className="ez-field pl-10"
                   required
                 />
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" size={16} />
@@ -341,12 +340,12 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             {!isResetting && (
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <label htmlFor="auth-password" className="text-xs font-bold text-white/60">Password</label>
+                  <label htmlFor="auth-password" className="ez-label mb-0">Password</label>
                   {!isRegistering && (
                     <button 
                       type="button"
                       onClick={() => { setIsResetting(true); setError(null); setSuccess(null); }}
-                      className="text-[10px] uppercase tracking-widest font-bold text-primary hover:underline hover:text-primary/80 transition-colors"
+                      className="min-h-11 -my-2 px-2 -mr-2 inline-flex items-center text-[10px] uppercase tracking-widest font-bold text-primary hover:underline hover:text-primary/80 transition-colors"
                     >
                       Forgot password?
                     </button>
@@ -360,7 +359,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="At least 6 characters"
-                    className="w-full bg-obsidian border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-primary transition-colors text-white"
+                    className="ez-field pl-10"
                     required
                     minLength={6}
                   />
@@ -372,7 +371,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             <button 
               type="submit"
               disabled={isLoggingIn}
-              className="w-full py-4 rounded-xl font-bold uppercase tracking-widest text-sm transition-all border border-primary/20 text-primary hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="ez-btn ez-btn-primary ez-btn-lg ez-btn-block uppercase tracking-widest"
             >
               {isLoggingIn ? (
                 <Loader2 className="w-5 h-5 animate-spin mx-auto" />
@@ -393,7 +392,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                 <button 
                   type="button"
                   onClick={() => { setIsRegistering(!isRegistering); setError(null); setSuccess(null); }} 
-                  className="ml-2 text-primary font-bold hover:underline underline-offset-4"
+                  className="ml-1 min-h-11 px-2 inline-flex items-center text-primary font-bold hover:underline underline-offset-4"
                 >
                   {isRegistering ? "Log In" : "Register"}
                 </button>
@@ -402,7 +401,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
               <button 
                 type="button"
                 onClick={() => { setIsResetting(false); setError(null); setSuccess(null); }}
-                className="text-primary font-bold hover:underline underline-offset-4 uppercase tracking-widest text-[10px]"
+                className="min-h-11 px-2 inline-flex items-center text-primary font-bold hover:underline underline-offset-4 uppercase tracking-widest text-[10px]"
               >
                 Back to Login
               </button>
