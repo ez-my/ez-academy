@@ -42,20 +42,20 @@ export function registerDailyReportRoutes(app:Express,db:Firestore){
       if(day>dayKey(Date.now())||at<Date.now()-91*MY_DAY)return res.status(400).json({error:'Choose a date within the last 90 days.'});
       const start=at-13*MY_DAY,end=at+MY_DAY;
 
-      let data:{users:any[];tasks:any[];visits:any[];warnings:string[]}|undefined,source='firestore';
+      let data:{users:any[];tasks:any[];visits:any[];warnings:string[]},source='firestore';
       const mirror=mirrorFromEnv();
       if(mirror){
-        try{
-          const warnings:string[]=[];
-          try{await mirror.syncRecent(db,Date.now());}
-          catch{warnings.push('The newest activity could not be refreshed, so the last few minutes may be missing.');}
-          const copy=await mirror.loadWindow(day,start,end);
-          const copiedFrom=await mirror.getState('backfilled_from');
-          if(copiedFrom===null||copiedFrom>start)warnings.push('Older history is still being copied, so earlier days may look lower than they were.');
-          data={...copy,warnings};source='supabase';
-        }catch{data=undefined;}
-      }
-      if(!data)data=await loadFromFirestore(db,start,end,day);
+        const warnings:string[]=[];
+        try{await mirror.syncRecent(db,Date.now());}
+        catch{warnings.push('The newest activity could not be refreshed, so the last few minutes may be missing.');}
+        // Do not present an empty mirror as a valid zero-activity report.
+        if(await mirror.getState('last_success')===null&&await mirror.getState('backfilled_from')===null)
+          return res.status(503).json({error:'The report is waiting for its first data sync.'});
+        const copy=await mirror.loadWindow(day,start,end);
+        const copiedFrom=await mirror.getState('backfilled_from');
+        if(copiedFrom===null||copiedFrom>start)warnings.push('Older history is still being copied, so earlier days may look lower than they were.');
+        data={...copy,warnings};source='supabase';
+      }else data=await loadFromFirestore(db,start,end,day);
 
       const report=buildDailyReport(day,data.users,data.tasks,data.visits,req.query.includeAdmin==='true');
       res.json({...report,warnings:data.warnings,source,notes:NOTES});

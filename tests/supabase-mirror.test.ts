@@ -11,7 +11,9 @@ function fakeSupabase(tables:Record<string,any[]>={}){
     calls.push({method,url,body,headers:init.headers as Record<string,string>});
     if(method==='POST'){tables[table]=[...(tables[table]||[]),...body];return new Response(null,{status:201});}
     const limit=Number(url.searchParams.get('limit')||1000),offset=Number(url.searchParams.get('offset')||0);
-    return new Response(JSON.stringify((tables[table]||[]).slice(offset,offset+limit)),{status:200});
+    const key=url.searchParams.get('key');
+    const rows=(tables[table]||[]).filter(row=>!key||row.key===key.replace(/^eq\./,''));
+    return new Response(JSON.stringify(rows.slice(offset,offset+limit)),{status:200});
   };
   return {fetchImpl,calls,tables};
 }
@@ -44,6 +46,18 @@ test('syncRecent skips when a sync ran in the last ten minutes',async()=>{
   const m=new SupabaseMirror({url:'https://x.supabase.co',key:'k',fetchImpl:f.fetchImpl});
   assert.deepEqual(await m.syncRecent({} as any,now),{skipped:true});
   assert.equal(f.calls.every(c=>c.method==='GET'),true); // no writes and no Firestore reads
+});
+
+test('later syncs read only the overlap since the last successful copy',async()=>{
+  const now=Date.parse('2026-11-01T06:00:00Z');
+  const lastSuccess=now-30*60*1000;
+  const f=fakeSupabase({report_sync:[{key:'last_success',value:lastSuccess}]});
+  const m=new SupabaseMirror({url:'https://x.supabase.co',key:'k',fetchImpl:f.fetchImpl});
+  let copiedStart=0;
+  m.copyWindow=async(_db,start)=>{copiedStart=start;return {tasks:0,visits:0,warnings:[]};};
+  assert.deepEqual(await m.syncRecent({} as any,now),{skipped:false});
+  assert.equal(copiedStart,lastSuccess-60*60*1000);
+  assert.ok(f.calls.some(c=>c.method==='POST'&&c.body[0]?.key==='last_success'&&c.body[0]?.value===now));
 });
 
 test('loadWindow feeds the existing report builder and matches the Firestore shape',async()=>{

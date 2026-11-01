@@ -1,5 +1,5 @@
 import {Timestamp,type Firestore} from 'firebase-admin/firestore';
-import {dayKey,millis} from './dailyReport';
+import {dayKey} from './dailyReport';
 
 export interface ActivityWindow {sessions:any[];events:any[];visits:any[];warnings:string[];}
 
@@ -14,10 +14,9 @@ async function boundedGroup(db:Firestore,group:string,field:string,start:number,
     const unique=new Map([...a.docs,...b.docs].map(d=>[d.ref.path,d]));
     if(a.size>10000||b.size>10000)warnings.push('High activity: this report may be incomplete.');
     return [...unique.values()];
-  }catch{
-    const fallback=await db.collectionGroup(group).limit(10001).get();
-    if(fallback.size>10000)warnings.push('Some older records could not be loaded. This report may be incomplete.');
-    return fallback.docs.filter(d=>{const n=millis(d.data()[field]);return n>=start&&n<end;});
+  }catch(error){
+    // A missing index must never turn a bounded query into a collection scan.
+    throw new Error(`Indexed ${group}.${field} query failed`,{cause:error});
   }
 }
 

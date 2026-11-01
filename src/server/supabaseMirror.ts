@@ -12,7 +12,7 @@ export interface MirrorUser {id:string;email?:string|null;displayName?:string|nu
 export interface MirrorVisit {userId:string;day:string;at:number;}
 export interface MirrorWindow {users:MirrorUser[];tasks:ReportTask[];visits:MirrorVisit[];}
 
-const PAGE=1000,CHUNK=500,SYNC_EVERY_MS=10*60*1000,SYNC_WINDOW_DAYS=3,TIMEOUT_MS=8000;
+const PAGE=1000,CHUNK=500,SYNC_EVERY_MS=10*60*1000,SYNC_WINDOW_DAYS=3,SYNC_OVERLAP_MS=60*60*1000,TIMEOUT_MS=8000;
 const chunks=<T>(rows:T[],size:number)=>Array.from({length:Math.ceil(rows.length/size)},(_,i)=>rows.slice(i*size,i*size+size));
 
 export function mirrorFromEnv(env:Record<string,string|undefined>=process.env):SupabaseMirror|null{
@@ -56,8 +56,13 @@ export class SupabaseMirror {
   async syncRecent(db:Firestore,now:number){
     const last=await this.getState('last_sync');
     if(last!==null&&now-last<SYNC_EVERY_MS)return {skipped:true};
+    const lastSuccess=await this.getState('last_success');
     await this.setState('last_sync',now); // claim the slot first so parallel requests do not all sync
-    await this.copyWindow(db,now-SYNC_WINDOW_DAYS*MY_DAY,now+MY_DAY,dayKey(now));
+    // The first copy covers three days. Later copies only revisit one hour of
+    // overlap, so opening the report cannot rescan three days 144 times a day.
+    const start=Math.max(now-SYNC_WINDOW_DAYS*MY_DAY,(lastSuccess??0)-SYNC_OVERLAP_MS);
+    await this.copyWindow(db,start,now+MY_DAY,dayKey(now));
+    await this.setState('last_success',now);
     return {skipped:false};
   }
 
