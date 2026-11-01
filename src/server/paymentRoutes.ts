@@ -524,6 +524,32 @@ export function registerPaymentRoutes(app: Express, adminDb: Firestore, override
         return res.json({success:true,status:'SUCCESS',plan:result.plan,message:result.message});
       }
       if (action === 'APPROVE') {
+        // A Google sign-in can leave an Auth account without its Firestore profile.
+        // Recover only the exact account that created this order, before applying
+        // the entitlement. The student can finish onboarding after signing in.
+        const order = txDoc.data()!;
+        const userRef = adminDb.collection('users').doc(String(order.userId || ''));
+        if (!(await userRef.get()).exists) {
+          if (order.paymentMethod !== 'manual_bank_transfer' || order.status !== 'PENDING_REVIEW' ||
+              !order.userId || !order.userEmail) {
+            return res.status(409).json({success:false,message:'The student account could not be verified. No payment was applied.'});
+          }
+          const authUser = await getAuth().getUser(order.userId);
+          if (authUser.disabled || !authUser.email ||
+              authUser.email.trim().toLowerCase() !== String(order.userEmail).trim().toLowerCase()) {
+            return res.status(409).json({success:false,message:'The student account does not match this payment. No payment was applied.'});
+          }
+          try {
+            await userRef.create({
+              uid: authUser.uid, email: authUser.email, displayName: authUser.displayName || order.userName || '',
+              plan: 'free', credits: 0, points: 0, streak: 0, weeklyGoalProgress: 0,
+              onboardingCompleted: false, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp()
+            });
+          } catch (error: any) {
+            // Another sign-in or review may have created the same profile.
+            if (error.code !== 6 && error.code !== 'already-exists') throw error;
+          }
+        }
         const result = await applySuccessfulEntitlement(adminDb, txId, {
           source: 'manual_approval',
           adminId: decodedUser.email || 'ezacademy.my@gmail.com',
