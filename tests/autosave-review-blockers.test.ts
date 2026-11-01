@@ -38,7 +38,7 @@ for(const type of ['WriteEZ','SpeakEZ'] as const) {
     assert.equal(f.calls(),1);assert.equal(f.state.feedback.score,91);
     assert.equal(f.attempt.status,'not-synced');
     assert.equal(f.state.showSuccess,false,'generated feedback is not proof of cloud save');
-    assert.match(f.state.error,/not synced/i);
+    assert.match(f.state.error,/queued on this device|not synced/i);
     const restored=new PracticeAttempt('fixture',type,progressStorage(f.local),f.cloud.save,()=>'fixture');
     f.cloud.setOffline(false);await restored.retry();
     assert.equal(restored.id,id);assert.equal(f.cloud.records.get(id).transcript,answer);
@@ -64,7 +64,8 @@ for(const mode of ['component','full','assembled','speaking'] as const) {
     },{realDraft:true});
     ui.flushEffects();ui.flushDraftTimers();
     findButton(ui.tree,mode==='assembled'?'Grade Full Essay':mode==='full'?'Grade Final Essay':type==='SpeakEZ'?'Get feedback on my answer':'Analyze Component').props.onClick();
-    await tick();const id=attempt.id;const assessedAnswer=cloud.records.get(id).transcript;
+    await tick();const id=attempt.id;const assessedAnswer=type==='SpeakEZ'?answer:cloud.records.get(id).transcript;
+    if(type==='SpeakEZ')assert.equal(cloud.records.has(id),false,'speaking waits until feedback to sync the result');
     // Speaking switches to feedback during assessment; editing is represented by its controlled state.
     if(type==='SpeakEZ')state.reviewTranscript=editedAnswer;
     else findTextarea(ui.render()).props.onChange({target:{value:editedAnswer}});

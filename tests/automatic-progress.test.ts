@@ -133,7 +133,7 @@ test('paid speaking feedback auto-syncs even if device recording storage is brok
   });
   const submit=findButton(tree,'Get feedback on my answer');submit.props.onClick();submit.props.onClick();
   await new Promise(resolve=>setImmediate(resolve));
-  assert.equal(calls,1);assert.equal(saved.length,2);assert.equal(saved[1].score,72);assert.equal(saved[0].id,saved[1].id);
+  assert.equal(calls,1);assert.equal(saved.length,1);assert.equal(saved[0].score,72);
   assert.equal(attempt.status,'saved');assert.equal(attempt.localDurable,false);
 });
 
@@ -211,15 +211,18 @@ test('failed speaking sync remains unsynced, account-safe, retryable without aud
   assert.equal(await a.complete({ transcript: 'I enjoyed this synthetic trip.', audioBlob: new Blob(['fixture']) } as any),false);
   assert.equal(a.status,'not-synced');
   assert.equal(calls,1,'no automatic unbounded retry');
-  assert.equal(a.newAttempt(),false,'unsynced work cannot be overwritten by a new task');
+  const firstId=a.id;
+  assert.equal(a.newAttempt(),true,'durable unsynced work must not block a new task');
+  assert.notEqual(a.id,firstId);
+  assert.equal(a.hasPending,true,'the previous completion remains queued');
   owner = 'b'; fail = false;
   assert.equal(await a.retry(),false);
   assert.equal(calls,1);
   owner = 'a';
   const refreshed = new PracticeAttempt('a','SpeakEZ',storage,save,()=>owner);
   assert.equal(await refreshed.retry(),true);
-  assert.equal(refreshed.status,'saved');
-  assert.equal(saved[0].id,a.id);
+  assert.equal(refreshed.status,'draft');
+  assert.equal(saved[0].id,firstId);
   assert.equal(saved[0].audioBlob,undefined);
   assert.equal(saved[0].score,null);
 });

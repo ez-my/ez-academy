@@ -143,14 +143,21 @@ export class PracticeAttempt {
     if (!this.pending && this.acknowledged) this.status = this.acknowledgedStatus();
   }
   acceptsAnswer(transcript: string): boolean { this.restore(); return !this.pending || transcript.trim() === this.pending.transcript; }
-  async complete(fields: Partial<PracticeSession>): Promise<boolean> {
+  stage(fields: Partial<PracticeSession>): Promise<boolean> { return this.complete(fields, false); }
+  async complete(fields: Partial<PracticeSession>, syncNow = true): Promise<boolean> {
     if (!this.authorized()) return false;
     this.restore();
     const transcript = (fields.transcript ?? this.pending?.transcript ?? '').trim();
     if (transcript.replace(/[^a-zA-Z]/g, '').length < 10) return false;
-    if (this.pending && transcript !== this.pending.transcript) return false;
-    if (this.pending?.score != null && fields.score == null) fields = this.pending;
     const draftAnswer = this.draft?.text ?? this.draft?.transcript ?? '';
+    if (this.pending && transcript !== this.pending.transcript) {
+      // Another tab may finish a new draft while this attempt's older result
+      // is still queued. Keep the older result under its original ID.
+      if (!this.localDurable || this.pending.score != null || transcript !== draftAnswer.trim()) return false;
+      this.id = crypto.randomUUID(); this.timestamp = 0; this.pending = null; this.acknowledged = null;
+      this.writeDraft(this.draft);
+    }
+    if (this.pending?.score != null && fields.score == null) fields = this.pending;
     if (!this.pending && !this.acknowledged && transcript !== draftAnswer.trim()) {
       this.id = crypto.randomUUID(); this.timestamp = 0;
       this.writeDraft(this.draft);
@@ -166,6 +173,7 @@ export class PracticeAttempt {
     const result: ResultRecord = { kind: 'result', version: crypto.randomUUID(), order: Math.max(0, ...[...records.values()].map(r => r.kind === 'result' ? r.order : 0)) + 1, session };
     this.put(`result:${result.version}`, result);
     this.pending = session;
+    if (!syncNow) { this.status = 'not-synced'; return this.localDurable; }
     return this.sync(result);
   }
   private async sync(result: ResultRecord) {
@@ -206,7 +214,10 @@ export class PracticeAttempt {
   get hasPending() { const records = this.read(); return [...this.results(records).values()].some(r => !this.isAcknowledged(r, records)); }
   newAttempt() {
     this.restore();
-    if (!this.authorized() || this.pending || this.inFlight.size) return false;
+    // Completed results have their own durable device keys. They can retry in
+    // the background while the learner starts another attempt. If device
+    // storage failed, keep the current result in memory instead of losing it.
+    if (!this.authorized() || this.inFlight.size || this.pending && !this.localDurable) return false;
     this.id = crypto.randomUUID(); this.timestamp = 0; this.draft = null; this.acknowledged = null; this.status = 'draft'; this.writeDraft(null); return true;
   }
 }
