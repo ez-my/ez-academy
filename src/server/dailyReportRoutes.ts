@@ -59,6 +59,10 @@ export function registerDailyReportRoutes(app:Express,db:Firestore){
 
       const report=buildDailyReport(day,data.users,data.tasks,data.visits,req.query.includeAdmin==='true');
       res.json({...report,warnings:data.warnings,source,notes:NOTES});
-    }catch{res.status(503).json({error:'Could not load the daily report. Please try again.'});}
+    }catch(err:any){
+      // Never discard the cause again: log the stage, code and message only.
+      console.error(`[daily-report] fatal day=${(req.query as any)?.day||''} code=${err?.code||'-'} message=${String(err?.message||err).slice(0,300)}`);
+      res.status(503).json({error:'Could not load the daily report. Please try again.'});
+    }
   });
 }

@@ -8162,17 +8162,17 @@ async function transform(stream, input, maxLength = 1 / 0) {
   writer.write(input).catch(() => {
   }), writer.close().catch(() => {
   });
-  const chunks = [];
+  const chunks2 = [];
   let length = 0;
   const reader = stream.readable.getReader();
   for (; ; ) {
     const { value, done } = await reader.read();
     if (done)
       break;
-    if (chunks.push(value), length += value.byteLength, maxLength !== 1 / 0 && length > maxLength)
+    if (chunks2.push(value), length += value.byteLength, maxLength !== 1 / 0 && length > maxLength)
       throw new JWEInvalid("Decompressed plaintext exceeded the configured limit");
   }
-  return concat(...chunks);
+  return concat(...chunks2);
 }
 async function compress(input) {
   return supported("CompressionStream"), transform(new CompressionStream("deflate-raw"), input);
@@ -13335,10 +13335,10 @@ var require_auth2 = __commonJS({
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.AuthErrorCode = exports.FirebaseAuthError = exports.UserRecord = exports.UserMetadata = exports.UserInfo = exports.PhoneMultiFactorInfo = exports.MultiFactorSettings = exports.MultiFactorInfo = exports.ProjectConfigManager = exports.ProjectConfig = exports.TenantManager = exports.TenantAwareAuth = exports.Tenant = exports.BaseAuth = exports.Auth = void 0;
-    exports.getAuth = getAuth10;
+    exports.getAuth = getAuth11;
     var index_1 = require_app();
     var auth_1 = require_auth();
-    function getAuth10(app) {
+    function getAuth11(app) {
       if (typeof app === "undefined") {
         app = (0, index_1.getApp)();
       }
@@ -14858,9 +14858,6 @@ function registerDashboardRoutes(app, db, { verify = authenticateFirebaseUser, n
   });
 }
 
-// src/server/dailyReportRoutes.ts
-var import_firestore4 = __toESM(require_firestore(), 1);
-
 // src/server/dailyReport.ts
 var MY_DAY = 864e5;
 function millis2(value) {
@@ -14886,6 +14883,7 @@ function reportTasks(sessions, events) {
     const result = s.readingResult || s.listeningResult;
     if (result?.parts && s.testSetId) {
       for (const p of Object.values(result.parts)) {
+        if (!p || typeof p !== "object") continue;
         const id = `${uid}:${s.type}:${s.testSetId}:${p.part}`;
         rows2.set(id, { id, uid, skill, at: millis2(s.timestamp), score: p.total > 0 ? validScore(p.correct / p.total * 100) : null });
       }
@@ -14927,14 +14925,176 @@ function buildDailyReport(day, users, tasks, visits, includeAdmin = false) {
   return { day, today, previous: prev, days: days.slice(7).reverse(), previousWeekTasks: days.slice(0, 7).reduce((n, d) => n + d.tasks, 0), weekTasks: days.slice(7).reduce((n, d) => n + d.tasks, 0), skills: skillRows, learners, totalUsers: users.filter((u) => allowed(u.id)).length, generatedAt: Date.now() };
 }
 
+// src/server/boundedGroup.ts
+var import_firestore4 = __toESM(require_firestore(), 1);
+async function boundedGroup(db, group, field, start, end, warnings) {
+  try {
+    const [a, b] = await Promise.all([
+      db.collectionGroup(group).where(field, ">=", import_firestore4.Timestamp.fromMillis(start)).where(field, "<", import_firestore4.Timestamp.fromMillis(end)).limit(10001).get(),
+      db.collectionGroup(group).where(field, ">=", start).where(field, "<", end).limit(10001).get()
+    ]);
+    const unique = new Map([...a.docs, ...b.docs].map((d) => [d.ref.path, d]));
+    if (a.size > 1e4 || b.size > 1e4) warnings.push("High activity: this report may be incomplete.");
+    return [...unique.values()];
+  } catch {
+    warnings.push(`Could not load ${group}. This report is incomplete.`);
+    return [];
+  }
+}
+
+// src/server/reportSource.ts
+async function loadActivity(db, start, end, lastDay) {
+  const warnings = [];
+  const [s, e, v, m] = await Promise.all([
+    boundedGroup(db, "sessions", "timestamp", start, end, warnings),
+    db.collection("usage_tasks").where("at", ">=", start).where("at", "<", end).limit(10001).get(),
+    db.collection("usage_visits").where("day", ">=", dayKey(start)).where("day", "<=", lastDay).limit(10001).get(),
+    boundedGroup(db, "completed", "completedAt", start, end, warnings)
+  ]);
+  if (warnings.some((w) => w.startsWith("Could not load ")))
+    throw new Error("An indexed activity query failed; mirror sync was not marked complete.");
+  if (e.size > 1e4 || v.size > 1e4) warnings.push("Large result: some records may be missing.");
+  const sessions = s.filter((d) => d.ref.path.startsWith("users/")).map((d) => ({ id: d.id, ...d.data() }));
+  const events = e.docs.map((d) => d.data());
+  for (const d of m) {
+    if (!d.ref.path.startsWith("muet_progress/")) continue;
+    const r = d.data(), uid = d.ref.path.split("/")[1];
+    events.push({ id: `${uid}:muet:${r.topicId}:${r.mode}`, userId: uid, skill: "Speaking", at: r.completedAt, score: null });
+  }
+  return { sessions, events, visits: v.docs.map((d) => d.data()), warnings };
+}
+
+// src/server/supabaseMirror.ts
+var import_firestore5 = __toESM(require_firestore(), 1);
+var PAGE = 1e3;
+var CHUNK = 500;
+var SYNC_EVERY_MS = 10 * 60 * 1e3;
+var SYNC_WINDOW_DAYS = 3;
+var SYNC_OVERLAP_MS = 60 * 60 * 1e3;
+var TIMEOUT_MS = 8e3;
+var chunks = (rows2, size) => Array.from({ length: Math.ceil(rows2.length / size) }, (_, i) => rows2.slice(i * size, i * size + size));
+function mirrorFromEnv(env = process.env) {
+  const url = env.SUPABASE_URL?.trim().replace(/\/+$/, ""), key = env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!url || !key || !/^https:\/\//.test(url)) return null;
+  return new SupabaseMirror({ url, key });
+}
+var SupabaseMirror = class {
+  constructor(options) {
+    this.url = options.url;
+    this.key = options.key;
+    this.fetchImpl = options.fetchImpl ?? ((u, i) => fetch(u, i));
+  }
+  async request(path, init = {}) {
+    const res = await this.fetchImpl(`${this.url}/rest/v1/${path}`, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS), headers: { apikey: this.key, Authorization: `Bearer ${this.key}`, "Content-Type": "application/json", ...init.headers } });
+    if (!res.ok) throw new Error(`Supabase ${path.split("?")[0]} failed (${res.status})`);
+    return res;
+  }
+  async upsert(table2, rows2) {
+    for (const part of chunks(rows2, CHUNK)) await this.request(`${table2}?on_conflict=${table2 === "report_sync" ? "key" : "id"}`, { method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify(part) });
+  }
+  async selectAll(table2, params) {
+    const all = [];
+    for (let offset = 0; ; offset += PAGE) {
+      const query = new URLSearchParams([...params, ["limit", String(PAGE)], ["offset", String(offset)]]);
+      const page = await (await this.request(`${table2}?${query}`)).json();
+      all.push(...page);
+      if (page.length < PAGE) return all;
+    }
+  }
+  async getState(key) {
+    const rows2 = await this.selectAll("report_sync", [["select", "value"], ["key", `eq.${key}`]]);
+    return rows2.length ? Number(rows2[0].value) : null;
+  }
+  setState(key, value) {
+    return this.upsert("report_sync", [{ key, value }]);
+  }
+  // Copies the last few days of activity from Firestore. Re-copying is safe because
+  // every row has a stable id, so a repeat only overwrites the same record.
+  async syncRecent(db, now) {
+    const last = await this.getState("last_sync");
+    if (last !== null && now - last < SYNC_EVERY_MS) return { skipped: true };
+    const lastSuccess = await this.getState("last_success");
+    await this.setState("last_sync", now);
+    const start = Math.max(now - SYNC_WINDOW_DAYS * MY_DAY, (lastSuccess ?? 0) - SYNC_OVERLAP_MS);
+    await this.copyWindow(db, start, now + MY_DAY, dayKey(now));
+    await this.setState("last_success", now);
+    return { skipped: false };
+  }
+  // Copies one window of Firestore activity, plus the profiles of the learners in it.
+  async copyWindow(db, start, end, lastDay) {
+    const { sessions, events, visits, warnings } = await loadActivity(db, start, end, lastDay);
+    const tasks = reportTasks(sessions, events);
+    const scored = tasks.filter((t) => t.score !== null).map((t) => ({ id: t.id, uid: t.uid, skill: t.skill, at: t.at, score: t.score }));
+    const unscored = tasks.filter((t) => t.score === null).map((t) => ({ id: t.id, uid: t.uid, skill: t.skill, at: t.at }));
+    await this.upsert("report_tasks", scored);
+    await this.upsert("report_tasks", unscored);
+    const visitRows = visits.filter((v) => v.userId && v.day).map((v) => ({ id: `${v.userId}_${v.day}`, user_id: v.userId, day: v.day, at: millis2(v.at) }));
+    await this.upsert("report_visits", visitRows);
+    await this.copyUsers(db, /* @__PURE__ */ new Set([...tasks.map((t) => t.uid), ...visitRows.map((v) => v.user_id)]), start);
+    return { tasks: tasks.length, visits: visitRows.length, warnings };
+  }
+  // Fetches only profiles Supabase does not have yet, plus accounts created in the window.
+  async copyUsers(db, uids, since) {
+    const known = /* @__PURE__ */ new Set();
+    for (const part of chunks([...uids], 100)) {
+      const rows2 = await this.selectAll("report_users", [["select", "id"], ["id", `in.(${part.map((id) => `"${id}"`).join(",")})`]]);
+      rows2.forEach((r) => known.add(r.id));
+    }
+    const missing = [...uids].filter((id) => !known.has(id));
+    const docs = /* @__PURE__ */ new Map();
+    for (const part of chunks(missing, 100)) {
+      const snaps = await db.getAll(...part.map((id) => db.doc(`users/${id}`)));
+      snaps.forEach((s) => {
+        if (s.exists) docs.set(s.id, s.data());
+      });
+    }
+    const [a, b] = await Promise.all([
+      db.collection("users").where("createdAt", ">=", import_firestore5.Timestamp.fromMillis(since)).limit(5001).get(),
+      db.collection("users").where("createdAt", ">=", since).limit(5001).get()
+    ]);
+    [...a.docs, ...b.docs].forEach((d) => docs.set(d.id, d.data()));
+    await this.upsert("report_users", [...docs.entries()].map(([id, u]) => ({ id, email: u.email ?? null, display_name: u.displayName ?? null, created_at: millis2(u.createdAt) || 0 })));
+  }
+  async copyUserPage(rows2) {
+    await this.upsert("report_users", rows2.map(({ id, data }) => ({ id, email: data.email ?? null, display_name: data.displayName ?? null, created_at: millis2(data.createdAt) || 0 })));
+  }
+  async recordVisit(userId, day, at) {
+    await this.upsert("report_visits", [{ id: `${userId}_${day}`, user_id: userId, day, at }]);
+  }
+  // Everything the report needs for one 14 day window, with no Firestore reads.
+  async loadWindow(day, start, end) {
+    const [users, tasks, visits] = await Promise.all([
+      this.selectAll("report_users", [["select", "id,email,display_name,created_at"], ["order", "id.asc"]]),
+      this.selectAll("report_tasks", [["select", "id,uid,skill,at,score"], ["at", `gte.${start}`], ["at", `lt.${end}`], ["order", "id.asc"]]),
+      this.selectAll("report_visits", [["select", "user_id,day,at"], ["day", `gte.${dayKey(start)}`], ["day", `lte.${day}`], ["order", "id.asc"]])
+    ]);
+    return {
+      users: users.map((u) => ({ id: u.id, email: u.email, displayName: u.display_name, createdAt: Number(u.created_at) || 0 })),
+      tasks: tasks.map((t) => ({ id: t.id, uid: t.uid, skill: t.skill, at: Number(t.at), score: t.score === null || t.score === void 0 ? null : Number(t.score) })),
+      visits: visits.map((v) => ({ userId: v.user_id, day: v.day, at: Number(v.at) }))
+    };
+  }
+};
+
 // src/server/dailyReportRoutes.ts
+var NOTES = "Active users = signed-in visits or saved work. Tasks = checked reading/listening parts or completed speaking/writing practices. Older records may only show their latest saved date. Unsaved work and guest samples are not included.";
+async function loadFromFirestore(db, start, end, day) {
+  const [u, activity] = await Promise.all([db.collection("users").limit(5001).get(), loadActivity(db, start, end, day)]);
+  const warnings = [...activity.warnings];
+  if (u.size > 5e3) warnings.push("Large result: some records may be missing.");
+  return { users: u.docs.map((d) => ({ id: d.id, ...d.data() })), tasks: reportTasks(activity.sessions, activity.events), visits: activity.visits, warnings };
+}
 function registerDailyReportRoutes(app, db) {
   app.post("/api/usage/visit", async (req, res) => {
     try {
       const user = await authenticateFirebaseUser(req);
       if (!user) return res.sendStatus(401);
-      const day = dayKey(Date.now());
-      await db.doc(`usage_visits/${user.uid}_${day}`).set({ userId: user.uid, day, at: Date.now() });
+      const at = Date.now(), day = dayKey(at), mirror = mirrorFromEnv();
+      const results = await Promise.allSettled([
+        db.doc(`usage_visits/${user.uid}_${day}`).set({ userId: user.uid, day, at }),
+        mirror ? mirror.recordVisit(user.uid, day, at) : Promise.reject(new Error("mirror off"))
+      ]);
+      if (results[0].status === "rejected" && results[1].status === "rejected") throw results[0].reason;
       res.json({ saved: true });
     } catch {
       res.status(503).json({ error: "Could not record visit." });
@@ -14954,34 +15114,28 @@ function registerDailyReportRoutes(app, db) {
         return res.status(400).json({ error: "Choose a valid date." });
       }
       if (day > dayKey(Date.now()) || at < Date.now() - 91 * MY_DAY) return res.status(400).json({ error: "Choose a date within the last 90 days." });
-      const start = at - 13 * MY_DAY, end = at + MY_DAY, warnings = [];
-      async function bounded(group, field) {
+      const start = at - 13 * MY_DAY, end = at + MY_DAY;
+      let data, source = "firestore";
+      const mirror = mirrorFromEnv();
+      if (mirror) {
+        const warnings = [];
         try {
-          const [a, b] = await Promise.all([db.collectionGroup(group).where(field, ">=", import_firestore4.Timestamp.fromMillis(start)).where(field, "<", import_firestore4.Timestamp.fromMillis(end)).limit(10001).get(), db.collectionGroup(group).where(field, ">=", start).where(field, "<", end).limit(10001).get()]);
-          const map = new Map([...a.docs, ...b.docs].map((d) => [d.ref.path, d]));
-          if (a.size > 1e4 || b.size > 1e4) warnings.push("High activity: this report may be incomplete.");
-          return [...map.values()];
+          await mirror.syncRecent(db, Date.now());
         } catch {
-          const fallback = await db.collectionGroup(group).limit(10001).get();
-          if (fallback.size > 1e4) warnings.push("Some older records could not be loaded. This report may be incomplete.");
-          return fallback.docs.filter((d) => {
-            const n = millis2(d.data()[field]);
-            return n >= start && n < end;
-          });
+          warnings.push("The newest activity could not be refreshed, so the last few minutes may be missing.");
         }
-      }
-      const [u, s, e, v, m] = await Promise.all([db.collection("users").limit(5001).get(), bounded("sessions", "timestamp"), db.collection("usage_tasks").where("at", ">=", start).where("at", "<", end).limit(10001).get(), db.collection("usage_visits").where("day", ">=", dayKey(start)).where("day", "<=", day).limit(10001).get(), bounded("completed", "completedAt")]);
-      if (u.size > 5e3 || e.size > 1e4 || v.size > 1e4) warnings.push("Large result: some records may be missing.");
-      const users = u.docs.map((d) => ({ id: d.id, ...d.data() })), sessions = s.filter((d) => d.ref.path.startsWith("users/")).map((d) => ({ id: d.id, ...d.data() }));
-      const events = e.docs.map((d) => d.data());
-      for (const d of m) {
-        if (!d.ref.path.startsWith("muet_progress/")) continue;
-        const r = d.data(), uid = d.ref.path.split("/")[1];
-        events.push({ id: `${uid}:muet:${r.topicId}:${r.mode}`, userId: uid, skill: "Speaking", at: r.completedAt, score: null });
-      }
-      const report = buildDailyReport(day, users, reportTasks(sessions, events), v.docs.map((d) => d.data()), req.query.includeAdmin === "true");
-      res.json({ ...report, warnings, notes: "Active users = signed-in visits or saved work. Tasks = checked reading/listening parts or completed speaking/writing practices. Older records may only show their latest saved date. Unsaved work and guest samples are not included." });
-    } catch {
+        if (await mirror.getState("last_success") === null && await mirror.getState("backfilled_from") === null)
+          return res.status(503).json({ error: "The report is waiting for its first data sync." });
+        const copy = await mirror.loadWindow(day, start, end);
+        const copiedFrom = await mirror.getState("backfilled_from");
+        if (copiedFrom === null || copiedFrom > start) warnings.push("Older history is still being copied, so earlier days may look lower than they were.");
+        data = { ...copy, warnings };
+        source = "supabase";
+      } else data = await loadFromFirestore(db, start, end, day);
+      const report = buildDailyReport(day, data.users, data.tasks, data.visits, req.query.includeAdmin === "true");
+      res.json({ ...report, warnings: data.warnings, source, notes: NOTES });
+    } catch (err) {
+      console.error(`[daily-report] fatal day=${req.query?.day || ""} code=${err?.code || "-"} message=${String(err?.message || err).slice(0, 300)}`);
       res.status(503).json({ error: "Could not load the daily report. Please try again." });
     }
   });
@@ -15933,7 +16087,7 @@ function registerMUETBankRoutes(app, db, overrides) {
 
 // src/server/practiceRoutes.ts
 var import_auth3 = __toESM(require_auth2(), 1);
-var import_firestore5 = __toESM(require_firestore(), 1);
+var import_firestore6 = __toESM(require_firestore(), 1);
 
 // src/data/trialReading2024.ts
 var TRIAL_READING_2024 = [
@@ -27756,7 +27910,7 @@ function registerPracticeRoutes(app, db, verifyOverride, rights = mayDisplayTria
           const eventId = `${u.uid}:${session.type}:${testId}:${part}`;
           const { updated, rewardCreditUsed } = consumePracticeWithReward(p.data() || {}, l.data() || {}, d.data() || {}, day, skill);
           t.set(db.doc(`usage_tasks/${eventId}`), { id: eventId, userId: u.uid, skill: skill === "read" ? "Reading" : "Listening", at: Date.now(), score: Math.round(partResult.correct / partResult.total * 100) });
-          t.set(ref, { ...session, timestamp: import_firestore5.Timestamp.fromMillis(session.timestamp) });
+          t.set(ref, { ...session, timestamp: import_firestore6.Timestamp.fromMillis(session.timestamp) });
           t.set(lock, { skill, testId, parts: [.../* @__PURE__ */ new Set([...previousParts, ...locked.data()?.parts || [], part])] });
           t.set(daily, updated);
           t.set(db.doc(`users/${u.uid}`), { points: awardPoints(p.data()?.points, pointsForPractice()) }, { merge: true });
@@ -28586,8 +28740,8 @@ function registerAchievementRoutes(app, db, verify = (token) => (0, import_auth5
 }
 
 // src/server/application.ts
-var import_auth9 = __toESM(require_auth2(), 1);
-var import_firestore9 = __toESM(require_firestore(), 1);
+var import_auth10 = __toESM(require_auth2(), 1);
+var import_firestore10 = __toESM(require_firestore(), 1);
 import express2 from "express";
 import cors from "cors";
 import { createHash as createHash3 } from "node:crypto";
@@ -28596,7 +28750,7 @@ import OpenAI6 from "openai";
 // src/server/firebaseAdmin.ts
 var import_app = __toESM(require_app(), 1);
 var import_auth6 = __toESM(require_auth2(), 1);
-var import_firestore6 = __toESM(require_firestore(), 1);
+var import_firestore7 = __toESM(require_firestore(), 1);
 
 // firebase-applet-config.json
 var firebase_applet_config_default = {
@@ -28627,12 +28781,12 @@ function initializeExistingFirebase() {
   }
   if ((0, import_app.getApp)().options.projectId !== firebase_applet_config_default.projectId) throw new Error("Firebase project mismatch");
   const databaseId = firebase_applet_config_default.firestoreDatabaseId === "(default)" ? void 0 : firebase_applet_config_default.firestoreDatabaseId;
-  return { auth: (0, import_auth6.getAuth)(), database: (0, import_firestore6.getFirestore)((0, import_app.getApp)(), databaseId) };
+  return { auth: (0, import_auth6.getAuth)(), database: (0, import_firestore7.getFirestore)((0, import_app.getApp)(), databaseId) };
 }
 
 // src/server/listeningRoutes.ts
 var import_auth7 = __toESM(require_auth2(), 1);
-var import_firestore7 = __toESM(require_firestore(), 1);
+var import_firestore8 = __toESM(require_firestore(), 1);
 import express from "express";
 
 // src/server/listeningAudio.ts
@@ -28743,14 +28897,15 @@ function registerListeningRoutes(router, database) {
       const ref = database.doc(`users/${uid}/sessions/${id}`);
       const snapshot = await transaction.get(ref);
       const session = build(snapshot.exists ? snapshot.data() : void 0);
-      transaction.set(ref, { ...session, timestamp: import_firestore7.Timestamp.fromMillis(session.timestamp) });
+      transaction.set(ref, { ...session, timestamp: import_firestore8.Timestamp.fromMillis(session.timestamp) });
       return session;
     })
   }));
 }
 
 // src/server/paymentRoutes.ts
-var import_firestore8 = __toESM(require_firestore(), 1);
+var import_auth8 = __toESM(require_auth2(), 1);
+var import_firestore9 = __toESM(require_firestore(), 1);
 import axios2 from "axios";
 import querystring2 from "querystring";
 function registerPaymentRoutes(app, adminDb, overrides = {}) {
@@ -28841,8 +28996,8 @@ function registerPaymentRoutes(app, adminDb, overrides = {}) {
         currency: "MYR",
         paymentMethod: channel === "duitnow_qr" ? "toyyibpay_qr" : "toyyibpay_fpx",
         status: "PENDING",
-        createdAt: import_firestore8.FieldValue.serverTimestamp(),
-        updatedAt: import_firestore8.FieldValue.serverTimestamp()
+        createdAt: import_firestore9.FieldValue.serverTimestamp(),
+        updatedAt: import_firestore9.FieldValue.serverTimestamp()
       });
       const billData = {
         userSecretKey: TOYYIBPAY_SECRET_KEY,
@@ -28880,7 +29035,7 @@ function registerPaymentRoutes(app, adminDb, overrides = {}) {
         const redirectUrl = `https://${TOYYIBPAY_HOSTNAME}/${billCode}`;
         await txRef.update({
           billCode,
-          updatedAt: import_firestore8.FieldValue.serverTimestamp()
+          updatedAt: import_firestore9.FieldValue.serverTimestamp()
         });
         return res.json({
           success: true,
@@ -28891,7 +29046,7 @@ function registerPaymentRoutes(app, adminDb, overrides = {}) {
       } else {
         const msg = Array.isArray(result) ? result[0]?.msg || result[0]?.status : typeof result === "string" ? result : "Payment gateway returned unexpected response";
         console.warn("[ToyyibPay] Bill creation was rejected.");
-        await txRef.update({ status: "FAILED", updatedAt: import_firestore8.FieldValue.serverTimestamp() });
+        await txRef.update({ status: "FAILED", updatedAt: import_firestore9.FieldValue.serverTimestamp() });
         return res.status(400).json({ success: false, message: `Payment gateway error: ${msg}` });
       }
     } catch (err) {
@@ -28998,7 +29153,7 @@ function registerPaymentRoutes(app, adminDb, overrides = {}) {
       } else if (String(req.body.status) === "3") {
         await adminDb.runTransaction(async (t) => {
           const current = await t.get(ref);
-          if (current.data()?.status !== "SUCCESS") t.update(ref, { status: "FAILED", updatedAt: import_firestore8.FieldValue.serverTimestamp() });
+          if (current.data()?.status !== "SUCCESS") t.update(ref, { status: "FAILED", updatedAt: import_firestore9.FieldValue.serverTimestamp() });
         });
       }
       res.send("OK");
@@ -29056,8 +29211,8 @@ function registerPaymentRoutes(app, adminDb, overrides = {}) {
           bankQrImageUrl: bankConfig.bankQrImageUrl,
           whatsappNumber: bankConfig.whatsappNumber
         },
-        createdAt: import_firestore8.FieldValue.serverTimestamp(),
-        updatedAt: import_firestore8.FieldValue.serverTimestamp()
+        createdAt: import_firestore9.FieldValue.serverTimestamp(),
+        updatedAt: import_firestore9.FieldValue.serverTimestamp()
       });
       res.json({
         success: true,
@@ -29111,22 +29266,22 @@ function registerPaymentRoutes(app, adminDb, overrides = {}) {
       if (receiptUrl && !receipt) return res.status(400).json({ success: false, message: "Use a PNG, JPG or WebP receipt smaller than 3 MB." });
       if (transactionReference && (typeof transactionReference !== "string" || transactionReference.length > 120) || notes && (typeof notes !== "string" || notes.length > 1e3))
         return res.status(400).json({ success: false, message: "Your reference or notes are too long." });
-      const chunks = receipt ? Math.ceil(receipt.bytes.length / 5e5) : 0;
+      const chunks2 = receipt ? Math.ceil(receipt.bytes.length / 5e5) : 0;
       await adminDb.runTransaction(async (t) => {
         const latest = await t.get(txRef);
         if (!["PENDING_RECEIPT", "PENDING_REVIEW"].includes(latest.data()?.status)) throw new Error("This order has already been reviewed.");
-        for (let i = 0; i < chunks; i++) t.set(
+        for (let i = 0; i < chunks2; i++) t.set(
           adminDb.collection("payment_receipts").doc(txId).collection("chunks").doc(String(i)),
           { bytes: receipt.bytes.subarray(i * 5e5, (i + 1) * 5e5) }
         );
-        if (receipt) t.set(adminDb.collection("payment_receipts").doc(txId), { userId: decodedUser.uid, mime: receipt.mime, chunks });
+        if (receipt) t.set(adminDb.collection("payment_receipts").doc(txId), { userId: decodedUser.uid, mime: receipt.mime, chunks: chunks2 });
         t.update(txRef, {
           status: "PENDING_REVIEW",
           receiptUrl: receipt ? `/api/payment/receipt/${txId}` : txData.receiptUrl || null,
           userBankReference: transactionReference?.trim() || null,
           userNotes: notes?.trim() || null,
-          receiptSubmittedAt: import_firestore8.FieldValue.serverTimestamp(),
-          updatedAt: import_firestore8.FieldValue.serverTimestamp()
+          receiptSubmittedAt: import_firestore9.FieldValue.serverTimestamp(),
+          updatedAt: import_firestore9.FieldValue.serverTimestamp()
         });
       });
       res.json({
@@ -29201,8 +29356,8 @@ function registerPaymentRoutes(app, adminDb, overrides = {}) {
         await txRef.update({
           archived: action === "ARCHIVE",
           archivedBy: decodedUser.email,
-          archivedAt: action === "ARCHIVE" ? import_firestore8.FieldValue.serverTimestamp() : null,
-          updatedAt: import_firestore8.FieldValue.serverTimestamp()
+          archivedAt: action === "ARCHIVE" ? import_firestore9.FieldValue.serverTimestamp() : null,
+          updatedAt: import_firestore9.FieldValue.serverTimestamp()
         });
         return res.json({ success: true, message: action === "ARCHIVE" ? "Payment archived. You can restore it from archived records." : "Payment restored." });
       }
@@ -29224,6 +29379,34 @@ function registerPaymentRoutes(app, adminDb, overrides = {}) {
         return res.json({ success: true, status: "SUCCESS", plan: result.plan, message: result.message });
       }
       if (action === "APPROVE") {
+        const order = txDoc.data();
+        const userRef = adminDb.collection("users").doc(String(order.userId || ""));
+        if (!(await userRef.get()).exists) {
+          if (order.paymentMethod !== "manual_bank_transfer" || order.status !== "PENDING_REVIEW" || !order.userId || !order.userEmail) {
+            return res.status(409).json({ success: false, message: "The student account could not be verified. No payment was applied." });
+          }
+          const authUser = await (0, import_auth8.getAuth)().getUser(order.userId);
+          if (authUser.disabled || !authUser.email || authUser.email.trim().toLowerCase() !== String(order.userEmail).trim().toLowerCase()) {
+            return res.status(409).json({ success: false, message: "The student account does not match this payment. No payment was applied." });
+          }
+          try {
+            await userRef.create({
+              uid: authUser.uid,
+              email: authUser.email,
+              displayName: authUser.displayName || order.userName || "",
+              plan: "free",
+              credits: 0,
+              points: 0,
+              streak: 0,
+              weeklyGoalProgress: 0,
+              onboardingCompleted: false,
+              createdAt: import_firestore9.FieldValue.serverTimestamp(),
+              updatedAt: import_firestore9.FieldValue.serverTimestamp()
+            });
+          } catch (error2) {
+            if (error2.code !== 6 && error2.code !== "already-exists") throw error2;
+          }
+        }
         const result = await applySuccessfulEntitlement(adminDb, txId, {
           source: "manual_approval",
           adminId: decodedUser.email || "ezacademy.my@gmail.com",
@@ -29243,8 +29426,8 @@ function registerPaymentRoutes(app, adminDb, overrides = {}) {
             status: "REJECTED",
             rejectedBy: decodedUser.uid,
             adminNote: String(adminNote || "Payment could not be confirmed").slice(0, 1e3),
-            rejectedAt: import_firestore8.FieldValue.serverTimestamp(),
-            updatedAt: import_firestore8.FieldValue.serverTimestamp()
+            rejectedAt: import_firestore9.FieldValue.serverTimestamp(),
+            updatedAt: import_firestore9.FieldValue.serverTimestamp()
           });
         });
         return res.json({
@@ -29285,7 +29468,7 @@ function registerPaymentRoutes(app, adminDb, overrides = {}) {
 }
 
 // src/server/taskRoutes.ts
-var import_auth8 = __toESM(require_auth2(), 1);
+var import_auth9 = __toESM(require_auth2(), 1);
 
 // src/server/providerContext.ts
 import { AsyncLocalStorage } from "node:async_hooks";
@@ -31413,7 +31596,7 @@ async function reserveAIRequest(database, uid, requestId, task, env = process.en
 // src/server/taskRoutes.ts
 function registerTaskRoutes(app, database, overrides) {
   const deps = overrides || {
-    verify: (token) => (0, import_auth8.getAuth)().verifyIdToken(token, true),
+    verify: (token) => (0, import_auth9.getAuth)().verifyIdToken(token, true),
     allowed: previewAllows,
     access: async (uid, skill, fullTest = false) => {
       const balance = await aiAllowance(database, uid);
@@ -31523,7 +31706,7 @@ function createApplication() {
     const token = req.get("authorization")?.match(/^Bearer (.+)$/i)?.[1];
     if (!token) return res.status(401).json({ error: "Sign in required" });
     try {
-      const identity = await (0, import_auth9.getAuth)().verifyIdToken(token, true);
+      const identity = await (0, import_auth10.getAuth)().verifyIdToken(token, true);
       return res.status(previewAllows(identity.uid) ? 200 : 403).json({ allowed: previewAllows(identity.uid) });
     } catch {
       return res.status(401).json({ error: "Sign in required" });
@@ -31534,7 +31717,7 @@ function createApplication() {
     const token = req.get("authorization")?.match(/^Bearer (.+)$/i)?.[1];
     if (!token) return res.status(401).json({ error: "Sign in required" });
     try {
-      const identity = await (0, import_auth9.getAuth)().verifyIdToken(token, true);
+      const identity = await (0, import_auth10.getAuth)().verifyIdToken(token, true);
       return res.json(await aiAllowance(adminDb, identity.uid));
     } catch {
       return res.status(503).json({ error: "AI balance unavailable" });
@@ -31546,7 +31729,7 @@ function createApplication() {
     const token = req.get("authorization")?.match(/^Bearer (.+)$/i)?.[1];
     if (!token) return res.status(401).json({ error: "Sign in required" });
     try {
-      const identity = await (0, import_auth9.getAuth)().verifyIdToken(token, true);
+      const identity = await (0, import_auth10.getAuth)().verifyIdToken(token, true);
       if (!previewAllows(identity.uid)) return res.status(403).json({ error: "This preview is for designated test accounts only." });
       if ((req.path.startsWith("/api/payment/") || req.path === "/api/checkout") && process.env.PAYMENT_SANDBOX !== "true") return res.status(503).json({ error: "Payments are disabled in staging until sandbox settings are configured." });
       return next();
@@ -31567,7 +31750,7 @@ function createApplication() {
     if (!bearer) return res.status(401).json({ error: "Sign in required" });
     let uid;
     try {
-      uid = (await (0, import_auth9.getAuth)().verifyIdToken(bearer)).uid;
+      uid = (await (0, import_auth10.getAuth)().verifyIdToken(bearer)).uid;
     } catch {
       return res.status(401).json({ error: "Sign in required" });
     }
@@ -31608,8 +31791,8 @@ function createApplication() {
           } catch (error2) {
             await refundPackage();
             if (dailyReserved) await Promise.allSettled([
-              totalRef.update({ count: import_firestore9.FieldValue.increment(-1) }),
-              userRef.update({ count: import_firestore9.FieldValue.increment(-1) })
+              totalRef.update({ count: import_firestore10.FieldValue.increment(-1) }),
+              userRef.update({ count: import_firestore10.FieldValue.increment(-1) })
             ]);
             throw error2;
           }

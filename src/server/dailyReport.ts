@@ -8,7 +8,7 @@ export function reportTasks(sessions:any[],events:any[]):ReportTask[]{
  const rows=new Map<string,ReportTask>();
  for(const s of sessions){const uid=s.userId;if(!uid)continue;const skill=({ReadEZ:'Reading',ListenEZ:'Listening',WriteEZ:'Writing',SpeakEZ:'Speaking'} as any)[s.type];if(!skill)continue;
  const result=s.readingResult||s.listeningResult;
- if(result?.parts&&s.testSetId){for(const p of Object.values(result.parts) as any[]){const id=`${uid}:${s.type}:${s.testSetId}:${p.part}`;rows.set(id,{id,uid,skill,at:millis(s.timestamp),score:p.total>0?validScore(p.correct/p.total*100):null});}}
+ if(result?.parts&&s.testSetId){for(const p of Object.values(result.parts) as any[]){if(!p||typeof p!=='object')continue;const id=`${uid}:${s.type}:${s.testSetId}:${p.part}`;rows.set(id,{id,uid,skill,at:millis(s.timestamp),score:p.total>0?validScore(p.correct/p.total*100):null});}}
  else if(s.muetReport){const r=s.muetReport;for(const mode of r.testType==='Mock'?['Part1','Part2']:[r.testType]){const id=`${uid}:muet:${r.topicId}:${mode}`;rows.set(id,{id,uid,skill:'Speaking',at:millis(s.timestamp),score:r.testType==='Mock'?null:validScore(s.score)});}}
  else {const id=`${uid}:session:${s.id}`;rows.set(id,{id,uid,skill,at:millis(s.timestamp),score:validScore(s.score)});}
  }
