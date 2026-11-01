@@ -1018,8 +1018,11 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
         setError('Sync the previous answer first before requesting feedback on an edited answer.'); return;
       }
       assessmentInFlight.current = true;
-      const completed = await finishPractice(undefined, finalTranscript);
-      if (!completed && progress.attempt?.status !== 'not-synced') return;
+      // Keep the confirmed text locally, then assess it. A cloud sync failure
+      // must not delay feedback or force a second paid AI request.
+      progress.attempt?.writeDraft({ task, transcript: finalTranscript, selectedPart, currentFullPart });
+      await progress.attempt?.stage({ transcript: finalTranscript, duration: Math.round(duration) });
+      progress.update();
       if (auth.currentUser?.uid !== profile.uid) return;
       setFeedback(null);
       setError(null);
@@ -1044,7 +1047,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
 
       setFeedback(analysis);
       const synced = await finishPractice(analysis, finalTranscript);
-      if (!synced) setError('Feedback is ready but not synced. Retry sync to save it without another AI call.');
+      if (!synced) setError('Feedback is ready. Your progress is queued on this device; retry sync when online.');
       if (activeSavedPracticeId && synced) {
         // Optional device cleanup must not invalidate an acknowledged cloud result.
         try {
@@ -1098,7 +1101,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
   };
 
   const resetToSelection = () => {
-    if (progress.attempt?.newAttempt() === false) { setError('Retry syncing this completion before starting another task.'); return; }
+    if (progress.attempt?.newAttempt() === false) { setError('Keep this page open and retry sync before starting another task.'); return; }
     practiceSessionRef.current += 1;
     startingPhaseRef.current = false;
     cancelExaminerSpeech();
@@ -1118,7 +1121,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
   };
 
   const handleRetry = () => {
-    if (progress.attempt?.newAttempt() === false) { setError('Retry syncing this completion before starting another attempt.'); return; }
+    if (progress.attempt?.newAttempt() === false) { setError('Keep this page open and retry sync before starting another attempt.'); return; }
     if (feedback && typeof feedback.score === 'number') {
       setPreviousAttempt({ score: feedback.score, transcript: reviewTranscript });
     }
@@ -2197,7 +2200,7 @@ export const SpeakEZ: React.FC<SpeakEZProps> = ({ profile }) => {
                   <button type="button" onClick={() => void handleSave()} className="min-h-14 rounded-xl border border-white/20 bg-white/10 px-4 font-semibold text-white flex items-center justify-center gap-2"><Save size={18} /> Save result</button>
                   <button type="button" onClick={() => {
                     if (selectedPart === 'Full' && currentFullPart < 3) {
-                      if (progress.attempt?.newAttempt() === false) { setError('Retry syncing this part before continuing.'); return; }
+                      if (progress.attempt?.newAttempt() === false) { setError('Keep this page open and retry sync before continuing.'); return; }
                       setCurrentFullPart(prev => (prev + 1) as 1 | 2 | 3);
                       setView('intro');
                       setFeedback(null);

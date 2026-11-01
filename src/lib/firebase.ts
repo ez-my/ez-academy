@@ -243,25 +243,34 @@ export const saveSession = async (userId: string, session: PracticeSession): Pro
   // JSON removes optional undefined values; recording data is never sent.
   const payload = { ...JSON.parse(JSON.stringify(rest)), timestamp: timestamp ? Timestamp.fromMillis(Number(timestamp)) : serverTimestamp() };
   let effective: any;
+  let created = false;
   try {
     effective = await persistSessionOnce(work => runTransaction(db, work),
-      doc(db, 'users', userId, 'sessions', session.id), doc(db, 'users', userId), payload,
-      user => {
-        const today = new Date().toISOString().split('T')[0];
-        const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-        const lastActiveDate = user.usage?.date;
-        // Points are not set here any more. The server awards them when it
-        // spends a practice from the daily allowance, which is the only moment
-        // it can prove a practice happened; the rules now refuse a points change
-        // from a signed-in learner, so writing one here would reject the save.
-        return {
-          streak: lastActiveDate === today ? (user.streak || 0) : lastActiveDate === yesterday.toISOString().split('T')[0] ? (user.streak || 0) + 1 : 1,
-          'usage.date': today, updatedAt: serverTimestamp(),
-        };
-      });
-  } catch {
+      doc(db, 'users', userId, 'sessions', session.id), null, payload, undefined,
+      isNew => { created = isNew; });
+  } catch (error) {
+    console.warn('Session sync failed:', error);
     throw new Error('Your result is not synced. Your answer is kept on this device; please retry when online.');
   }
+  // Activity metadata must not roll back a saved result. In particular, an
+  // older published profile rule can reject this update for a large profile.
+  if (created) void (async () => {
+    try {
+      const userRef = doc(db, 'users', userId);
+      const snapshot = await getDoc(userRef);
+      if (!snapshot.exists()) return;
+      const user = snapshot.data();
+      if (auth.currentUser?.uid !== userId) return;
+      const today = new Date().toISOString().split('T')[0];
+      if (user.usage?.date === today) return;
+      const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+      const lastActiveDate = user.usage?.date;
+      await updateDoc(userRef, {
+        streak: lastActiveDate === yesterday.toISOString().split('T')[0] ? (user.streak || 0) + 1 : 1,
+        'usage.date': today, updatedAt: serverTimestamp(),
+      });
+    } catch (error) { console.warn('Session activity update failed:', error); }
+  })();
   // Analytics is advisory and can never turn an acknowledged save into a failure.
   void import('./analytics').then(({ trackEvent }) => trackEvent('practice_completed', { skill: session.type, score: session.score ?? undefined })).catch(() => {});
   return { ...effective, timestamp: typeof effective.timestamp?.toMillis === 'function' ? effective.timestamp.toMillis() : effective.timestamp } as PracticeSession;

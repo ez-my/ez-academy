@@ -3,15 +3,18 @@ import { compareResults } from './resultOrder';
 // Shared transaction seam; the adapter supplies real Firestore references.
 export async function persistSessionOnce(
   transact: (work: (tx: any) => Promise<void>) => Promise<any>,
-  sessionRef: any, userRef: any, session: any,
-  rewards: (user: any) => any,
+  sessionRef: any, userRef: any | null, session: any,
+  rewards?: (user: any) => any,
+  onCommitted?: (created: boolean) => void,
 ): Promise<any> {
   let effective: any;
+  let created = false;
   await transact(async tx => {
     // All reads precede writes. Firestore retries this callback on conflicts.
     const previous = await tx.get(sessionRef);
-    const user = await tx.get(userRef);
+    const user = userRef ? await tx.get(userRef) : null;
     const existing = previous.exists() ? previous.data() : null;
+    created = !existing;
     // Use the same score/order/UUID reduction as the device ledger. A repeated
     // version is immutable; pre-version callers retain their historical updates.
     const comparison = existing ? compareResults(session, existing) : 1;
@@ -23,8 +26,9 @@ export async function persistSessionOnce(
       effective = { ...effective, resultVersion: `legacy-cloud-${encodeURIComponent(session.id)}`, resultOrder: 0 };
     }
     tx.set(sessionRef, effective);
-    if (!existing && user.exists()) tx.update(userRef, rewards(user.data()));
+    if (!existing && user?.exists() && rewards) tx.update(userRef, rewards(user.data()));
   });
   // Only return the effective version after the transaction actually commits.
+  onCommitted?.(created);
   return effective;
 }
