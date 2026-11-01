@@ -1110,6 +1110,191 @@ export const PART1_SPEAKING_BANK = [
       "Do you think VR will become as common as smartphones?"
     ]
   }
+,
+  // Added 2026-11-02: 72 Part 1 questions taken verbatim from
+  // "SPEAKING PART 1 (DAILY ROUTINES).pdf" (supplied by Shahril, 2026-11-02).
+  // Wording copied character for character, four questions per topic,
+  // ids continue the existing s1p1_ sequence from 112. Nothing above changed.
+  {
+    id: 's1p1_112',
+    topic: "Morning Routine",
+    questions: [
+      "What do you usually do after you wake up?",
+      "What time do you wake up in the morning?",
+      "Who wakes you up in the morning?",
+      "How do you get ready for school?"
+    ]
+  },
+  {
+    id: 's1p1_113',
+    topic: "Sleep & Evenings",
+    questions: [
+      "What time do you sleep?",
+      "What do you usually do before you sleep?",
+      "When do you usually watch the television?",
+      "What is your favourite time of a day?"
+    ]
+  },
+  {
+    id: 's1p1_114',
+    topic: "Meals & Food",
+    questions: [
+      "What do you usually eat for breakfast?",
+      "What do you usually eat for lunch?",
+      "What do you usually eat for dinner?",
+      "What do you usually eat at the canteen?"
+    ]
+  },
+  {
+    id: 's1p1_115',
+    topic: "School Life",
+    questions: [
+      "What subject do you like at school?",
+      "What club do you join at school?",
+      "What place do you like to go in school?",
+      "What food do you want the canteen to sell?"
+    ]
+  },
+  {
+    id: 's1p1_116',
+    topic: "Teachers, Homework & Exams",
+    questions: [
+      "When do you usually do your homework?",
+      "What do you plan to do after the examinations?",
+      "How do you help your teachers at school?",
+      "What do you love about your teachers?"
+    ]
+  },
+  {
+    id: 's1p1_117',
+    topic: "Going To and From School",
+    questions: [
+      "What do you usually do after coming back from school?",
+      "What do you usually do before you go to school?",
+      "What do you see on your way to school?",
+      "What do you see on your way from school?"
+    ]
+  },
+  {
+    id: 's1p1_118',
+    topic: "Music, Sport & Books",
+    questions: [
+      "What kind of music do you listen to?",
+      "What sport do you like to play?",
+      "What book do you like to read?",
+      "What sport would you want to try?"
+    ]
+  },
+  {
+    id: 's1p1_119',
+    topic: "Free Time & Hobbies",
+    questions: [
+      "What do you usually do when you are bored?",
+      "What is your hobby?",
+      "Where do you go to do your hobby?",
+      "Which hobby would you like to try?"
+    ]
+  },
+  {
+    id: 's1p1_120',
+    topic: "Leisure & Weekends",
+    questions: [
+      "What do you usually do on weekend?",
+      "Where do you usually go on your leisure time?",
+      "How do you spend your leisure time?",
+      "What is your favourite day in a week?"
+    ]
+  },
+  {
+    id: 's1p1_121',
+    topic: "Weekend Plans & Travel",
+    questions: [
+      "What do you plan to do this weekend?",
+      "Where do you plan to go this weekend?",
+      "What country would you like to visit someday?",
+      "Which country do you plan to go in the future?"
+    ]
+  },
+  {
+    id: 's1p1_122',
+    topic: "Family Time",
+    questions: [
+      "What do you usually do with your family?",
+      "Where do you usually go for an outing with your family?",
+      "How often do you go out with your family?",
+      "What do you usually do with your family on weekends?"
+    ]
+  },
+  {
+    id: 's1p1_123',
+    topic: "Family & Siblings",
+    questions: [
+      "How many siblings do you have?",
+      "What do you usually do with your siblings?",
+      "Where do you usually go with your siblings?",
+      "Who is your favourite family member?"
+    ]
+  },
+  {
+    id: 's1p1_124',
+    topic: "Friends & Meeting People",
+    questions: [
+      "Where do you go to spend time with your friends?",
+      "What do you like to do with your best friend?",
+      "Where do you like to go with your best friend?",
+      "Who would you want to meet someday?"
+    ]
+  },
+  {
+    id: 's1p1_125',
+    topic: "Relaxation & Exercise",
+    questions: [
+      "Where do you usually go to relax?",
+      "What do you usually do to relax?",
+      "Where do you go to exercise?",
+      "What do you like to do when you are stressed?"
+    ]
+  },
+  {
+    id: 's1p1_126',
+    topic: "Exercise, Chores & Home",
+    questions: [
+      "How often do you exercise in a week?",
+      "How do you use your smartphone?",
+      "Where would you like to live when you are older?",
+      "What chores do you like to do at home?"
+    ]
+  },
+  {
+    id: 's1p1_127',
+    topic: "Pocket Money & Shopping",
+    questions: [
+      "How do you spend your pocket money?",
+      "Where do you go to spend your pocket money?",
+      "Where do you save your pocket money?",
+      "Where do you go to shop?"
+    ]
+  },
+  {
+    id: 's1p1_128',
+    topic: "Clothes & Laundry",
+    questions: [
+      "What type of clothes do you like to wear?",
+      "Where do you go to buy clothes?",
+      "When do you do the laundry?",
+      "What do you usually wear when you go out?"
+    ]
+  },
+  {
+    id: 's1p1_129',
+    topic: "Pets, Idols & Celebrations",
+    questions: [
+      "Who is your idol?",
+      "Which pet would you like to own?",
+      "Where do you go to celebrate your birthday?",
+      "What pet do you own at home?"
+    ]
+  }
 ];
 
 export interface Part2Topic {
