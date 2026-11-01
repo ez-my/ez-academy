@@ -1,22 +1,28 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { AlertCircle, RefreshCcw, School as SchoolIcon, TrendingUp, Users } from 'lucide-react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { REFERRAL_SOURCES, referralSourceLabel, tidyText, MAX_SCHOOL_LENGTH } from '../../profileFields';
 import { TooltipHelp } from './TooltipHelp';
+import { countOf } from './userCounts';
+import { tallySources } from './growthTally';
 
-interface Tally { id: string; label: string; count: number; share: number; }
+// The school list and free text answers are read from the newest learners only. The
+// totals and the source bars are exact, because they come from count queries.
+const SAMPLE_SIZE = 500;
 
 /**
  * Where learners are coming from, and which schools they cluster in.
  *
- * Counted from the user documents the admin can already list, so there is no new
- * collection to keep in step. Everything is derived on read: a learner who edits
- * their answer on the profile page is reflected the next time this is refreshed.
+ * Totals and source bars use count queries (a few reads in total). Schools and free
+ * text answers come from the newest 500 learners, so a refresh never reads
+ * every learner record. A learner who edits their answer on the profile page is
+ * reflected the next time this is refreshed.
  */
 export const GrowthPanel: React.FC<{ onOpenTab?: (tab: string) => void }> = ({ onOpenTab }) => {
-  const [users, setUsers] = useState<Record<string, unknown>[]>([]);
+  const [sample, setSample] = useState<Record<string, unknown>[]>([]);
+  const [totals, setTotals] = useState({ total: 0, optOuts: 0, bySource: {} as Record<string, number> });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -24,8 +30,15 @@ export const GrowthPanel: React.FC<{ onOpenTab?: (tab: string) => void }> = ({ o
     setIsLoading(true);
     setError('');
     try {
-      const snapshot = await getDocs(collection(db, 'users'));
-      setUsers(snapshot.docs.map(doc => doc.data() as Record<string, unknown>));
+      const users = collection(db, 'users');
+      const [total, optOuts, newest, ...perSource] = await Promise.all([
+        countOf(query(users)),
+        countOf(query(users, where('leaderboardOptOut', '==', true))),
+        getDocs(query(users, orderBy('createdAt', 'desc'), limit(SAMPLE_SIZE))),
+        ...REFERRAL_SOURCES.map(source => countOf(query(users, where('referralSource', '==', source.id)))),
+      ]);
+      setSample(newest.docs.map(doc => doc.data() as Record<string, unknown>));
+      setTotals({ total, optOuts, bySource: Object.fromEntries(REFERRAL_SOURCES.map((source, index) => [source.id, perSource[index]])) });
     } catch {
       setError('Could not load learners. Check your admin sign-in and try again.');
     } finally {
@@ -36,38 +49,23 @@ export const GrowthPanel: React.FC<{ onOpenTab?: (tab: string) => void }> = ({ o
   useEffect(() => { void load(); }, []);
 
   const { sources, answered, schools, optOuts } = useMemo(() => {
-    const counts = new Map<string, number>();
+    const { sources, answered } = tallySources(totals.total, totals.bySource, referralSourceLabel);
     const schoolCounts = new Map<string, number>();
-    let answered = 0;
-    let optOuts = 0;
-
-    for (const user of users) {
-      const source = typeof user.referralSource === 'string' ? user.referralSource : '';
-      if (source) { answered += 1; counts.set(source, (counts.get(source) || 0) + 1); }
-      else counts.set('', (counts.get('') || 0) + 1);
-
+    for (const user of sample) {
       const school = tidyText(user.school, MAX_SCHOOL_LENGTH);
       if (school) schoolCounts.set(school, (schoolCounts.get(school) || 0) + 1);
-      if (user.leaderboardOptOut === true) optOuts += 1;
     }
-
-    const total = users.length || 1;
-    const sources: Tally[] = [...REFERRAL_SOURCES.map(s => s.id), ''].map(id => {
-      const count = counts.get(id) || 0;
-      return { id: id || 'unanswered', label: id ? referralSourceLabel(id) : 'Not answered', count, share: (count / total) * 100 };
-    }).sort((a, b) => b.count - a.count);
-
     const schools = [...schoolCounts.entries()]
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
       .slice(0, 15);
 
-    return { sources, answered, schools, optOuts };
-  }, [users]);
+    return { sources, answered, schools, optOuts: totals.optOuts };
+  }, [totals, sample]);
 
   const notes = useMemo(
-    () => users.map(u => tidyText(u.referralNote, 80)).filter(Boolean).slice(0, 25),
-    [users],
+    () => sample.map(u => tidyText(u.referralNote, 80)).filter(Boolean).slice(0, 25),
+    [sample],
   );
 
   return (
@@ -80,7 +78,7 @@ export const GrowthPanel: React.FC<{ onOpenTab?: (tab: string) => void }> = ({ o
               <TooltipHelp text="Answered during registration, and editable by the learner on their profile page. Counted live from the learner records, so it always matches what they last chose." />
             </h3>
             <p className="text-xs text-white/40 mt-1">
-              {isLoading ? 'Counting…' : `${users.length} learners · ${answered} answered the question · ${optOuts} hidden from the leaderboard`}
+              {isLoading ? 'Counting…' : `${totals.total} learners · ${answered} answered the question · ${optOuts} hidden from the leaderboard`}
             </p>
           </div>
           <button onClick={load} disabled={isLoading} className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 disabled:opacity-50">
@@ -96,7 +94,7 @@ export const GrowthPanel: React.FC<{ onOpenTab?: (tab: string) => void }> = ({ o
 
         {isLoading ? (
           <p className="text-sm text-white/50 py-8 text-center">Loading learners…</p>
-        ) : users.length === 0 ? (
+        ) : totals.total === 0 ? (
           <p className="text-sm text-white/50 py-8 text-center">No learners yet.</p>
         ) : (
           <div className="space-y-2.5">
@@ -133,7 +131,7 @@ export const GrowthPanel: React.FC<{ onOpenTab?: (tab: string) => void }> = ({ o
         <h3 className="text-sm font-bold tracking-tight mb-1 flex items-center gap-2">
           <SchoolIcon size={15} className="text-primary" /> Schools with the most learners
         </h3>
-        <p className="text-xs text-white/40 mb-4">A school with several learners is worth approaching directly.</p>
+        <p className="text-xs text-white/40 mb-4">A school with several learners is worth approaching directly.{totals.total > sample.length && ` Based on the newest ${sample.length} learners.`}</p>
         {schools.length === 0 ? (
           <p className="text-sm text-white/50 py-4">No schools recorded yet.</p>
         ) : (
