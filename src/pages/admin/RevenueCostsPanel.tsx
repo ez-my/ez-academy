@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { Activity, AlertCircle, DollarSign, TrendingDown, TrendingUp, Users, Zap } from 'lucide-react';
-import { collection, getDocs, orderBy, query, where, Timestamp, collectionGroup } from 'firebase/firestore';
+import { collection, collectionGroup, getCountFromServer, getDocs, limit, orderBy, query, where, Timestamp } from 'firebase/firestore';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import { db } from '../../lib/firebase';
 import { PLAN_NAMES } from '../../packages';
 import { ModuleFlagsGrid } from './ModulesPanel';
 import { TooltipHelp } from './TooltipHelp';
-import { useUsers } from './UsersPanel';
+import { useUserCounts } from './userCounts';
 
 // Cost Configuration (Standard Rates for calculation - USD converted to MYR approx 4.5)
 const PRICING = {
@@ -20,6 +20,11 @@ const PRICING = {
 
 const MS_PER_DAY = 86400000;
 const REVENUE_WINDOW_DAYS = 30;
+// Revenue is figured from the last 30 days, so the newest transactions are enough.
+// The cap stops the panel reading the whole transaction history on every open.
+const TRANSACTION_SCAN_LIMIT = 500;
+// Sessions read for the 7 day usage chart. The session total comes from a count query.
+const RECENT_SESSION_LIMIT = 1000;
 
 // createdAt turns up as a Firestore Timestamp, a millis number or an ISO string
 // depending on which code path wrote the record.
@@ -41,7 +46,7 @@ function useRevenue() {
 
   useEffect(() => {
     let alive = true;
-    getDocs(query(collection(db, 'transactions'), orderBy('createdAt', 'desc')))
+    getDocs(query(collection(db, 'transactions'), orderBy('createdAt', 'desc'), limit(TRANSACTION_SCAN_LIMIT)))
       .then(snapshot => { if (alive) setTransactions(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as any))); })
       .catch(error => console.error('Could not load transactions for revenue:', error))
       .finally(() => { if (alive) setIsRevenueLoading(false); });
@@ -75,7 +80,7 @@ function useRevenue() {
 export const RevenueCostsPanel: React.FC<{ onOpenTab?: (tab: string) => void }> = ({ onOpenTab }) => {
   // Counts come from the shared user list rather than a stats object some other tab
   // had to populate first, which is why these figures used to read zero.
-  const { totalUsers, activeSubscribers } = useUsers();
+  const { totalUsers, activeSubscribers } = useUserCounts();
   const { monthlyRevenue, payingCustomers, revenuePerCustomer, byProduct, awaitingApproval } = useRevenue();
   const [costBreakdown, setCostBreakdown] = useState<any[]>([]);
   const [usageByDay, setUsageByDay] = useState<any[]>([]);
@@ -94,10 +99,9 @@ export const RevenueCostsPanel: React.FC<{ onOpenTab?: (tab: string) => void }> 
   const fetchMaintenanceCosts = async () => {
     setIsCostsLoading(true);
     try {
-      // 1. Fetch total sessions using collectionGroup
-      // Note: In production, you'd want to aggregate this server-side or use a counter
-      const sessionsSnapshot = await getDocs(collectionGroup(db, 'sessions'));
-      const totalSessions = sessionsSnapshot.size;
+      // 1. Count total sessions. A count query is billed at one read per 1,000
+      // sessions, where reading every session document cost one read each.
+      const totalSessions = (await getCountFromServer(collectionGroup(db, 'sessions'))).data().count;
       
       // 2. Estimate Gemini costs
       // Assumption: Each session has ~1000 input tokens and ~500 output tokens
@@ -140,8 +144,22 @@ export const RevenueCostsPanel: React.FC<{ onOpenTab?: (tab: string) => void }> 
 
       last7Days.forEach(day => days[day] = 0);
       
-      sessionsSnapshot.forEach(doc => {
-        const data = doc.data();
+      // The chart only needs the last 7 days, so read just those sessions, capped. Dates
+      // were saved both as Timestamps and as numbers, so each form is queried once.
+      // A failure here must not hide the session count above, so it has its own catch.
+      let recentSessions: Record<string, unknown>[] = [];
+      try {
+        const since = now - 7 * MS_PER_DAY;
+        const [asTimestamp, asNumber] = await Promise.all([
+          getDocs(query(collectionGroup(db, 'sessions'), where('timestamp', '>=', Timestamp.fromMillis(since)), limit(RECENT_SESSION_LIMIT))),
+          getDocs(query(collectionGroup(db, 'sessions'), where('timestamp', '>=', since), limit(RECENT_SESSION_LIMIT))),
+        ]);
+        recentSessions = [...asTimestamp.docs, ...asNumber.docs].map(d => d.data());
+      } catch (error) {
+        console.warn('Could not load recent sessions for the usage chart:', error);
+      }
+
+      recentSessions.forEach(data => {
         if (!data.timestamp) return;
         
         const timestamp = (data.timestamp as any) instanceof Timestamp ? (data.timestamp as any).toMillis() : data.timestamp;

@@ -12,7 +12,7 @@ test('a missing collection-group index never triggers an unbounded scan',async()
     };},
     collection(){return {where(){return this;},limit(){return this;},async get(){return {size:0,docs:[]};}};},
   };
-  await assert.rejects(()=>loadActivity(db as any,0,1,'2026-11-01'),/Indexed (sessions|completed)/);
+  await assert.rejects(()=>loadActivity(db as any,0,1,'2026-11-01'),/indexed activity query failed/);
   assert.ok(calls.length>0);
   assert.ok(calls.every(call=>call.bounded));
 });

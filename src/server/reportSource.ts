@@ -1,24 +1,8 @@
-import {Timestamp,type Firestore} from 'firebase-admin/firestore';
+import type {Firestore} from 'firebase-admin/firestore';
 import {dayKey} from './dailyReport';
+import {boundedGroup} from './boundedGroup';
 
 export interface ActivityWindow {sessions:any[];events:any[];visits:any[];warnings:string[];}
-
-// Reads a bounded window of learner activity from Firestore. Timestamps were saved
-// both as numbers and as Firestore Timestamps, so every range is queried both ways.
-async function boundedGroup(db:Firestore,group:string,field:string,start:number,end:number,warnings:string[]){
-  try{
-    const [a,b]=await Promise.all([
-      db.collectionGroup(group).where(field,'>=',Timestamp.fromMillis(start)).where(field,'<',Timestamp.fromMillis(end)).limit(10001).get(),
-      db.collectionGroup(group).where(field,'>=',start).where(field,'<',end).limit(10001).get(),
-    ]);
-    const unique=new Map([...a.docs,...b.docs].map(d=>[d.ref.path,d]));
-    if(a.size>10000||b.size>10000)warnings.push('High activity: this report may be incomplete.');
-    return [...unique.values()];
-  }catch(error){
-    // A missing index must never turn a bounded query into a collection scan.
-    throw new Error(`Indexed ${group}.${field} query failed`,{cause:error});
-  }
-}
 
 export async function loadActivity(db:Firestore,start:number,end:number,lastDay:string):Promise<ActivityWindow>{
   const warnings:string[]=[];
@@ -28,6 +12,8 @@ export async function loadActivity(db:Firestore,start:number,end:number,lastDay:
     db.collection('usage_visits').where('day','>=',dayKey(start)).where('day','<=',lastDay).limit(10001).get(),
     boundedGroup(db,'completed','completedAt',start,end,warnings),
   ]);
+  if(warnings.some(w=>w.startsWith('Could not load ')))
+    throw new Error('An indexed activity query failed; mirror sync was not marked complete.');
   if(e.size>10000||v.size>10000)warnings.push('Large result: some records may be missing.');
   const sessions=s.filter(d=>d.ref.path.startsWith('users/')).map(d=>({id:d.id,...d.data()}));
   const events:any[]=e.docs.map(d=>d.data());
