@@ -1139,7 +1139,6 @@ export const PART1_SPEAKING_BANK = [
     id: 's1p1_114',
     topic: "Meals & Food",
     questions: [
-      "What do you usually eat for breakfast?",
       "What do you usually eat for lunch?",
       "What do you usually eat for dinner?",
       "What do you usually eat at the canteen?"
@@ -1229,7 +1228,6 @@ export const PART1_SPEAKING_BANK = [
     id: 's1p1_123',
     topic: "Family & Siblings",
     questions: [
-      "How many siblings do you have?",
       "What do you usually do with your siblings?",
       "Where do you usually go with your siblings?",
       "Who is your favourite family member?"
@@ -1259,7 +1257,6 @@ export const PART1_SPEAKING_BANK = [
     id: 's1p1_126',
     topic: "Exercise, Chores & Home",
     questions: [
-      "How often do you exercise in a week?",
       "How do you use your smartphone?",
       "Where would you like to live when you are older?",
       "What chores do you like to do at home?"
