@@ -1,33 +1,41 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { CreditCard, Download, Edit2, Plus, RefreshCcw, Search, Trash2, UserX, Users, X } from 'lucide-react';
-import { collection, deleteDoc, doc, getDocs, increment, serverTimestamp, updateDoc, writeBatch, query, where } from 'firebase/firestore';
+import { collection, deleteDoc, doc, documentId, getDocs, increment, limit, orderBy, serverTimestamp, startAfter, updateDoc, writeBatch, query, where, type QueryDocumentSnapshot } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { UserProfile } from '../../types';
 import { useConfirmDialog } from './ConfirmDialog';
 
-// The user list, shared by the Users tab and the revenue panel, which needs the same
-// counts. fetchUsers() used to write those totals into a shared stats object, so the
-// revenue figures were only right if you happened to open Users first.
-// `auto: false` lets a caller that only needs the counts decide when to load them,
+// The user list, shared by the Users tab and the payments panel.
+// It loads one page at a time instead of every learner, because each learner record
+// is one Firestore read and the free daily quota is shared with the whole app. Revenue
+// totals come from count queries in userCounts.ts, not from this list.
+// `auto: false` lets a caller that only needs fetchUsers() decide when to load a page,
 // instead of every admin tab paying for a users fetch on mount.
+export const USERS_PAGE_SIZE = 100;
+
 export function useUsers({ auto = true }: { auto?: boolean } = {}) {
   const [systemUsers, setSystemUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const lastDoc = useRef<QueryDocumentSnapshot | null>(null);
 
+  // Ordered by document id so learners without a createdAt field are never skipped.
+  const readPage = async (after: QueryDocumentSnapshot | null) => {
+    const pageQuery = after
+      ? query(collection(db, 'users'), orderBy(documentId()), startAfter(after), limit(USERS_PAGE_SIZE))
+      : query(collection(db, 'users'), orderBy(documentId()), limit(USERS_PAGE_SIZE));
+    const snapshot = await getDocs(pageQuery);
+    lastDoc.current = snapshot.docs[snapshot.docs.length - 1] ?? after;
+    setHasMore(snapshot.size === USERS_PAGE_SIZE);
+    return snapshot.docs.map(d => d.data() as UserProfile);
+  };
+
+  // Reloads the first page. Used on mount and after an admin edit.
   const fetchUsers = async () => {
     try {
-      const querySnapshot = await getDocs(collection(db, 'users'));
-      const usersData: UserProfile[] = [];
-      let subs = 0;
-      
-      querySnapshot.forEach((doc) => {
-        const data = doc.data() as UserProfile;
-        usersData.push(data);
-        if (data.plan && data.plan !== 'free') subs++;
-      });
-      
-      setSystemUsers(usersData);
+      setSystemUsers(await readPage(null));
     } catch (error) {
       console.error("Error fetching users:", error);
       try {
@@ -39,17 +47,44 @@ export function useUsers({ auto = true }: { auto?: boolean } = {}) {
     }
   };
 
+  const loadMore = async () => {
+    if (!lastDoc.current || isLoadingMore) return;
+    setIsLoadingMore(true);
+    try {
+      const next = await readPage(lastDoc.current);
+      setSystemUsers(prev => {
+        const seen = new Set(prev.map(u => u.uid));
+        return [...prev, ...next.filter(u => !seen.has(u.uid))];
+      });
+    } catch (error) {
+      console.error("Error loading more users:", error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
+  // Finds one learner by exact email, even if their page has not been loaded yet.
+  const findByEmail = async (email: string) => {
+    const clean = email.trim();
+    if (!clean) return 0;
+    const snapshot = await getDocs(query(collection(db, 'users'), where('email', '==', clean), limit(5)));
+    const found = snapshot.docs.map(d => d.data() as UserProfile);
+    setSystemUsers(prev => {
+      const seen = new Set(prev.map(u => u.uid));
+      return [...found.filter(u => !seen.has(u.uid)), ...prev];
+    });
+    return found.length;
+  };
 
   useEffect(() => { if (auto) fetchUsers(); }, [auto]);
 
-  const activeSubscribers = systemUsers.filter(user => user.plan && user.plan !== 'free').length;
-  return { systemUsers, setSystemUsers, isLoading, fetchUsers, totalUsers: systemUsers.length, activeSubscribers };
+  return { systemUsers, setSystemUsers, isLoading, isLoadingMore, hasMore, fetchUsers, loadMore, findByEmail };
 }
 
 export const UsersPanel: React.FC = () => {
   const { setConfirmDialog, confirmDialogElement } = useConfirmDialog();
-  const { systemUsers, setSystemUsers, isLoading, fetchUsers } = useUsers();
+  const { systemUsers, setSystemUsers, isLoading, isLoadingMore, hasMore, fetchUsers, loadMore, findByEmail } = useUsers();
+  const [lookupMessage, setLookupMessage] = useState('');
   const [editingCreditsUser, setEditingCreditsUser] = useState<string | null>(null);
   const [editingUserSettings, setEditingUserSettings] = useState<{uid: string, level: string, plan: string} | null>(null);
   const [creditAmountToAdd, setCreditAmountToAdd] = useState('');
@@ -209,14 +244,17 @@ export const UsersPanel: React.FC = () => {
       {(
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-4 sm:p-8">
           <div className="flex items-center justify-between mb-8">
-            <h3 className="text-2xl font-bold tracking-tight">Users <span className="text-sm text-white/50">({visibleUsers.length})</span></h3>
+            <div>
+              <h3 className="text-2xl font-bold tracking-tight">Users <span className="text-sm text-white/50">({visibleUsers.length})</span></h3>
+              <p className="text-xs text-white/40 mt-1">Showing {systemUsers.length} learners loaded so far. Search and CSV export cover these only.</p>
+            </div>
             <div className="flex gap-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20" size={16} />
                 <input 
                   type="text" 
                   placeholder="Search name, email or plan"
-                  aria-label="Search users" value={userSearch} onChange={e => setUserSearch(e.target.value)} 
+                  aria-label="Search users" value={userSearch} onChange={e => { setUserSearch(e.target.value); setLookupMessage(''); }} 
                   className="pl-10 pr-4 py-2 bg-black/40 border border-white/10 rounded-lg text-sm focus:outline-none focus:border-primary"
                 />
               </div>
@@ -326,6 +364,22 @@ export const UsersPanel: React.FC = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            {hasMore && (
+              <button onClick={loadMore} disabled={isLoadingMore} className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest min-h-11">
+                {isLoadingMore ? 'Loading…' : 'Load more learners'}
+              </button>
+            )}
+            {userSearch.includes('@') && (
+              <button
+                onClick={async () => { const found = await findByEmail(userSearch).catch(() => -1); setLookupMessage(found < 0 ? 'Could not look that email up. Try again.' : found === 0 ? 'No learner has exactly that email.' : 'Found it, shown above.'); }}
+                className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest min-h-11"
+              >
+                Look up this exact email
+              </button>
+            )}
+            {lookupMessage && <span role="status" className="text-xs text-white/50">{lookupMessage}</span>}
           </div>
         </motion.div>
       )}
