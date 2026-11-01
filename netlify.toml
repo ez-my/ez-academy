@@ -4,6 +4,9 @@
 
 [build.environment]
   NODE_VERSION = "22"
+  # These values name a public form and URL embedded in the site by design.
+  # Keep scanning all actual credentials in production builds.
+  SECRETS_SCAN_OMIT_KEYS = "OPS_EMAIL_FORM_NAME,OPS_EMAIL_FORM_URL"
 
 [functions]
   directory = "netlify/functions"
