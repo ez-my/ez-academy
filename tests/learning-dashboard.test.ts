@@ -1,14 +1,24 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {dashboardAccess} from '../src/server/dashboardAccess';
+import {consumePracticeWithReward} from '../src/server/practicePolicy';
 import {nextPracticeDay} from '../src/data/practiceLimits';
 import {englishJourney} from '../src/lib/englishJourney';
 import {DAILY_WORDS,ALL_VOCABULARY,vocabularyForDay} from '../src/data/dailyVocabulary';
 
-test('Free has one shared two-practice allowance, not two per skill',()=>{
+test('Free has two shared practices but only one SpeakEZ practice per day',()=>{
  const d=dashboardAccess({plan:'free'},{},{used:1,bySkill:{speak:1}});
- assert.equal(d.sharedRemaining,1);for(const s of Object.values(d.skills)){assert.equal(s.remaining,1);assert.equal(s.shared,true);}
+ assert.equal(d.sharedRemaining,1);for(const [skill,s] of Object.entries(d.skills)){assert.equal(s.remaining,skill==='speak'?0:1);assert.equal(s.shared,true);}
+ assert.equal(d.skills.speak.limit,1);
  assert.equal(d.skills.read.used,0);assert.equal(d.planLabel,'Free');
+});
+test('Free SpeakEZ second start is blocked even with reward credits; paid plans keep their allowance',()=>{
+ const day='2026-11-02',usage={used:1,bySkill:{speak:1}};
+ assert.throws(()=>consumePracticeWithReward({plan:'free'},{rewardPracticeCredits:2},usage,day,'speak'),(e:any)=>e.status===429&&e.freeSpeakDailyLimit);
+ const second=consumePracticeWithReward({plan:'free'},{},usage,day,'read');
+ assert.equal(second.updated.used,2);
+ const paid=consumePracticeWithReward({plan:'pro',planExpiresAt:200},{},usage,day,'speak',false,100);
+ assert.equal(paid.updated.bySkill.speak,2);
 });
 test('paid, Focus and expired accounts display actual package limits',()=>{
  const d=dashboardAccess({plan:'free'},{version:2,planId:'pro',expiresAt:200},{bySkill:{speak:2}},100);

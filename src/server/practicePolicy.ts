@@ -9,6 +9,7 @@ export function assertPracticeAllowed(paid:boolean,used:number,mock=false){
 export function assertSkillPractice(profile:any,ledger:any,data:any,skill:string,mock=false,now=Date.now()){
  const access=skillAccess(profile,ledger,skill,now);
  if(mock&&!access.fullTests)throw Object.assign(Error('Full tests are not included in your plan for this skill.'),{status:403});
+ if(skill==='speak'&&!access.paid&&Number(data?.bySkill?.speak||0)>=1)throw Object.assign(Error('Your free SpeakEZ practice is used today. Come back tomorrow or upgrade.'),{status:429,freeSpeakDailyLimit:true});
  assertPracticeAllowed(access.paid,Number(data?.used||0));
  if(access.extraFree){const quota=practiceQuota(access,data);if((mock?quota.paidRemaining:quota.remaining)<=0)throw Object.assign(Error('Your plan practices and available free practices are used today. Come back tomorrow.'),{status:429});return access;}
  if(access.paid&&Number(data?.bySkill?.[skill]||0)>=access.limit)throw Object.assign(Error('Your daily practice limit for this skill is used. Come back tomorrow.'),{status:429});
@@ -33,7 +34,7 @@ export function consumePracticeDay(profile:any,ledger:any,data:any,day:string,sk
 export function consumePracticeWithReward(profile:any,ledger:any,data:any,day:string,skill:string,mock=false,now=Date.now()){
  try{return {updated:consumePracticeDay(profile,ledger,data,day,skill,mock,now),rewardCreditUsed:false};}
  catch(error:any){
-  if(error.status!==429||mock||Number(ledger.rewardPracticeCredits||0)<=0)throw error;
+  if(error.status!==429||error.freeSpeakDailyLimit||mock||Number(ledger.rewardPracticeCredits||0)<=0)throw error;
   return {updated:{...data,day,used:Number(data?.used||0),bySkill:{...data?.bySkill,[skill]:Number(data?.bySkill?.[skill]||0)+1}},rewardCreditUsed:true};
  }
 }

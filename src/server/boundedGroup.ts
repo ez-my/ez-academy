@@ -16,7 +16,10 @@ export async function boundedGroup(db:Firestore,group:string,field:string,start:
     const unique=new Map([...a.docs,...b.docs].map(d=>[d.ref.path,d]));
     if(a.size>10000||b.size>10000)warnings.push('High activity: this report may be incomplete.');
     return [...unique.values()];
-  }catch{
+  }catch(error:any){
+    // The warning alone never said whether this was a missing index, a permission
+    // problem or an exhausted quota, so every cause looked identical in production.
+    console.error(`[boundedGroup] ${group}.${field} code=${error?.code||'-'} message=${String(error?.message||error).slice(0,300)}`);
     warnings.push(`Could not load ${group}. This report is incomplete.`);
     return [];
   }

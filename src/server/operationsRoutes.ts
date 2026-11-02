@@ -10,6 +10,23 @@ export const SUPPORT_FAQ=[
  {id:'login',title:'Akaun sedia ada',answer:'Gunakan akaun dan kaedah login asal. Anda tidak perlu daftar semula. Cuba log keluar dan masuk semula jika sesi tamat. Jangan hantar kata laluan atau API key dalam laporan.'},
  {id:'sharing',title:'Achievement & perkongsian',answer:'Ganjaran perkongsian hanya sekali sehari. Gunakan butang share achievement dan ikut pengesahan yang dipaparkan. Pautan WhatsApp bukan pengesahan bayaran.'},
 ];
+// The monitor page polls /api/admin/operations every 30 seconds. Reading every
+// SUCCESS transaction on each poll grew with total sales and could spend a whole day of
+// Firestore reads from one open tab. Keep the scan small and cache across polls;
+// signal when the displayed revenue is incomplete.
+export const REVENUE_SCAN_LIMIT=100;
+const REVENUE_TTL_MS=600_000;
+let revenueCache:{at:number;value:{revenueRM:number;incomplete:boolean}}|null=null;
+export function clearRevenueCache(){revenueCache=null;}
+export async function monthlyRevenue(db:Firestore,now=Date.now()){
+ if(revenueCache&&now-revenueCache.at<REVENUE_TTL_MS)return revenueCache.value;
+ const monthStart=new Date(now);monthStart.setUTCDate(1);monthStart.setUTCHours(0,0,0,0);
+ const txs=await db.collection('transactions').where('status','==','SUCCESS').limit(REVENUE_SCAN_LIMIT).get();
+ const revenueRM=txs.docs.filter(d=>(d.data().reconciledAt?.toMillis?.()||d.data().paidAt?.toMillis?.()||d.data().createdAt?.toMillis?.()||0)>=monthStart.getTime()).reduce((s,d)=>s+Number(d.data().amountInCents||Number(d.data().amount||0)*100)/100,0);
+ const value={revenueRM,incomplete:txs.size>REVENUE_SCAN_LIMIT-1};
+ revenueCache={at:now,value};
+ return value;
+}
 export function registerOperationsRoutes(app:Express,db:Firestore){
  app.get('/api/operations/audio-check',(_req,res)=>res.set('Cache-Control','no-store').type('audio/wav').send(operationsAudioCanary()));
  app.get('/api/support/faq',(_req,res)=>res.json(SUPPORT_FAQ));
@@ -24,12 +41,9 @@ export function registerOperationsRoutes(app:Express,db:Firestore){
  });
  app.use('/api/admin/operations',async(req,res,next)=>{try{if(!isAuthorizedAdmin(await authenticateFirebaseUser(req)))return res.sendStatus(403);res.set('Cache-Control','no-store');return next();}catch{return res.sendStatus(403);}});
  app.get('/api/admin/operations',async(_req,res)=>{
-  try{const [latest,config,reports]=await Promise.all([db.doc('operations/latest').get(),opsConfig(db),db.collection('support_reports').where('status','==','open').limit(40).get()]);
-   const monthStart=new Date();monthStart.setUTCDate(1);monthStart.setUTCHours(0,0,0,0);
-   const txs=await db.collection('transactions').where('status','==','SUCCESS').get();
-   const revenueRM=txs.docs.filter(d=>(d.data().reconciledAt?.toMillis?.()||d.data().paidAt?.toMillis?.()||d.data().createdAt?.toMillis?.()||0)>=monthStart.getTime()).reduce((s,d)=>s+Number(d.data().amountInCents||Number(d.data().amount||0)*100)/100,0);
-   return res.json({latest:latest.data()||null,config,revenueRM,reports:reports.docs.map(d=>({id:d.id,...d.data()})).sort((a:any,b:any)=>b.createdAt-a.createdAt)});
-  }catch{return res.status(503).json({error:'Operations status unavailable'});}
+  try{const [latest,config,reports,revenue]=await Promise.all([db.doc('operations/latest').get(),opsConfig(db),db.collection('support_reports').where('status','==','open').limit(40).get(),monthlyRevenue(db)]);
+   return res.json({latest:latest.data()||null,config,revenueRM:revenue.revenueRM,revenueIncomplete:revenue.incomplete,reports:reports.docs.map(d=>({id:d.id,...d.data()})).sort((a:any,b:any)=>b.createdAt-a.createdAt)});
+  }catch(e:any){console.error(`[operations] status code=${e?.code||'-'} message=${String(e?.message||e).slice(0,300)}`);return res.status(503).json({error:'Operations status unavailable'});}
  });
  app.post('/api/admin/operations/run',async(_req,res)=>{try{if(!process.env.OPS_RUN_SECRET)throw new Error();const response=await fetch('https://ez-academy-2-preview.netlify.app/.netlify/functions/ops-background',{method:'POST',headers:{authorization:`Bearer ${process.env.OPS_RUN_SECRET}`,'Content-Type':'application/json'},body:JSON.stringify({force:true}),signal:AbortSignal.timeout(10000)});if(!response.ok)throw new Error();return res.json({message:'Check queued. Status refreshes automatically within 30 seconds.'});}catch{return res.status(503).json({error:'Check could not be queued. View Netlify Functions.'});}});
  app.post('/api/admin/operations/diagnose',async(_req,res)=>{

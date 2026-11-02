@@ -14218,6 +14218,7 @@ function assertPracticeAllowed(paid, used, mock = false) {
 function assertSkillPractice(profile, ledger, data, skill, mock = false, now = Date.now()) {
   const access = skillAccess(profile, ledger, skill, now);
   if (mock && !access.fullTests) throw Object.assign(Error("Full tests are not included in your plan for this skill."), { status: 403 });
+  if (skill === "speak" && !access.paid && Number(data?.bySkill?.speak || 0) >= 1) throw Object.assign(Error("Your free SpeakEZ practice is used today. Come back tomorrow or upgrade."), { status: 429, freeSpeakDailyLimit: true });
   assertPracticeAllowed(access.paid, Number(data?.used || 0));
   if (access.extraFree) {
     const quota = practiceQuota(access, data);
@@ -14251,7 +14252,7 @@ function consumePracticeWithReward(profile, ledger, data, day, skill, mock = fal
   try {
     return { updated: consumePracticeDay(profile, ledger, data, day, skill, mock, now), rewardCreditUsed: false };
   } catch (error2) {
-    if (error2.status !== 429 || mock || Number(ledger.rewardPracticeCredits || 0) <= 0) throw error2;
+    if (error2.status !== 429 || error2.freeSpeakDailyLimit || mock || Number(ledger.rewardPracticeCredits || 0) <= 0) throw error2;
     return { updated: { ...data, day, used: Number(data?.used || 0), bySkill: { ...data?.bySkill, [skill]: Number(data?.bySkill?.[skill] || 0) + 1 } }, rewardCreditUsed: true };
   }
 }
@@ -14265,6 +14266,7 @@ function dashboardAccess(profile, ledger, usage, now = Date.now()) {
       const q = practiceQuota(a, usage);
       return [skill, { ...a, planLimit: a.limit, limit: a.limit + 2 + extra, shared: true, used: a.limit + 2 - q.remaining, remaining: q.remaining + extra, paidRemaining: q.paidRemaining, freeRemaining: q.freeRemaining, rewardRemaining: extra }];
     }
+    if (skill === "speak" && !a.paid) return [skill, { ...a, limit: 1, shared: true, used, remaining: Math.min(Math.max(0, 1 - used), Math.max(0, 2 - Number(usage.used || 0))) }];
     return [skill, { ...a, shared: !a.paid, used, remaining: Math.max(0, a.limit - (a.paid ? used : Number(usage.used || 0))) + extra, rewardRemaining: extra }];
   }));
   const bundle = currentPurchase(ledger, now);
@@ -14820,6 +14822,10 @@ function vocabularyForDay(day) {
 }
 
 // src/server/dashboardRoutes.ts
+var fail = (res, stage, error2, message2) => {
+  console.error(`[dashboard] ${stage} code=${error2?.code || "-"} message=${String(error2?.message || error2).slice(0, 300)}`);
+  return res.status(503).json({ error: message2 });
+};
 function registerDashboardRoutes(app, db, { verify = authenticateFirebaseUser, now = Date.now } = {}) {
   app.get("/api/dashboard/today", async (req, res) => {
     res.set("Cache-Control", "private, no-store");
@@ -14829,8 +14835,8 @@ function registerDashboardRoutes(app, db, { verify = authenticateFirebaseUser, n
       const day = malaysiaPracticeDay(now());
       const [p, l, d, v, words] = await Promise.all([db.doc(`users/${u.uid}`).get(), db.doc(`package_entitlements/${u.uid}`).get(), db.doc(`practice_days/${u.uid}_${day}`).get(), db.doc(`dashboard_vocabulary/${u.uid}/words/${vocabularyForDay(day).id}`).get(), db.collection(`dashboard_vocabulary/${u.uid}/words`).where("saved", "==", true).count().get()]);
       res.json({ day, savedWordCount: words.data().count, ...dashboardAccess(p.data() || {}, l.data() || {}, d.data() || {}), word: vocabularyForDay(day), vocabulary: v.data() || {} });
-    } catch {
-      res.status(503).json({ error: "Could not load today\u2019s balance. Try again." });
+    } catch (error2) {
+      fail(res, "today", error2, "Could not load today\u2019s balance. Try again.");
     }
   });
   app.get("/api/dashboard/vocabulary", async (req, res) => {
@@ -14840,8 +14846,8 @@ function registerDashboardRoutes(app, db, { verify = authenticateFirebaseUser, n
       if (!u) return res.sendStatus(401);
       const snapshot = await db.collection(`dashboard_vocabulary/${u.uid}/words`).where("saved", "==", true).limit(200).get();
       res.json({ words: snapshot.docs.filter((d) => d.data().saved).map((d) => ({ ...ALL_VOCABULARY.find((w) => w.id === d.id), ...d.data() })).filter((w) => w.word) });
-    } catch {
-      res.status(503).json({ error: "Could not load saved words. Try again." });
+    } catch (error2) {
+      fail(res, "vocabulary-list", error2, "Could not load saved words. Try again.");
     }
   });
   app.post("/api/dashboard/vocabulary", async (req, res) => {
@@ -14852,8 +14858,8 @@ function registerDashboardRoutes(app, db, { verify = authenticateFirebaseUser, n
       if (!ALL_VOCABULARY.some((w) => w.id === wordId) || typeof saved !== "boolean" || typeof sentence !== "string" || sentence.length > 500) return res.status(400).json({ error: "Check your sentence and try again." });
       await db.doc(`dashboard_vocabulary/${u.uid}/words/${wordId}`).set({ saved, sentence, updatedAt: Date.now() });
       res.json({ saved: true });
-    } catch {
-      res.status(503).json({ error: "Could not save this word. Your sentence is still here." });
+    } catch (error2) {
+      fail(res, "vocabulary-save", error2, "Could not save this word. Your sentence is still here.");
     }
   });
 }
@@ -14936,7 +14942,8 @@ async function boundedGroup(db, group, field, start, end, warnings) {
     const unique = new Map([...a.docs, ...b.docs].map((d) => [d.ref.path, d]));
     if (a.size > 1e4 || b.size > 1e4) warnings.push("High activity: this report may be incomplete.");
     return [...unique.values()];
-  } catch {
+  } catch (error2) {
+    console.error(`[boundedGroup] ${group}.${field} code=${error2?.code || "-"} message=${String(error2?.message || error2).slice(0, 300)}`);
     warnings.push(`Could not load ${group}. This report is incomplete.`);
     return [];
   }
@@ -15955,7 +15962,7 @@ function registerMUETBankRoutes(app, db, overrides) {
       throw error("Please sign in again.", 401);
     }
   };
-  const fail = (res, e) => res.status(e.status || 503).json({ error: e.status ? e.message : "The question bank is unavailable. Please try again." });
+  const fail2 = (res, e) => res.status(e.status || 503).json({ error: e.status ? e.message : "The question bank is unavailable. Please try again." });
   async function seed() {
     const ref = db.doc(`muet_bank_meta/${revision}`);
     if ((await ref.get()).exists) return;
@@ -16035,7 +16042,7 @@ function registerMUETBankRoutes(app, db, overrides) {
       }
       res.json({ topics: available, total: data.topics.length, completed: data.topics.length - available.length });
     } catch (e) {
-      fail(res, e);
+      fail2(res, e);
     }
   });
   app.post("/api/muet/start", async (req, res) => {
@@ -16061,7 +16068,7 @@ function registerMUETBankRoutes(app, db, overrides) {
       });
       res.json(result);
     } catch (e) {
-      fail(res, e);
+      fail2(res, e);
     }
   });
   app.post("/api/muet/complete", async (req, res) => {
@@ -16080,7 +16087,7 @@ function registerMUETBankRoutes(app, db, overrides) {
       });
       res.json({ saved: true });
     } catch (e) {
-      fail(res, e);
+      fail2(res, e);
     }
   });
 }
@@ -27830,7 +27837,7 @@ function registerPracticeRoutes(app, db, verifyOverride, rights = mayDisplayTria
       throw Object.assign(Error("Please sign in again."), { status: 401 });
     }
   };
-  const fail = (res, e) => res.status(e.status || 503).json({ error: e.status ? e.message : "Could not save practice. Check your connection and try again." });
+  const fail2 = (res, e) => res.status(e.status || 503).json({ error: e.status ? e.message : "Could not save practice. Check your connection and try again." });
   const history = async (uid) => {
     const [snaps, locks] = await Promise.all([db.collection(`users/${uid}/sessions`).get(), db.collection(`practice_progress/${uid}/tests`).get()]);
     const progress = {};
@@ -27855,7 +27862,7 @@ function registerPracticeRoutes(app, db, verifyOverride, rights = mayDisplayTria
       const [daily, progress, p, l] = await Promise.all([db.doc(`practice_days/${u.uid}_${day}`).get(), history(u.uid), db.doc(`users/${u.uid}`).get(), db.doc(`package_entitlements/${u.uid}`).get()]);
       res.json({ day, used: daily.data()?.used || 0, progress, ...dashboardAccess(p.data() || {}, l.data() || {}, daily.data() || {}), paidSkills: Object.fromEntries(PRACTICE_SKILLS.map((skill) => [skill, hasPaidPractice(p.data() || {}, l.data() || {}, skill)])) });
     } catch (e) {
-      fail(res, e);
+      fail2(res, e);
     }
   });
   app.post("/api/practice/start", async (req, res) => {
@@ -27881,7 +27888,7 @@ function registerPracticeRoutes(app, db, verifyOverride, rights = mayDisplayTria
       });
       res.json(result);
     } catch (e) {
-      fail(res, e);
+      fail2(res, e);
     }
   });
   for (const [kind, skill, build] of [["reading", "read", buildReadingSession], ["listening", "listen", buildListeningSession]]) {
@@ -27919,7 +27926,7 @@ function registerPracticeRoutes(app, db, verifyOverride, rights = mayDisplayTria
         });
         res.json({ saved: true, result: saved.readingResult || saved.listeningResult });
       } catch (e) {
-        fail(res, e);
+        fail2(res, e);
       }
     });
   }
@@ -28296,7 +28303,7 @@ function registerCommunityRoutes(app, db, adminEmail, verifyOverride) {
       throw Object.assign(Error("Please sign in again."), { status: 401 });
     }
   };
-  const fail = (res, error2) => res.status(error2.status || 503).json({ error: error2.status ? error2.message : "Something went wrong. Please try again." });
+  const fail2 = (res, error2) => res.status(error2.status || 503).json({ error: error2.status ? error2.message : "Something went wrong. Please try again." });
   app.get("/api/leaderboard", async (req, res) => {
     res.set("Cache-Control", "private, no-store");
     try {
@@ -28309,7 +28316,7 @@ function registerCommunityRoutes(app, db, adminEmail, verifyOverride) {
       );
       return res.json({ success: true, leaderboard: rows2 });
     } catch (error2) {
-      if (error2.status === 401) return fail(res, error2);
+      if (error2.status === 401) return fail2(res, error2);
       console.error("Leaderboard failed:", error2);
       return res.status(200).json({ success: false, error: "The leaderboard is temporarily unavailable.", leaderboard: [] });
     }
@@ -28322,7 +28329,7 @@ function registerCommunityRoutes(app, db, adminEmail, verifyOverride) {
       const day = malaysiaPracticeDay();
       return res.json({ day, max: SHARE_REWARD_MAX_PER_ACCOUNT, ...shareAvailability(readShareState(snapshot.data()), day) });
     } catch (error2) {
-      return fail(res, error2);
+      return fail2(res, error2);
     }
   });
   app.post("/api/share/claim", async (req, res) => {
@@ -28355,7 +28362,7 @@ function registerCommunityRoutes(app, db, adminEmail, verifyOverride) {
       if (!outcome.granted) return res.status(429).json({ error: outcome.message, remaining: outcome.remaining });
       return res.json({ granted: true, message: outcome.message, remaining: outcome.remaining });
     } catch (error2) {
-      return fail(res, error2);
+      return fail2(res, error2);
     }
   });
 }
@@ -28566,6 +28573,20 @@ var SUPPORT_FAQ = [
   { id: "login", title: "Akaun sedia ada", answer: "Gunakan akaun dan kaedah login asal. Anda tidak perlu daftar semula. Cuba log keluar dan masuk semula jika sesi tamat. Jangan hantar kata laluan atau API key dalam laporan." },
   { id: "sharing", title: "Achievement & perkongsian", answer: "Ganjaran perkongsian hanya sekali sehari. Gunakan butang share achievement dan ikut pengesahan yang dipaparkan. Pautan WhatsApp bukan pengesahan bayaran." }
 ];
+var REVENUE_SCAN_LIMIT = 100;
+var REVENUE_TTL_MS = 6e5;
+var revenueCache = null;
+async function monthlyRevenue(db, now = Date.now()) {
+  if (revenueCache && now - revenueCache.at < REVENUE_TTL_MS) return revenueCache.value;
+  const monthStart = new Date(now);
+  monthStart.setUTCDate(1);
+  monthStart.setUTCHours(0, 0, 0, 0);
+  const txs = await db.collection("transactions").where("status", "==", "SUCCESS").limit(REVENUE_SCAN_LIMIT).get();
+  const revenueRM = txs.docs.filter((d) => (d.data().reconciledAt?.toMillis?.() || d.data().paidAt?.toMillis?.() || d.data().createdAt?.toMillis?.() || 0) >= monthStart.getTime()).reduce((s, d) => s + Number(d.data().amountInCents || Number(d.data().amount || 0) * 100) / 100, 0);
+  const value = { revenueRM, incomplete: txs.size > REVENUE_SCAN_LIMIT - 1 };
+  revenueCache = { at: now, value };
+  return value;
+}
 function registerOperationsRoutes(app, db) {
   app.get("/api/operations/audio-check", (_req, res) => res.set("Cache-Control", "no-store").type("audio/wav").send(operationsAudioCanary()));
   app.get("/api/support/faq", (_req, res) => res.json(SUPPORT_FAQ));
@@ -28600,14 +28621,10 @@ function registerOperationsRoutes(app, db) {
   });
   app.get("/api/admin/operations", async (_req, res) => {
     try {
-      const [latest, config, reports] = await Promise.all([db.doc("operations/latest").get(), opsConfig(db), db.collection("support_reports").where("status", "==", "open").limit(40).get()]);
-      const monthStart = /* @__PURE__ */ new Date();
-      monthStart.setUTCDate(1);
-      monthStart.setUTCHours(0, 0, 0, 0);
-      const txs = await db.collection("transactions").where("status", "==", "SUCCESS").get();
-      const revenueRM = txs.docs.filter((d) => (d.data().reconciledAt?.toMillis?.() || d.data().paidAt?.toMillis?.() || d.data().createdAt?.toMillis?.() || 0) >= monthStart.getTime()).reduce((s, d) => s + Number(d.data().amountInCents || Number(d.data().amount || 0) * 100) / 100, 0);
-      return res.json({ latest: latest.data() || null, config, revenueRM, reports: reports.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => b.createdAt - a.createdAt) });
-    } catch {
+      const [latest, config, reports, revenue] = await Promise.all([db.doc("operations/latest").get(), opsConfig(db), db.collection("support_reports").where("status", "==", "open").limit(40).get(), monthlyRevenue(db)]);
+      return res.json({ latest: latest.data() || null, config, revenueRM: revenue.revenueRM, revenueIncomplete: revenue.incomplete, reports: reports.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => b.createdAt - a.createdAt) });
+    } catch (e) {
+      console.error(`[operations] status code=${e?.code || "-"} message=${String(e?.message || e).slice(0, 300)}`);
       return res.status(503).json({ error: "Operations status unavailable" });
     }
   });
